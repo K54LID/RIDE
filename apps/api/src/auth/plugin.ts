@@ -1,51 +1,68 @@
-import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
+import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { verifyInitData, InitDataError } from './telegram.js';
 import { config } from '../config.js';
 import { sql } from '../lib/db.js';
+import { forbidden, unauthorized } from '../lib/errors.js';
+
+export type AccountRole = 'user' | 'moderator' | 'admin';
 
 declare module 'fastify' {
   interface FastifyRequest {
-    accountId?: string;
-    role?: 'user' | 'moderator' | 'admin';
+    accountId: string | null;
+    role: AccountRole | null;
   }
+  interface FastifyInstance {
+    requireAuth: (req: FastifyRequest, reply: FastifyReply) => Promise<void>;
+  }
+}
+
+interface AccountRow {
+  account_id: string;
+  role: AccountRole;
+  status: string;
 }
 
 /**
  * Resolves the Telegram identity to an internal account id and attaches
  * ONLY that id to the request. telegram_id never travels further up the
- * stack, so no route handler can accidentally serialise it into a
- * response.
+ * stack, so no route handler can accidentally serialise it.
  */
-async function resolveAccount(telegramId: number, isPremium: boolean, lang?: string) {
-  const rows = await sql<{ account_id: string; role: string; status: string }[]>`
-    SELECT a.id AS account_id, a.role::text, a.status::text
+async function resolveAccount(
+  telegramId: number,
+  isPremium: boolean,
+  lang: string | null,
+): Promise<AccountRow | null> {
+  const rows = await sql<AccountRow[]>`
+    SELECT a.id AS account_id, a.role::text AS role, a.status::text AS status
     FROM telegram_identities ti
     JOIN accounts a ON a.id = ti.account_id
     WHERE ti.telegram_id = ${telegramId}
   `;
 
-  if (rows.length === 0) return null;
+  const row = rows[0];
+  if (!row) return null;
 
-  const row = rows[0]!;
-  // Fire-and-forget freshness updates; never block the request path.
+  // Fire-and-forget freshness update; never block the request path.
   void sql`
     UPDATE telegram_identities
-    SET is_premium = ${isPremium}, language_code = ${lang ?? null}
+    SET is_premium = ${isPremium}, language_code = ${lang}
     WHERE telegram_id = ${telegramId}
-  `.catch(() => {});
+  `.catch(() => undefined);
 
   return row;
 }
 
 const authPlugin: FastifyPluginAsync = async (app) => {
-  app.decorateRequest('accountId', undefined);
-  app.decorateRequest('role', undefined);
+  // Fastify v5 requires a concrete default value; `undefined` is not
+  // accepted, which is why these are `null` rather than optional.
+  app.decorateRequest('accountId', null);
+  app.decorateRequest('role', null);
 
   app.decorate('requireAuth', async (req: FastifyRequest) => {
-    const header = req.headers['authorization'];
+    const header = req.headers.authorization;
     if (typeof header !== 'string' || !header.startsWith('tma ')) {
-      throw app.httpErrors.unauthorized('Missing initData');
+      throw unauthorized('MISSING_INIT_DATA');
     }
 
     let verified;
@@ -53,9 +70,9 @@ const authPlugin: FastifyPluginAsync = async (app) => {
       verified = verifyInitData(header.slice(4), config.TELEGRAM_BOT_TOKEN);
     } catch (err) {
       if (err instanceof InitDataError) {
-        // Log the code, never the raw initData — it contains user data.
+        // Log the code, never the raw initData — it carries user data.
         req.log.warn({ code: err.code }, 'initData rejected');
-        throw app.httpErrors.unauthorized('Invalid initData');
+        throw unauthorized('INVALID_INIT_DATA');
       }
       throw err;
     }
@@ -63,20 +80,20 @@ const authPlugin: FastifyPluginAsync = async (app) => {
     const account = await resolveAccount(
       verified.user.id,
       verified.user.is_premium ?? false,
-      verified.user.language_code,
+      verified.user.language_code ?? null,
     );
 
     if (!account) {
-      // Signature is valid but no account yet — the client should route
-      // into onboarding rather than treat this as an auth failure.
-      throw app.httpErrors.forbidden('ONBOARDING_REQUIRED');
+      // Signature valid, no account yet — the client routes into
+      // onboarding rather than treating this as an auth failure.
+      throw forbidden('ONBOARDING_REQUIRED');
     }
     if (account.status === 'banned' || account.status === 'deleted') {
-      throw app.httpErrors.forbidden('ACCOUNT_UNAVAILABLE');
+      throw forbidden('ACCOUNT_UNAVAILABLE');
     }
 
     req.accountId = account.account_id;
-    req.role = account.role as 'user' | 'moderator' | 'admin';
+    req.role = account.role;
   });
 };
 

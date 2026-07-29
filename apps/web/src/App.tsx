@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { apiFetch } from './api.js';
+import { apiFetch, ApiError } from './api';
 
 type Me = { display_name: string; court_value: number; coin_balance: number };
 
@@ -14,9 +14,13 @@ export default function App() {
 
   useEffect(() => {
     apiFetch<Me>('/v1/me')
-      .then((data) => { setMe(data); setState('ready'); })
-      .catch((err: Error) => {
-        setState(err.message === 'ONBOARDING_REQUIRED' ? 'onboarding' : 'error');
+      .then((data) => {
+        setMe(data);
+        setState('ready');
+      })
+      .catch((err: unknown) => {
+        const onboarding = err instanceof ApiError && err.code === 'ONBOARDING_REQUIRED';
+        setState(onboarding ? 'onboarding' : 'error');
       });
   }, []);
 
@@ -27,7 +31,9 @@ export default function App() {
   return (
     <main>
       <h1>{me?.display_name}</h1>
-      <p>Court value {me?.court_value} · {me?.coin_balance} coins</p>
+      <p>
+        Court value {me?.court_value} · {me?.coin_balance} coins
+      </p>
     </main>
   );
 }

@@ -3,9 +3,10 @@ FROM node:22-alpine AS build
 ARG VITE_API_BASE
 ENV VITE_API_BASE=$VITE_API_BASE
 WORKDIR /repo
-COPY package.json package-lock.json* ./
+COPY package.json package-lock.json ./
+COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
-RUN npm ci --workspace @ride/web --include-workspace-root
+RUN npm ci
 COPY apps/web apps/web
 RUN npm run build --workspace @ride/web
 

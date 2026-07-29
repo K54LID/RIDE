@@ -1,5 +1,12 @@
 const BASE = import.meta.env.VITE_API_BASE ?? 'https://api.ridethatbot.fun';
 
+export class ApiError extends Error {
+  constructor(readonly status: number, readonly code: string, message: string) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 /**
  * Every request carries the raw initData. The server re-verifies the
  * HMAC on each call, so there is no session token to steal and no
@@ -16,12 +23,16 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     },
   });
 
-  if (res.status === 403) {
-    const body = await res.json().catch(() => ({}));
-    if (body?.message === 'ONBOARDING_REQUIRED') {
-      throw new Error('ONBOARDING_REQUIRED');
-    }
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as
+      | { code?: string; message?: string }
+      | null;
+    throw new ApiError(
+      res.status,
+      body?.code ?? 'UNKNOWN',
+      body?.message ?? res.statusText,
+    );
   }
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json() as Promise<T>;
+
+  return (await res.json()) as T;
 }

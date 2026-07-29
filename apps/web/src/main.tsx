@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App.js';
+import App from './App';
 
 // Telegram expects the app to signal readiness before it reveals the
 // webview; skipping this leaves users on a blank frame.
