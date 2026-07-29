@@ -16,18 +16,53 @@ const app = Fastify({
 });
 
 /**
+ * Extracts an HTTP status from an unknown thrown value.
+ *
+ * Uses `in` narrowing rather than a cast, so nothing is asserted that
+ * TypeScript hasn't verified. Returns null for anything without a usable
+ * client-error status, which the caller treats as a 500.
+ */
+function clientStatusOf(err: unknown): number | null {
+  if (typeof err !== 'object' || err === null) return null;
+  if (!('statusCode' in err)) return null;
+
+  const { statusCode } = err;
+  if (typeof statusCode !== 'number') return null;
+  if (statusCode < 400 || statusCode >= 500) return null;
+
+  return statusCode;
+}
+
+/** Safe message extraction — thrown values are not guaranteed to be Errors. */
+function messageOf(err: unknown): string {
+  return err instanceof Error ? err.message : 'Request failed';
+}
+
+/**
  * Single error shape for the whole API: { code, message }.
  * Clients branch on `code`; `message` is for humans and logs only.
  */
-app.setErrorHandler((err, req, reply) => {
+app.setErrorHandler((err: unknown, req, reply) => {
   if (err instanceof HttpError) {
-    return reply.status(err.statusCode).send({ code: err.code, message: err.message });
+    return reply
+      .status(err.statusCode)
+      .send({ code: err.code, message: err.message });
   }
-  if (err.statusCode && err.statusCode < 500) {
-    return reply.status(err.statusCode).send({ code: 'BAD_REQUEST', message: err.message });
+
+  const status = clientStatusOf(err);
+  if (status !== null) {
+    // Fastify's own validation and rate-limit errors land here.
+    return reply.status(status).send({
+      code: status === 429 ? 'RATE_LIMITED' : 'BAD_REQUEST',
+      message: messageOf(err),
+    });
   }
+
+  // Never leak internal messages to the client.
   req.log.error({ err }, 'unhandled error');
-  return reply.status(500).send({ code: 'INTERNAL', message: 'Something went wrong' });
+  return reply
+    .status(500)
+    .send({ code: 'INTERNAL', message: 'Something went wrong' });
 });
 
 await app.register(helmet, { contentSecurityPolicy: false });
