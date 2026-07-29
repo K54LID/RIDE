@@ -8,7 +8,7 @@ const schema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().min(20),
   TELEGRAM_WEBHOOK_SECRET: z.string().min(16).optional(),
   SESSION_SECRET: z.string().min(32),
-  CORS_ORIGIN: z.string().default('https://app.ridethatbot.fun'),
+  CORS_ORIGIN: z.string().default('https://ridethatbot.fun'),
   LOCATION_GRID_METERS: z.coerce.number().default(500),
 });
 
