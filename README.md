@@ -11,8 +11,8 @@ a Hostinger VPS via Coolify.
 
 ## Domains
 
-    https://ridethatbot.fun   Mini App URL registered with BotFather
-    https://ridethatbot.fun   API + Telegram webhook
+    app.ridethatbot.fun   Mini App URL registered with BotFather
+    api.ridethatbot.fun   API + Telegram webhook
     media.ridethatbot.fun Cloudflare R2 public bucket
 
 ## Non-negotiable invariants

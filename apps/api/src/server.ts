@@ -5,6 +5,7 @@ import rateLimit from '@fastify/rate-limit';
 import { config } from './config.js';
 import { sql } from './lib/db.js';
 import { HttpError } from './lib/errors.js';
+import { runMigrations } from './lib/migrate.js';
 import authPlugin from './auth/plugin.js';
 
 const app = Fastify({
@@ -16,24 +17,18 @@ const app = Fastify({
 });
 
 /**
- * Extracts an HTTP status from an unknown thrown value.
- *
- * Uses `in` narrowing rather than a cast, so nothing is asserted that
- * TypeScript hasn't verified. Returns null for anything without a usable
- * client-error status, which the caller treats as a 500.
+ * Extracts an HTTP status from an unknown thrown value using `in`
+ * narrowing, so nothing is asserted that TypeScript hasn't verified.
  */
 function clientStatusOf(err: unknown): number | null {
   if (typeof err !== 'object' || err === null) return null;
   if (!('statusCode' in err)) return null;
-
   const { statusCode } = err;
   if (typeof statusCode !== 'number') return null;
   if (statusCode < 400 || statusCode >= 500) return null;
-
   return statusCode;
 }
 
-/** Safe message extraction — thrown values are not guaranteed to be Errors. */
 function messageOf(err: unknown): string {
   return err instanceof Error ? err.message : 'Request failed';
 }
@@ -51,19 +46,24 @@ app.setErrorHandler((err: unknown, req, reply) => {
 
   const status = clientStatusOf(err);
   if (status !== null) {
-    // Fastify's own validation and rate-limit errors land here.
     return reply.status(status).send({
       code: status === 429 ? 'RATE_LIMITED' : 'BAD_REQUEST',
       message: messageOf(err),
     });
   }
 
-  // Never leak internal messages to the client.
+  // Never leak internal messages — Postgres errors carry SQL fragments.
   req.log.error({ err }, 'unhandled error');
   return reply
     .status(500)
     .send({ code: 'INTERNAL', message: 'Something went wrong' });
 });
+
+// Schema must exist before the first request arrives. An advisory lock
+// makes this safe when several containers boot at once. Failing here is
+// intentional: serving traffic against a stale schema is worse than not
+// starting at all.
+await runMigrations(sql, (msg) => app.log.info({ scope: 'migrate' }, msg));
 
 await app.register(helmet, { contentSecurityPolicy: false });
 await app.register(cors, {
