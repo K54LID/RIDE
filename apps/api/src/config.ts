@@ -7,6 +7,9 @@ const schema = z.object({
   REDIS_URL: z.string().url(),
   TELEGRAM_BOT_TOKEN: z.string().min(20),
   TELEGRAM_WEBHOOK_SECRET: z.string().min(16).optional(),
+  // Private channel that holds uploaded media. The bot must be an admin
+  // of it. Format: -100xxxxxxxxxx
+  TELEGRAM_STORAGE_CHAT_ID: z.string().min(4),
   SESSION_SECRET: z.string().min(32),
   CORS_ORIGIN: z.string().default('https://ridethatbot.fun'),
   LOCATION_GRID_METERS: z.coerce.number().default(500),

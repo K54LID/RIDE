@@ -4,6 +4,7 @@ import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import { Button, EmptyState, Skeleton } from '../components/ui';
 import { VerifiedMark } from '../components/VerifiedMark';
+import Media from '../components/Media';
 
 function timeAgo(iso: string): string {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -32,6 +33,14 @@ function PostCard({ post, onLike }: { post: Post; onLike: (id: string) => void }
       </div>
 
       {post.body ? <div className="post-body">{post.body}</div> : null}
+
+      {post.media.length > 0 ? (
+        <div className={`post-media ${post.media.length === 2 ? 'two' : post.media.length > 2 ? 'many' : ''}`}>
+          {(post.media as Array<{ id: string; kind: string }>).map((m) => (
+            <Media key={m.id} id={m.id} kind={m.kind} />
+          ))}
+        </div>
+      ) : null}
 
       <div className="post-actions">
         <button aria-pressed={post.liked} onClick={() => onLike(post.id)}>

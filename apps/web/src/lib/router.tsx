@@ -9,14 +9,14 @@ import { useCallback, useEffect, useState } from 'react';
  */
 
 /** Tabs in the bottom bar, left to right. `create` opens a sheet. */
-export type Tab = 'you' | 'chats' | 'create' | 'discover' | 'ranks' | 'home';
+export type Tab = 'home' | 'achievements' | 'chats' | 'create' | 'discover' | 'ranks' | 'you';
 
 /** Routes reachable but not in the bar. */
-export type Route = Tab | 'alerts' | 'wallet' | 'edit';
+export type Route = Tab | 'alerts' | 'wallet' | 'edit' | 'settings' | 'admin';
 
 const ROUTES: Route[] = [
-  'you', 'chats', 'create', 'discover', 'ranks', 'home',
-  'alerts', 'wallet', 'edit',
+  'home', 'achievements', 'chats', 'create', 'discover', 'ranks', 'you',
+  'alerts', 'wallet', 'edit', 'settings', 'admin',
 ];
 
 function read(): Route {

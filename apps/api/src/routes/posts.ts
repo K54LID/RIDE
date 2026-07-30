@@ -10,9 +10,16 @@ import { HttpError } from '../lib/errors.js';
  */
 
 const CreateSchema = z.object({
-  body: z.string().trim().min(1).max(2000),
+  body: z.string().trim().max(2000).optional(),
+  media_ids: z.array(z.string().uuid()).max(10).optional(),
   visibility: z.enum(['public', 'followers', 'friends', 'private']).default('public'),
   place_name: z.string().trim().max(120).optional(),
+}).refine((v) => (v.body && v.body.length > 0) || (v.media_ids && v.media_ids.length > 0), {
+  message: 'A post needs text or media',
+});
+
+const EditSchema = z.object({
+  body: z.string().trim().max(2000),
 });
 
 const postRoutes: FastifyPluginAsync = async (app) => {
@@ -21,16 +28,40 @@ const postRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       throw new HttpError(400, 'INVALID_BODY', parsed.error.issues[0]?.message);
     }
-    const { body, visibility, place_name } = parsed.data;
+    const { body, media_ids, visibility, place_name } = parsed.data;
 
-    const [post] = await sql`
-      INSERT INTO posts (author_id, kind, body, visibility, place_name)
-      VALUES (${req.accountId}, ${place_name ? 'checkin' : 'text'},
-              ${body}, ${visibility}, ${place_name ?? null})
-      RETURNING id, body, visibility::text AS visibility, place_name, created_at
-    `;
+    const post = await sql.begin(async (tx) => {
+      const kind = media_ids && media_ids.length > 0 ? 'media'
+                 : place_name ? 'checkin' : 'text';
+      const [created] = await tx<Array<{ id: string }>>`
+        INSERT INTO posts (author_id, kind, body, visibility, place_name)
+        VALUES (${req.accountId}, ${kind}, ${body ?? null}, ${visibility}, ${place_name ?? null})
+        RETURNING id
+      `;
+
+      if (media_ids && media_ids.length > 0) {
+        // Ownership check inside the transaction: attaching someone
+        // else's upload to your post would otherwise be trivial.
+        const owned = await tx<Array<{ id: string; kind: string }>>`
+          SELECT id, kind::text AS kind FROM media
+          WHERE id = ANY(${media_ids}) AND owner_id = ${req.accountId}
+        `;
+        if (owned.length !== media_ids.length) {
+          throw new HttpError(400, 'MEDIA_NOT_OWNED');
+        }
+        for (const [i, mid] of media_ids.entries()) {
+          const m = owned.find((o) => o.id === mid)!;
+          await tx`
+            INSERT INTO post_media (post_id, media_id, kind, position)
+            VALUES (${created!.id}, ${mid}, ${m.kind}, ${i})
+          `;
+        }
+      }
+      return created!;
+    });
+
     reply.code(201);
-    return post;
+    return { id: post.id };
   });
 
   /**
@@ -73,8 +104,25 @@ const postRoutes: FastifyPluginAsync = async (app) => {
       LIMIT 20
     `;
 
+    const ids = rows.map((r) => r.id as string);
+    const media = ids.length
+      ? await sql<Array<{ post_id: string; media_id: string; kind: string; position: number }>>`
+          SELECT post_id, media_id, kind::text AS kind, position
+          FROM post_media
+          WHERE post_id = ANY(${ids}) AND media_id IS NOT NULL
+          ORDER BY position
+        `
+      : [];
+
+    const byPost = new Map<string, Array<{ id: string; kind: string; url: string }>>();
+    for (const m of media) {
+      const list = byPost.get(m.post_id) ?? [];
+      list.push({ id: m.media_id, kind: m.kind, url: `/v1/media/${m.media_id}` });
+      byPost.set(m.post_id, list);
+    }
+
     return {
-      posts: rows.map((r) => ({ ...r, media: [] })),
+      posts: rows.map((r) => ({ ...r, media: byPost.get(r.id as string) ?? [] })),
       next_cursor: rows.length === 20 ? rows[rows.length - 1]!.created_at : null,
     };
   });
@@ -101,6 +149,21 @@ const postRoutes: FastifyPluginAsync = async (app) => {
     });
 
     return { liked };
+  });
+
+  app.patch('/v1/posts/:id', { preHandler: [app.requireAuth] }, async (req) => {
+    const { id } = req.params as { id: string };
+    const parsed = EditSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new HttpError(400, 'INVALID_BODY', parsed.error.issues[0]?.message);
+    }
+    const rows = await sql`
+      UPDATE posts SET body = ${parsed.data.body}
+      WHERE id = ${id} AND author_id = ${req.accountId} AND deleted_at IS NULL
+      RETURNING id, body
+    `;
+    if (rows.length === 0) throw new HttpError(404, 'POST_NOT_FOUND');
+    return rows[0];
   });
 
   app.delete('/v1/posts/:id', { preHandler: [app.requireAuth] }, async (req, reply) => {

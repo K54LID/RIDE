@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { apiFetch, ApiError } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import { Button } from '../components/ui';
+import { useMediaUpload } from '../lib/useMediaUpload';
 
 type Visibility = 'public' | 'followers' | 'friends' | 'private';
 
@@ -24,6 +25,8 @@ export default function Compose({ onPosted, onCancel }: {
   const [visibility, setVisibility] = useState<Visibility>('public');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const media = useMediaUpload(10);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const publish = async () => {
     setBusy(true);
@@ -31,10 +34,15 @@ export default function Compose({ onPosted, onCancel }: {
     try {
       await apiFetch('/v1/posts', {
         method: 'POST',
-        body: JSON.stringify({ body: body.trim(), visibility }),
+        body: JSON.stringify({
+          body: body.trim() || undefined,
+          media_ids: media.mediaIds.length ? media.mediaIds : undefined,
+          visibility,
+        }),
       });
       tg.notify('success');
       setBody('');
+      media.reset();
       onPosted();
     } catch (err) {
       tg.notify('error');
@@ -64,22 +72,49 @@ export default function Compose({ onPosted, onCancel }: {
         ) : null}
       </label>
 
-      {/* Media is deliberately visible but disabled: hiding it would
-          imply text-only is the finished product. */}
+      {media.items.length > 0 ? (
+        <div className="media-strip">
+          {media.items.map((m) => (
+            <div key={m.localId}
+                 className={`media-thumb ${m.mediaId === null && !m.error ? 'pending' : ''}`}>
+              {m.kind === 'video'
+                ? <video src={m.previewUrl} muted playsInline />
+                : <img src={m.previewUrl} alt="" />}
+              <button className="remove" aria-label={t('common.close')}
+                      onClick={() => { tg.tap('light'); media.remove(m.localId); }}>×</button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/*,video/*"
+        multiple
+        hidden
+        onChange={(e) => { void media.add(e.target.files); e.target.value = ''; }}
+      />
+
       <button
         className="pack"
-        disabled
         style={{ justifyContent: 'flex-start', gap: 12 }}
+        disabled={media.items.length >= 10}
+        onClick={() => { tg.tap('light'); fileInput.current?.click(); }}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-             stroke="var(--faint)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+             stroke="var(--muted)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="5" width="18" height="14" rx="3" />
           <circle cx="8.5" cy="10" r="1.6" />
           <path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5" />
         </svg>
         <span style={{ textAlign: 'start' }}>
-          <div style={{ fontSize: '0.9rem' }}>{t('compose.media')}</div>
-          <div className="hint">{t('common.soon')}</div>
+          <div style={{ fontSize: '0.9rem' }}>{t('compose.addMedia')}</div>
+          <div className="hint">
+            {media.uploading
+              ? `${t('compose.uploading')} ${media.progress}%`
+              : `${media.items.length}/10`}
+          </div>
         </span>
       </button>
 
@@ -100,7 +135,11 @@ export default function Compose({ onPosted, onCancel }: {
 
       {error ? <p className="error">{error}</p> : null}
 
-      <Button onClick={publish} disabled={busy || body.trim().length === 0}>
+      <Button
+        onClick={publish}
+        disabled={busy || media.uploading ||
+                  (body.trim().length === 0 && media.mediaIds.length === 0)}
+      >
         {busy ? t('compose.publishing') : t('compose.publish')}
       </Button>
       <div style={{ height: 10 }} />

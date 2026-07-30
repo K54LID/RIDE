@@ -25,10 +25,11 @@ function ageFrom(birth: string): number | null {
   return a;
 }
 
-export default function Profile({ me, onEdit, onWallet }: {
+export default function Profile({ me, onEdit, onWallet, onSettings }: {
   me: Me;
   onEdit: () => void;
   onWallet: () => void;
+  onSettings: () => void;
 }) {
   const { t, locale, setLocale } = useI18n();
   const age = ageFrom(me.birth_date);
@@ -62,6 +63,15 @@ export default function Profile({ me, onEdit, onWallet }: {
     <div className="screen">
       <div className="head">
         <h1>{t('profile.title')}</h1>
+        <div style={{ display: 'flex', gap: 8 }}>
+        <button className="icon-btn" aria-label={t('settings.title')}
+                onClick={() => { tg.tap('light'); onSettings(); }}>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a1.7 1.7 0 0 0-1.6-1H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 3 8.6a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 3V3a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1.7z" />
+          </svg>
+        </button>
         <button className="icon-btn" aria-label={t('wallet.title')}
                 onClick={() => { tg.tap('light'); onWallet(); }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none"
@@ -70,6 +80,7 @@ export default function Profile({ me, onEdit, onWallet }: {
             <path d="M16 12.5h3" strokeLinecap="round" />
           </svg>
         </button>
+        </div>
       </div>
 
       <div className="card" style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
@@ -129,16 +140,6 @@ export default function Profile({ me, onEdit, onWallet }: {
         </>
       ) : null}
 
-      <div className="eyebrow" style={{ margin: '26px 0 10px' }}>{t('settings.language')}</div>
-      <div className="chips">
-        {(Object.entries(LOCALES) as Array<[Locale, string]>).map(([code, name]) => (
-          <button key={code} type="button" className="chip"
-                  aria-pressed={locale === code}
-                  onClick={() => { tg.select(); setLocale(code); }}>
-            {name}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

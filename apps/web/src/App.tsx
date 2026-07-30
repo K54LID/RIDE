@@ -16,6 +16,9 @@ import EditProfile from './screens/EditProfile';
 import Alerts from './screens/Alerts';
 import Wallet from './screens/Wallet';
 import Compose from './screens/Compose';
+import Achievements from './screens/Achievements';
+import SettingsScreen from './screens/Settings';
+import Admin from './screens/Admin';
 
 type Phase = 'loading' | 'onboarding' | 'ready' | 'error';
 
@@ -70,6 +73,10 @@ export default function App() {
   // Routes that take over the whole screen and hide the bar.
   if (route === 'alerts') return <Alerts onBack={() => go('home')} />;
   if (route === 'wallet') return <Wallet onBack={() => go('you')} onBalanceChange={load} />;
+  if (route === 'settings') {
+    return <SettingsScreen onBack={() => go('you')} onAdmin={() => go('admin')} />;
+  }
+  if (route === 'admin') return <Admin onBack={() => go('settings')} />;
   if (route === 'edit' && me) {
     return <EditProfile me={me} onBack={() => go('you')}
                         onSaved={() => { load(); go('you'); }} />;
@@ -82,11 +89,13 @@ export default function App() {
       {tab === 'home' && (
         <Home key={feedKey} onCompose={() => go('create')} onAlerts={() => go('alerts')} />
       )}
+      {tab === 'achievements' && <Achievements />}
       {tab === 'chats' && <Chats />}
       {tab === 'discover' && <Discover />}
       {tab === 'ranks' && <Ranks />}
       {tab === 'you' && me && (
-        <Profile me={me} onEdit={() => go('edit')} onWallet={() => go('wallet')} />
+        <Profile me={me} onEdit={() => go('edit')} onWallet={() => go('wallet')}
+                 onSettings={() => go('settings')} />
       )}
 
       <BottomNav route={route} onGo={go} />

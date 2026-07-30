@@ -13,6 +13,11 @@ import postRoutes from './routes/posts.js';
 import discoverRoutes from './routes/discover.js';
 import leaderboardRoutes from './routes/leaderboard.js';
 import walletRoutes from './routes/wallet.js';
+import mediaRoutes from './routes/media.js';
+import achievementRoutes from './routes/achievements.js';
+import settingsRoutes from './routes/settings.js';
+import adminRoutes from './routes/admin.js';
+import multipart from '@fastify/multipart';
 
 const app = Fastify({
   logger: {
@@ -67,7 +72,12 @@ await app.register(profileRoutes);
 await app.register(postRoutes);
 await app.register(discoverRoutes);
 await app.register(leaderboardRoutes);
+await app.register(multipart, { limits: { fileSize: 45 * 1024 * 1024, files: 1 } });
 await app.register(walletRoutes);
+await app.register(mediaRoutes);
+await app.register(achievementRoutes);
+await app.register(settingsRoutes);
+await app.register(adminRoutes);
 
 app.get('/health', async () => {
   await sql`SELECT 1`;
