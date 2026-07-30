@@ -1,4 +1,5 @@
-import type { Me } from '../lib/api';
+import { useEffect, useState } from 'react';
+import { apiFetch, type Me, type OwnedGift } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useI18n, LOCALES, type Locale } from '../i18n';
 import CourtCrest, { courtTier } from '../components/CourtCrest';
@@ -37,6 +38,13 @@ export default function Profile({ me, onEdit, onWallet, onSettings }: {
   const isVip = me.vip_until !== null && new Date(me.vip_until) > new Date();
 
   const list = (v: string[] | null) => (v && v.length ? v.join(', ') : null);
+
+  const [gifts, setGifts] = useState<OwnedGift[]>([]);
+  useEffect(() => {
+    apiFetch<{ collection: OwnedGift[] }>('/v1/users/me/gifts')
+      .then((r) => setGifts(r.collection))
+      .catch(() => undefined);
+  }, []);
 
   /**
    * Everything personal lives in one Details block. Scattering the same
@@ -122,6 +130,20 @@ export default function Profile({ me, onEdit, onWallet, onSettings }: {
       <div style={{ marginTop: 14 }}>
         <Button variant="ghost" onClick={onEdit}>{t('profile.edit')}</Button>
       </div>
+
+      {gifts.length > 0 ? (
+        <>
+          <div className="eyebrow" style={{ margin: '26px 0 10px' }}>{t('profile.gifts')}</div>
+          <div className="showcase">
+            {gifts.map((g) => (
+              <div key={g.slug} className="showcase-item" title={g.name}>
+                <span className="showcase-glyph">{g.asset_key}</span>
+                {g.quantity > 1 ? <span className="showcase-count num">{g.quantity}</span> : null}
+              </div>
+            ))}
+          </div>
+        </>
+      ) : null}
 
       <div className="eyebrow" style={{ margin: '26px 0 10px' }}>{t('profile.photos')}</div>
       <ComingSoon title={t('soon.media')} body={t('soon.media.body')} />

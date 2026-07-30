@@ -5,6 +5,7 @@ import { useT } from '../i18n';
 import { Button, ChipGroup, ChipPick, EmptyState, Field, Skeleton } from '../components/ui';
 import ComingSoon from '../components/ComingSoon';
 import PersonCard from '../components/PersonCard';
+import PersonActions from '../components/PersonActions';
 import Sheet from '../components/Sheet';
 
 type View = 'list' | 'map';
@@ -22,12 +23,16 @@ const AGE_BOUNDS: Record<string, [number, number]> = {
   '45–54': [45, 54], '55+': [55, 120],
 };
 
-export default function Discover() {
+export default function Discover({ balance, onBalanceChange }: {
+  balance: number;
+  onBalanceChange: () => void;
+}) {
   const t = useT();
   const [view, setView] = useState<View>('list');
   const [people, setPeople] = useState<Person[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selected, setSelected] = useState<Person | null>(null);
 
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<Sort>('active');
@@ -132,8 +137,31 @@ export default function Discover() {
             : undefined}
         />
       ) : (
-        people.map((p) => <PersonCard key={p.account_id} person={p} />)
+        people.map((p) => (
+          <button key={p.account_id} style={{ all: 'unset', display: 'block', width: '100%' }}
+                  onClick={() => { tg.tap('light'); setSelected(p); }}>
+            <PersonCard person={p} />
+          </button>
+        ))
       )}
+
+      <Sheet open={selected !== null} onClose={() => setSelected(null)}>
+        {selected ? (
+          <>
+            <h2 style={{ marginBottom: 4 }}>{selected.display_name}</h2>
+            <p style={{ fontSize: '0.85rem' }}>
+              {[selected.age, selected.gender, selected.distance].filter(Boolean).join(' · ')}
+            </p>
+            {selected.bio ? <p style={{ marginTop: 10, color: 'var(--ink)' }}>{selected.bio}</p> : null}
+            <PersonActions
+              targetId={selected.account_id}
+              courtValue={selected.court_value}
+              balance={balance}
+              onChange={() => { onBalanceChange(); load(); }}
+            />
+          </>
+        ) : null}
+      </Sheet>
 
       <Sheet open={filtersOpen} onClose={() => setFiltersOpen(false)}>
         <h2 style={{ marginBottom: 16 }}>{t('common.filters')}</h2>

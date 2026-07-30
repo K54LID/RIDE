@@ -91,7 +91,9 @@ export default function App() {
       )}
       {tab === 'achievements' && <Achievements />}
       {tab === 'chats' && <Chats />}
-      {tab === 'discover' && <Discover />}
+      {tab === 'discover' && (
+        <Discover balance={me?.coin_balance ?? 0} onBalanceChange={load} />
+      )}
       {tab === 'ranks' && <Ranks />}
       {tab === 'you' && me && (
         <Profile me={me} onEdit={() => go('edit')} onWallet={() => go('wallet')}

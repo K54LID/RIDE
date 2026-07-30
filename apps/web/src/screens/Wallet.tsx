@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiFetch, ApiError, type WalletState } from '../lib/api';
+import { apiFetch, ApiError, type WalletState, type DailyState, type ReferralState } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import { Button, EmptyState, Skeleton } from '../components/ui';
@@ -12,6 +12,8 @@ export default function Wallet({ onBack, onBalanceChange }: {
   const [state, setState] = useState<WalletState | null>(null);
   const [failed, setFailed] = useState(false);
   const [busyPack, setBusyPack] = useState<string | null>(null);
+  const [daily, setDaily] = useState<DailyState | null>(null);
+  const [ref, setRef] = useState<ReferralState | null>(null);
 
   useEffect(() => tg.backButton(onBack), [onBack]);
 
@@ -20,6 +22,8 @@ export default function Wallet({ onBack, onBalanceChange }: {
     apiFetch<WalletState>('/v1/wallet')
       .then(setState)
       .catch(() => setFailed(true));
+    apiFetch<DailyState>('/v1/daily').then(setDaily).catch(() => undefined);
+    apiFetch<ReferralState>('/v1/referral').then(setRef).catch(() => undefined);
   }, []);
 
   useEffect(load, [load]);
@@ -86,7 +90,55 @@ export default function Wallet({ onBack, onBalanceChange }: {
             <p style={{ fontSize: '0.85rem' }}>{t('wallet.coins')}</p>
           </div>
 
-          <div className="eyebrow" style={{ marginBottom: 10 }}>{t('wallet.topUp')}</div>
+          {daily ? (
+            <button
+              className="pack daily"
+              disabled={daily.claimed_today}
+              onClick={async () => {
+                tg.tap('heavy');
+                try {
+                  await apiFetch('/v1/daily/claim', { method: 'POST' });
+                  tg.notify('success');
+                  load();
+                  apiFetch<DailyState>('/v1/daily').then(setDaily).catch(() => undefined);
+                } catch { tg.notify('error'); }
+              }}
+            >
+              <span style={{ textAlign: 'start' }}>
+                <div className="pack-coins">{t('daily.title')}</div>
+                <div className="hint">
+                  {daily.claimed_today
+                    ? `${t('daily.claimed')} · ${t('daily.streak')} ${daily.streak}`
+                    : `${t('daily.streak')} ${daily.streak}`}
+                </div>
+              </span>
+              <span className="pack-stars">
+                {daily.claimed_today ? '✓' : `+${daily.next_reward}`}
+              </span>
+            </button>
+          ) : null}
+
+          {ref ? (
+            <button
+              className="pack"
+              onClick={() => {
+                tg.tap('light');
+                // Telegram's share sheet is the natural surface for this.
+                const url = `https://t.me/share/url?url=${encodeURIComponent('https://ridethatbot.fun')}&text=${encodeURIComponent(`${t('referral.share')} ${ref.code}`)}`;
+                window.open(url, '_blank');
+              }}
+            >
+              <span style={{ textAlign: 'start' }}>
+                <div className="pack-coins num">{ref.code}</div>
+                <div className="hint">
+                  {t('referral.invited')} {ref.invited} · +{ref.reward} {t('wallet.coins')}
+                </div>
+              </span>
+              <span className="pack-stars">↗</span>
+            </button>
+          ) : null}
+
+          <div className="eyebrow" style={{ margin: '22px 0 10px' }}>{t('wallet.topUp')}</div>
           {state.packs.map((pack) => (
             <button key={pack.id} className="pack" disabled={busyPack !== null}
                     onClick={() => { tg.tap('medium'); buy(pack.id); }}>

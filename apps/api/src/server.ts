@@ -17,6 +17,9 @@ import mediaRoutes from './routes/media.js';
 import achievementRoutes from './routes/achievements.js';
 import settingsRoutes from './routes/settings.js';
 import adminRoutes from './routes/admin.js';
+import socialRoutes from './routes/social.js';
+import economyRoutes from './routes/economy.js';
+import notificationRoutes from './routes/notifications.js';
 import multipart from '@fastify/multipart';
 
 const app = Fastify({
@@ -78,6 +81,9 @@ await app.register(mediaRoutes);
 await app.register(achievementRoutes);
 await app.register(settingsRoutes);
 await app.register(adminRoutes);
+await app.register(socialRoutes);
+await app.register(economyRoutes);
+await app.register(notificationRoutes);
 
 app.get('/health', async () => {
   await sql`SELECT 1`;

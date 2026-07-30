@@ -118,3 +118,29 @@ export interface WalletState {
   packs: CoinPack[];
   history: Array<{ delta: number; reason: string; created_at: string }>;
 }
+
+export interface Gift {
+  id: string; slug: string; name: string; category: string;
+  rarity: 'common' | 'rare' | 'premium' | 'limited' | 'unique';
+  coin_cost: number; asset_key: string;
+  total_supply: number | null; available_to: string | null;
+}
+
+export interface OwnedGift {
+  slug: string; name: string; asset_key: string; rarity: string;
+  quantity: number; last_at: string;
+}
+
+export interface NotificationItem {
+  id: string; kind: string; payload: Record<string, unknown>;
+  read_at: string | null; created_at: string;
+  actor_name: string | null; actor_handle: string | null; actor_verified: boolean;
+}
+
+export interface DailyState {
+  streak: number; claimed_today: boolean; next_reward: number;
+}
+
+export interface ReferralState {
+  code: string; reward: number; invited: number; earned: number;
+}
