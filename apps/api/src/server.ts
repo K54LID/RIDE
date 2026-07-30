@@ -20,7 +20,6 @@ import adminRoutes from './routes/admin.js';
 import socialRoutes from './routes/social.js';
 import economyRoutes from './routes/economy.js';
 import notificationRoutes from './routes/notifications.js';
-import multipart from '@fastify/multipart';
 
 const app = Fastify({
   logger: {
@@ -75,7 +74,6 @@ await app.register(profileRoutes);
 await app.register(postRoutes);
 await app.register(discoverRoutes);
 await app.register(leaderboardRoutes);
-await app.register(multipart, { limits: { fileSize: 45 * 1024 * 1024, files: 1 } });
 await app.register(walletRoutes);
 await app.register(mediaRoutes);
 await app.register(achievementRoutes);

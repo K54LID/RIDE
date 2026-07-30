@@ -180,8 +180,12 @@ const economyRoutes: FastifyPluginAsync = async (app) => {
     const me = req.accountId!;
 
     const result = await sql.begin(async (tx) => {
-      const slots = await tx<Array<{ position: number; account_id: string | null; expires_at: string | null }>>`
-        SELECT position, account_id, expires_at FROM featured_slots
+      const slots = await tx<Array<{
+        position: number; account_id: string | null;
+        purchased_at: string | null; expires_at: string | null;
+      }>>`
+        SELECT position, account_id, purchased_at, expires_at
+        FROM featured_slots
         ORDER BY position FOR UPDATE
       `;
 
@@ -199,12 +203,14 @@ const economyRoutes: FastifyPluginAsync = async (app) => {
       await debit(tx, me, FEATURED_COST, 'featured_slot', { type: 'featured', id: 'slot' });
 
       // Shift down from the bottom so no two rows collide mid-update.
+      // Each occupant carries their purchase time and window with them.
       for (let i = slots.length - 1; i > 0; i--) {
         const from = slots[i - 1]!;
         await tx`
           UPDATE featured_slots
-          SET account_id = ${from.account_id}, purchased_at = ${from.expires_at ? sql`purchased_at` : null},
-              expires_at = ${from.expires_at}
+          SET account_id   = ${from.account_id},
+              purchased_at = ${from.purchased_at},
+              expires_at   = ${from.expires_at}
           WHERE position = ${i + 1}
         `;
       }

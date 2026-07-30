@@ -95,6 +95,10 @@ const walletRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const update = req.body as {
+      pre_checkout_query?: {
+        id: string;
+        invoice_payload: string;
+      };
       message?: {
         successful_payment?: {
           invoice_payload: string;
@@ -103,6 +107,34 @@ const walletRoutes: FastifyPluginAsync = async (app) => {
         };
       };
     };
+
+    /**
+     * Telegram holds the payment sheet open until we answer the
+     * pre-checkout query, and fails the purchase if no answer arrives
+     * within ten seconds. Approve only payloads we actually issued and
+     * that are still pending — anything else gets a refusal the user
+     * can read instead of a silent decline.
+     */
+    const pcq = update.pre_checkout_query;
+    if (pcq) {
+      const known = await sql`
+        SELECT 1 FROM star_purchases
+        WHERE payload = ${pcq.invoice_payload}
+          AND telegram_charge_id LIKE 'pending:%'
+      `;
+      const ok = known.length > 0;
+      try {
+        await botApi('answerPreCheckoutQuery', {
+          pre_checkout_query_id: pcq.id,
+          ok,
+          ...(ok ? {} : { error_message: 'This purchase session has expired. Please start again.' }),
+        });
+      } catch (err) {
+        req.log.error({ err }, 'answerPreCheckoutQuery failed');
+      }
+      reply.code(200);
+      return { ok: true };
+    }
 
     const payment = update.message?.successful_payment;
     if (!payment) {

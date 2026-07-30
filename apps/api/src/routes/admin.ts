@@ -47,15 +47,18 @@ async function logAction(
 }
 
 const adminRoutes: FastifyPluginAsync = async (app) => {
-  /** Gate the whole namespace before any handler runs. */
+  /**
+   * Runs after requireAuth in the preHandler chain, so it only ever
+   * checks the role — it never fabricates a reply object to satisfy a
+   * signature it doesn't use.
+   */
   const staffOnly = async (req: FastifyRequest) => {
-    await app.requireAuth(req, {} as never);
     if (req.role !== 'admin' && req.role !== 'moderator') {
       throw new HttpError(403, 'NOT_STAFF');
     }
   };
 
-  app.get('/v1/admin/overview', { preHandler: [staffOnly] }, async () => {
+  app.get('/v1/admin/overview', { preHandler: [app.requireAuth, staffOnly] }, async () => {
     const [stats] = await sql`
       SELECT
         (SELECT count(*)::int FROM accounts WHERE status = 'active')                       AS users_active,
@@ -73,7 +76,7 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
     return stats;
   });
 
-  app.get('/v1/admin/users', { preHandler: [staffOnly] }, async (req) => {
+  app.get('/v1/admin/users', { preHandler: [app.requireAuth, staffOnly] }, async (req) => {
     const { q } = z.object({ q: z.string().trim().max(60).optional() }).parse(req.query);
     const rows = await sql`
       SELECT a.id, a.status::text AS status, a.role::text AS role,
@@ -91,7 +94,7 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
     return { users: rows };
   });
 
-  app.post('/v1/admin/users/:id/ban', { preHandler: [staffOnly] }, async (req) => {
+  app.post('/v1/admin/users/:id/ban', { preHandler: [app.requireAuth, staffOnly] }, async (req) => {
     await requirePermission(req, 'ban');
     const { id } = req.params as { id: string };
     const { reason } = z.object({ reason: z.string().trim().max(300).optional() }).parse(req.body ?? {});
@@ -113,7 +116,7 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
     return { ok: true };
   });
 
-  app.post('/v1/admin/users/:id/suspend', { preHandler: [staffOnly] }, async (req) => {
+  app.post('/v1/admin/users/:id/suspend', { preHandler: [app.requireAuth, staffOnly] }, async (req) => {
     await requirePermission(req, 'suspend');
     const { id } = req.params as { id: string };
     const { days, reason } = z.object({
@@ -132,7 +135,7 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
     return { ok: true };
   });
 
-  app.post('/v1/admin/users/:id/restore', { preHandler: [staffOnly] }, async (req) => {
+  app.post('/v1/admin/users/:id/restore', { preHandler: [app.requireAuth, staffOnly] }, async (req) => {
     await requirePermission(req, 'ban');
     const { id } = req.params as { id: string };
     await sql`
@@ -143,7 +146,7 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
     return { ok: true };
   });
 
-  app.post('/v1/admin/users/:id/credit', { preHandler: [staffOnly] }, async (req) => {
+  app.post('/v1/admin/users/:id/credit', { preHandler: [app.requireAuth, staffOnly] }, async (req) => {
     await requirePermission(req, 'manage_coins');
     const { id } = req.params as { id: string };
     const { amount, reason } = z.object({
@@ -171,7 +174,7 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
     return { ok: true };
   });
 
-  app.get('/v1/admin/verifications', { preHandler: [staffOnly] }, async () => {
+  app.get('/v1/admin/verifications', { preHandler: [app.requireAuth, staffOnly] }, async () => {
     const rows = await sql`
       SELECT v.id, v.account_id, v.created_at, p.display_name, p.handle
       FROM verification_requests v
@@ -183,7 +186,7 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
     return { requests: rows };
   });
 
-  app.post('/v1/admin/verifications/:id', { preHandler: [staffOnly] }, async (req) => {
+  app.post('/v1/admin/verifications/:id', { preHandler: [app.requireAuth, staffOnly] }, async (req) => {
     await requirePermission(req, 'approve_verification');
     const { id } = req.params as { id: string };
     const { approve, reason } = z.object({
@@ -217,7 +220,7 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
     return { ok: true };
   });
 
-  app.get('/v1/admin/reports', { preHandler: [staffOnly] }, async () => {
+  app.get('/v1/admin/reports', { preHandler: [app.requireAuth, staffOnly] }, async () => {
     const rows = await sql`
       SELECT r.id, r.subject_type, r.subject_id, r.reason, r.details, r.created_at,
              p.display_name AS reporter_name
@@ -230,7 +233,7 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
     return { reports: rows };
   });
 
-  app.post('/v1/admin/reports/:id/resolve', { preHandler: [staffOnly] }, async (req) => {
+  app.post('/v1/admin/reports/:id/resolve', { preHandler: [app.requireAuth, staffOnly] }, async (req) => {
     const { id } = req.params as { id: string };
     const { action } = z.object({ action: z.enum(['actioned', 'dismissed']) }).parse(req.body);
     await sql`
@@ -241,7 +244,7 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
   });
 
   /** Admin-only: moderators cannot appoint moderators. */
-  app.post('/v1/admin/moderators', { preHandler: [staffOnly] }, async (req) => {
+  app.post('/v1/admin/moderators', { preHandler: [app.requireAuth, staffOnly] }, async (req) => {
     if (req.role !== 'admin') throw new HttpError(403, 'ADMIN_ONLY');
     const { account_id, permissions } = z.object({
       account_id: z.string().uuid(),
@@ -266,7 +269,7 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
     return { ok: true };
   });
 
-  app.get('/v1/admin/log', { preHandler: [staffOnly] }, async () => {
+  app.get('/v1/admin/log', { preHandler: [app.requireAuth, staffOnly] }, async () => {
     const rows = await sql`
       SELECT m.action, m.reason, m.metadata, m.created_at,
              actor.display_name AS actor_name,
