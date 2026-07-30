@@ -12,7 +12,7 @@ import { sql } from '../lib/db.js';
  */
 
 const QuerySchema = z.object({
-  board: z.enum(['court', 'woofs', 'gifts', 'followers']).default('court'),
+  board: z.enum(['court', 'woofs', 'gifts', 'followers', 'posts']).default('court'),
   period: z.enum(['day', 'week', 'month', 'all']).default('all'),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
@@ -57,6 +57,20 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
         WHERE NOT p.ghost_mode
         GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
         HAVING count(g.id) > 0
+        ORDER BY score DESC
+        LIMIT ${limit}
+      `;
+    } else if (board === 'posts') {
+      rows = await sql`
+        SELECT p.account_id, p.display_name, p.handle, p.court_value,
+               (p.verification = 'approved') AS verified,
+               count(po.id)::int AS score
+        FROM profiles p
+        JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
+        JOIN posts po ON po.author_id = p.account_id AND po.deleted_at IS NULL
+          ${since ? sql`AND po.created_at > now() - ${since}::interval` : sql``}
+        WHERE NOT p.ghost_mode
+        GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
         ORDER BY score DESC
         LIMIT ${limit}
       `;

@@ -123,3 +123,65 @@ export async function resolveFileUrl(fileId: string): Promise<string> {
 
   return `https://api.telegram.org/file/bot${config.TELEGRAM_BOT_TOKEN}/${json.result.file_path}`;
 }
+
+/**
+ * Step-by-step storage diagnostic for the admin panel.
+ *
+ * "Uploads don't work" has four distinct causes with identical symptoms:
+ * bad token, wrong chat id, bot not admin of the channel, or Telegram
+ * refusing the file. This runs each step and reports the exact failure,
+ * so the fix is readable instead of guessed.
+ */
+const TEST_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+export interface StorageCheckStep {
+  step: string;
+  ok: boolean;
+  detail: string;
+}
+
+export async function diagnoseStorage(): Promise<StorageCheckStep[]> {
+  const steps: StorageCheckStep[] = [];
+  const call = async (method: string, body?: unknown): Promise<Record<string, unknown>> => {
+    const res = await fetch(`${API()}/${method}`, body ? {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    } : undefined);
+    return (await res.json()) as Record<string, unknown>;
+  };
+
+  try {
+    const me = await call('getMe');
+    steps.push(me.ok
+      ? { step: 'bot token', ok: true, detail: `@${(me.result as { username?: string })?.username ?? '?'}` }
+      : { step: 'bot token', ok: false, detail: String(me.description ?? 'getMe failed') });
+    if (!me.ok) return steps;
+
+    const chat = await call('getChat', { chat_id: config.TELEGRAM_STORAGE_CHAT_ID });
+    steps.push(chat.ok
+      ? { step: 'storage channel', ok: true, detail: (chat.result as { title?: string })?.title ?? 'found' }
+      : { step: 'storage channel', ok: false,
+          detail: `${String(chat.description ?? '')} — check TELEGRAM_STORAGE_CHAT_ID (${config.TELEGRAM_STORAGE_CHAT_ID}) and that the bot is a member` });
+    if (!chat.ok) return steps;
+
+    try {
+      const up = await uploadToTelegram(TEST_PNG, 'storage-check.png', 'image/png', 'image');
+      steps.push({ step: 'test upload', ok: true, detail: `file_id ${up.fileId.slice(0, 18)}…` });
+      await resolveFileUrl(up.fileId);
+      steps.push({ step: 'download url', ok: true, detail: 'resolves' });
+    } catch (err) {
+      steps.push({ step: 'test upload', ok: false,
+        detail: err instanceof Error
+          ? `${err.message} — if this mentions rights, promote the bot to admin of the channel`
+          : 'failed' });
+    }
+  } catch (err) {
+    steps.push({ step: 'network', ok: false,
+      detail: err instanceof Error ? err.message : 'unreachable' });
+  }
+  return steps;
+}

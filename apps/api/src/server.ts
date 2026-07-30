@@ -20,6 +20,9 @@ import adminRoutes from './routes/admin.js';
 import socialRoutes from './routes/social.js';
 import economyRoutes from './routes/economy.js';
 import notificationRoutes from './routes/notifications.js';
+import storyRoutes from './routes/stories.js';
+import chatRoutes from './routes/chat.js';
+import { profilePhotoRoutes } from './routes/profile.js';
 
 const app = Fastify({
   logger: {
@@ -82,6 +85,9 @@ await app.register(adminRoutes);
 await app.register(socialRoutes);
 await app.register(economyRoutes);
 await app.register(notificationRoutes);
+await app.register(storyRoutes);
+await app.register(chatRoutes);
+await app.register(profilePhotoRoutes);
 
 app.get('/health', async () => {
   await sql`SELECT 1`;

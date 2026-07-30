@@ -2,6 +2,7 @@ import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { sql } from '../lib/db.js';
 import { HttpError } from '../lib/errors.js';
+import { diagnoseStorage } from '../lib/telegramStorage.js';
 
 /**
  * Admin and moderator surface.
@@ -174,9 +175,15 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
     return { ok: true };
   });
 
+  /** Names the exact broken step when uploads fail in production. */
+  app.get('/v1/admin/storage-check', { preHandler: [app.requireAuth, staffOnly] }, async () => {
+    return { steps: await diagnoseStorage() };
+  });
+
   app.get('/v1/admin/verifications', { preHandler: [app.requireAuth, staffOnly] }, async () => {
     const rows = await sql`
-      SELECT v.id, v.account_id, v.created_at, p.display_name, p.handle
+      SELECT v.id, v.account_id, v.created_at, p.display_name, p.handle,
+             CASE WHEN v.storage_key ~ '^[0-9a-f-]{36}$' THEN v.storage_key END AS selfie_media_id
       FROM verification_requests v
       JOIN profiles p ON p.account_id = v.account_id
       WHERE v.state = 'pending'

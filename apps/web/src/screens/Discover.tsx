@@ -23,9 +23,10 @@ const AGE_BOUNDS: Record<string, [number, number]> = {
   '45–54': [45, 54], '55+': [55, 120],
 };
 
-export default function Discover({ balance, onBalanceChange }: {
+export default function Discover({ balance, onBalanceChange, onOpenChat }: {
   balance: number;
   onBalanceChange: () => void;
+  onOpenChat: (conversationId: string) => void;
 }) {
   const t = useT();
   const [view, setView] = useState<View>('list');
@@ -153,6 +154,16 @@ export default function Discover({ balance, onBalanceChange }: {
               {[selected.age, selected.gender, selected.distance].filter(Boolean).join(' · ')}
             </p>
             {selected.bio ? <p style={{ marginTop: 10, color: 'var(--ink)' }}>{selected.bio}</p> : null}
+            <Button variant="ghost" onClick={async () => {
+              tg.tap('light');
+              try {
+                const r = await apiFetch<{ conversation_id: string }>('/v1/chats/open', {
+                  method: 'POST',
+                  body: JSON.stringify({ account_id: selected.account_id }),
+                });
+                onOpenChat(r.conversation_id);
+              } catch { tg.notify('error'); }
+            }}>{t('chats.title')}</Button>
             <PersonActions
               targetId={selected.account_id}
               courtValue={selected.court_value}

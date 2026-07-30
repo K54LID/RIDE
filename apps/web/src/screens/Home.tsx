@@ -1,10 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
-import { apiFetch, type Post } from '../lib/api';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { apiFetch, type Post, type StoryAuthor } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import { Button, EmptyState, Skeleton } from '../components/ui';
 import { VerifiedMark } from '../components/VerifiedMark';
 import Media from '../components/Media';
+import Sheet from '../components/Sheet';
+import CommentSheet from '../components/CommentSheet';
+import StoriesRail from '../components/StoriesRail';
+import StoryViewer from '../components/StoryViewer';
 
 function timeAgo(iso: string): string {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -14,7 +18,13 @@ function timeAgo(iso: string): string {
   return `${Math.floor(mins / 1440)}d`;
 }
 
-function PostCard({ post, onLike }: { post: Post; onLike: (id: string) => void }) {
+export function PostCard({ post, meId, onLike, onComment, onMenu }: {
+  post: Post;
+  meId: string;
+  onLike: (id: string) => void;
+  onComment: (p: Post) => void;
+  onMenu: (p: Post) => void;
+}) {
   return (
     <article className="post">
       <div className="post-head">
@@ -28,8 +38,11 @@ function PostCard({ post, onLike }: { post: Post; onLike: (id: string) => void }
           </div>
           <div className="person-sub">
             {post.place_name ? `${post.place_name} · ` : ''}{timeAgo(post.created_at)}
+            {post.edited ? ' · ✎' : ''}
           </div>
         </div>
+        <button className="post-more" aria-label="⋯"
+                onClick={() => { tg.tap('light'); onMenu(post); }}>⋯</button>
       </div>
 
       {post.body ? <div className="post-body">{post.body}</div> : null}
@@ -52,78 +65,265 @@ function PostCard({ post, onLike }: { post: Post; onLike: (id: string) => void }
           </svg>
           {post.like_count > 0 ? <span className="num">{post.like_count}</span> : null}
         </button>
+        <button onClick={() => { tg.tap('light'); onComment(post); }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+            <path d="M4 5h16v11H8l-4 3.5V5z" />
+          </svg>
+          {post.comment_count > 0 ? <span className="num">{post.comment_count}</span> : null}
+        </button>
       </div>
     </article>
   );
 }
 
-export default function Home({ onCompose, onAlerts }: {
+/**
+ * Home: stories rail, feed with pull-to-refresh and infinite scroll,
+ * comments, and a per-post menu (edit/delete for yours, save/share/
+ * report for everyone's).
+ */
+export default function Home({ meId, meName, onCompose, onAlerts }: {
+  meId: string;
+  meName: string;
   onCompose: () => void;
   onAlerts: () => void;
 }) {
   const t = useT();
   const [posts, setPosts] = useState<Post[] | null>(null);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [unread, setUnread] = useState(0);
+
+  const [authors, setAuthors] = useState<StoryAuthor[]>([]);
+  const [viewerAt, setViewerAt] = useState<number | null>(null);
+
+  const [commentPost, setCommentPost] = useState<Post | null>(null);
+  const [menuPost, setMenuPost] = useState<Post | null>(null);
+  const [editPost, setEditPost] = useState<Post | null>(null);
+  const [editBody, setEditBody] = useState('');
+  const [reportDone, setReportDone] = useState(false);
+
+  const [pull, setPull] = useState(0);
+  const pullStart = useRef<number | null>(null);
+  const sentinel = useRef<HTMLDivElement | null>(null);
+
+  const loadStories = useCallback(() => {
+    apiFetch<{ authors: StoryAuthor[] }>('/v1/stories')
+      .then((r) => setAuthors(r.authors))
+      .catch(() => undefined);
+  }, []);
 
   const load = useCallback(() => {
     setFailed(false);
-    apiFetch<{ posts: Post[] }>('/v1/feed')
-      .then((r) => setPosts(r.posts))
+    apiFetch<{ posts: Post[]; next_cursor: string | null }>('/v1/feed')
+      .then((r) => { setPosts(r.posts); setCursor(r.next_cursor); })
       .catch(() => setFailed(true));
-  }, []);
+    loadStories();
+    apiFetch<{ unread: number }>('/v1/notifications')
+      .then((r) => setUnread(r.unread))
+      .catch(() => undefined);
+  }, [loadStories]);
 
   useEffect(load, [load]);
 
+  // Infinite scroll: fetch the next page when the sentinel enters view.
+  useEffect(() => {
+    const node = sentinel.current;
+    if (!node || !cursor) return;
+    const io = new IntersectionObserver((entries) => {
+      if (!entries[0]?.isIntersecting || loadingMore) return;
+      setLoadingMore(true);
+      apiFetch<{ posts: Post[]; next_cursor: string | null }>(
+        `/v1/feed?before=${encodeURIComponent(cursor)}`)
+        .then((r) => {
+          setPosts((cur) => [...(cur ?? []), ...r.posts]);
+          setCursor(r.next_cursor);
+        })
+        .catch(() => undefined)
+        .finally(() => setLoadingMore(false));
+    }, { rootMargin: '600px' });
+    io.observe(node);
+    return () => io.disconnect();
+  }, [cursor, loadingMore]);
+
   const like = async (id: string) => {
     tg.tap('light');
-    // Optimistic: the round trip is short but the tap should feel instant.
     setPosts((cur) =>
-      cur?.map((p) =>
-        p.id === id
-          ? { ...p, liked: !p.liked, like_count: p.like_count + (p.liked ? -1 : 1) }
-          : p,
-      ) ?? cur,
-    );
+      cur?.map((p) => p.id === id
+        ? { ...p, liked: !p.liked, like_count: p.like_count + (p.liked ? -1 : 1) }
+        : p) ?? cur);
+    try { await apiFetch(`/v1/posts/${id}/like`, { method: 'POST' }); }
+    catch { load(); }
+  };
+
+  const toggleSave = async (p: Post) => {
+    tg.tap('light');
+    setMenuPost(null);
+    setPosts((cur) => cur?.map((x) => x.id === p.id ? { ...x, saved: !x.saved } : x) ?? cur);
+    try { await apiFetch(`/v1/posts/${p.id}/save`, { method: 'POST' }); }
+    catch { load(); }
+  };
+
+  const share = (p: Post) => {
+    tg.tap('light');
+    setMenuPost(null);
+    const text = `${p.author_name} on RIDE: ${(p.body ?? '').slice(0, 120)}`;
+    window.open(
+      `https://t.me/share/url?url=${encodeURIComponent('https://ridethatbot.fun')}&text=${encodeURIComponent(text)}`,
+      '_blank');
+  };
+
+  const report = async (p: Post) => {
     try {
-      await apiFetch(`/v1/posts/${id}/like`, { method: 'POST' });
-    } catch {
-      load(); // reconcile against the server rather than guessing
-    }
+      await apiFetch('/v1/report', {
+        method: 'POST',
+        body: JSON.stringify({ subject_type: 'post', subject_id: p.id, reason: 'post_report' }),
+      });
+      setReportDone(true);
+      tg.notify('success');
+      setTimeout(() => { setReportDone(false); setMenuPost(null); }, 900);
+    } catch { tg.notify('error'); }
+  };
+
+  const remove = async (p: Post) => {
+    tg.tap('heavy');
+    setMenuPost(null);
+    setPosts((cur) => cur?.filter((x) => x.id !== p.id) ?? cur);
+    try { await apiFetch(`/v1/posts/${p.id}`, { method: 'DELETE' }); }
+    catch { load(); }
+  };
+
+  const saveEdit = async () => {
+    if (!editPost) return;
+    const body = editBody.trim();
+    try {
+      await apiFetch(`/v1/posts/${editPost.id}`, {
+        method: 'PATCH', body: JSON.stringify({ body }),
+      });
+      setPosts((cur) => cur?.map((x) => x.id === editPost.id ? { ...x, body, edited: true } : x) ?? cur);
+      setEditPost(null);
+      tg.notify('success');
+    } catch { tg.notify('error'); }
+  };
+
+  // Pull-to-refresh: overscroll at the top drags a spinner into view.
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (window.scrollY <= 0) pullStart.current = e.touches[0]!.clientY;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (pullStart.current === null) return;
+    const dy = e.touches[0]!.clientY - pullStart.current;
+    if (dy > 0 && window.scrollY <= 0) setPull(Math.min(90, dy * 0.5));
+  };
+  const onTouchEnd = () => {
+    if (pull > 55) { tg.tap('medium'); load(); }
+    setPull(0);
+    pullStart.current = null;
   };
 
   return (
-    <div className="screen">
+    <div className="screen"
+         onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+      {pull > 0 ? (
+        <div className="ptr" style={{ height: pull, opacity: pull / 70 }}>
+          <span className={pull > 55 ? 'spin' : ''}>↻</span>
+        </div>
+      ) : null}
+
       <div className="head">
         <h1>{t('home.title')}</h1>
-        <button className="icon-btn" aria-label={t('alerts.title')} onClick={() => { tg.tap('light'); onAlerts(); }}>
+        <button className="icon-btn" aria-label={t('alerts.title')}
+                onClick={() => { tg.tap('light'); onAlerts(); }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 3a6 6 0 0 0-6 6c0 5-2 6-2 6h16s-2-1-2-6a6 6 0 0 0-6-6zM10.5 20a1.8 1.8 0 0 0 3 0" />
           </svg>
+          {unread > 0 ? <span className="badge num">{unread > 9 ? '9+' : unread}</span> : null}
         </button>
       </div>
 
-      {/* Stories rail sits above the feed, where it will live for real. */}
-      <div className="card" style={{ padding: '14px 16px', marginBottom: 18 }}>
-        <div className="eyebrow" style={{ marginBottom: 6 }}>{t('home.stories')}</div>
-        <p style={{ fontSize: '0.85rem' }}>{t('soon.stories.body')}</p>
-      </div>
+      <StoriesRail authors={authors} meId={meId} meName={meName}
+                   onOpen={(i) => setViewerAt(i)} onPosted={loadStories} />
 
       {failed ? (
         <EmptyState title={t('common.offline')} body={t('common.offline.body')}
                     action={<Button onClick={load}>{t('common.retry')}</Button>} />
       ) : posts === null ? (
-        <>
-          <Skeleton h={96} mb={12} />
-          <Skeleton h={96} mb={12} />
-          <Skeleton h={96} />
-        </>
+        <><Skeleton h={96} mb={12} /><Skeleton h={96} mb={12} /><Skeleton h={96} /></>
       ) : posts.length === 0 ? (
         <EmptyState title={t('home.empty')} body={t('home.empty.body')}
                     action={<Button onClick={onCompose}>{t('home.first')}</Button>} />
       ) : (
-        posts.map((p) => <PostCard key={p.id} post={p} onLike={like} />)
+        <>
+          {posts.map((p) => (
+            <PostCard key={p.id} post={p} meId={meId}
+                      onLike={like} onComment={setCommentPost} onMenu={setMenuPost} />
+          ))}
+          <div ref={sentinel} />
+          {loadingMore ? <Skeleton h={96} /> : null}
+        </>
       )}
+
+      {viewerAt !== null ? (
+        <StoryViewer authors={authors} startIndex={viewerAt} meId={meId}
+                     onClose={() => { setViewerAt(null); loadStories(); }} />
+      ) : null}
+
+      <Sheet open={commentPost !== null} onClose={() => setCommentPost(null)}>
+        {commentPost ? (
+          <CommentSheet postId={commentPost.id} meId={meId}
+                        onCountChange={(d) => setPosts((cur) =>
+                          cur?.map((x) => x.id === commentPost.id
+                            ? { ...x, comment_count: Math.max(0, x.comment_count + d) } : x) ?? cur)} />
+        ) : null}
+      </Sheet>
+
+      <Sheet open={menuPost !== null} onClose={() => setMenuPost(null)}>
+        {menuPost ? (
+          <div className="set-list">
+            {menuPost.author_id === meId ? (
+              <>
+                <button className="set-row" onClick={() => {
+                  setEditBody(menuPost.body ?? '');
+                  setEditPost(menuPost);
+                  setMenuPost(null);
+                }}>
+                  <span className="set-row-label">{t('post.edit')}</span>
+                </button>
+                <button className="set-row danger" onClick={() => remove(menuPost)}>
+                  <span className="set-row-label">{t('post.delete')}</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="set-row" onClick={() => toggleSave(menuPost)}>
+                  <span className="set-row-label">
+                    {menuPost.saved ? t('post.unsave') : t('post.save')}
+                  </span>
+                </button>
+                <button className="set-row" onClick={() => share(menuPost)}>
+                  <span className="set-row-label">{t('post.share')}</span>
+                </button>
+                <button className="set-row danger" onClick={() => report(menuPost)}>
+                  <span className="set-row-label">
+                    {reportDone ? '✓' : t('post.report')}
+                  </span>
+                </button>
+              </>
+            )}
+          </div>
+        ) : null}
+      </Sheet>
+
+      <Sheet open={editPost !== null} onClose={() => setEditPost(null)}>
+        <h2 style={{ marginBottom: 12 }}>{t('post.edit')}</h2>
+        <label className="field">
+          <textarea rows={4} maxLength={2000} value={editBody}
+                    onChange={(e) => setEditBody(e.target.value)} />
+        </label>
+        <Button onClick={saveEdit}>{t('common.save')}</Button>
+      </Sheet>
     </div>
   );
 }

@@ -41,6 +41,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 }
 
 export interface Me {
+  account_id: string;
   display_name: string;
   handle: string | null;
   bio: string | null;
@@ -68,6 +69,7 @@ export interface Me {
 
 export interface Post {
   id: string;
+  author_id: string;
   body: string | null;
   kind: string;
   place_name: string | null;
@@ -79,7 +81,9 @@ export interface Post {
   author_court_value: number;
   author_verified: boolean;
   liked: boolean;
-  media: unknown[];
+  saved: boolean;
+  edited?: boolean;
+  media: Array<{ id: string; kind: string; url: string }>;
 }
 
 export interface Person {
@@ -143,4 +147,42 @@ export interface DailyState {
 
 export interface ReferralState {
   code: string; reward: number; invited: number; earned: number;
+}
+
+export interface StoryAuthor {
+  author_id: string; display_name: string; handle: string | null;
+  story_count: number; unseen_count: number; latest_at: string;
+  avatar_media_id: string | null;
+}
+
+export interface Story {
+  id: string; kind: 'image' | 'video'; media_id: string; created_at: string;
+  seen: boolean; view_count: number; reaction_count: number; reply_count: number;
+}
+
+export interface ChatSummary {
+  id: string; last_message_at: string;
+  peer_id: string; peer_name: string; peer_handle: string | null;
+  peer_verified: boolean; peer_avatar_media_id: string | null;
+  peer_online: boolean | null; peer_last_seen: string | null;
+  last_body: string | null; last_kind: string | null;
+  last_sender_id: string | null; last_deleted: boolean;
+  unread: number;
+}
+
+export interface ChatMessage {
+  id: number; sender_id: string; kind: string; body: string | null;
+  media_id: string | null; reply_to_id: number | null;
+  edited_at: string | null; deleted_at: string | null; created_at: string;
+  reply_body: string | null; reply_author: string | null;
+  reactions: Record<string, number> | null; my_reaction: string | null;
+}
+
+export interface ProfilePhoto {
+  id: string; media_id: string; position: number; is_private: boolean;
+}
+
+export interface Comment {
+  id: string; body: string; created_at: string; author_id: string;
+  author_name: string; author_handle: string | null; author_verified: boolean;
 }

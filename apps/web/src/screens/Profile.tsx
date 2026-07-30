@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { apiFetch, type Me, type OwnedGift } from '../lib/api';
 import { tg } from '../lib/tg';
-import { useI18n, LOCALES, type Locale } from '../i18n';
+import { useT } from '../i18n';
 import CourtCrest, { courtTier } from '../components/CourtCrest';
-import ComingSoon from '../components/ComingSoon';
+import PhotoManager from '../components/PhotoManager';
 import { VerifiedMark } from '../components/VerifiedMark';
 import { Button } from '../components/ui';
 
@@ -26,13 +26,14 @@ function ageFrom(birth: string): number | null {
   return a;
 }
 
-export default function Profile({ me, onEdit, onWallet, onSettings }: {
+export default function Profile({ me, onEdit, onWallet, onSettings, onSaved }: {
   me: Me;
   onEdit: () => void;
   onWallet: () => void;
   onSettings: () => void;
+  onSaved: () => void;
 }) {
-  const { t, locale, setLocale } = useI18n();
+  const t = useT();
   const age = ageFrom(me.birth_date);
   const tier = courtTier(me.court_value);
   const isVip = me.vip_until !== null && new Date(me.vip_until) > new Date();
@@ -129,6 +130,8 @@ export default function Profile({ me, onEdit, onWallet, onSettings }: {
 
       <div style={{ marginTop: 14 }}>
         <Button variant="ghost" onClick={onEdit}>{t('profile.edit')}</Button>
+        <div style={{ height: 10 }} />
+        <Button variant="ghost" onClick={onSaved}>{t('saved.title')}</Button>
       </div>
 
       {gifts.length > 0 ? (
@@ -146,7 +149,7 @@ export default function Profile({ me, onEdit, onWallet, onSettings }: {
       ) : null}
 
       <div className="eyebrow" style={{ margin: '26px 0 10px' }}>{t('profile.photos')}</div>
-      <ComingSoon title={t('soon.media')} body={t('soon.media.body')} />
+      <PhotoManager />
 
       {shown.length > 0 ? (
         <>

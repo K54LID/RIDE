@@ -74,7 +74,7 @@ const postRoutes: FastifyPluginAsync = async (app) => {
     const cursor = before ? new Date(before) : null;
 
     const rows = await sql`
-      SELECT p.id, p.body, p.kind::text AS kind, p.place_name,
+      SELECT p.id, p.author_id, p.body, p.kind::text AS kind, p.place_name,
              p.like_count, p.comment_count, p.created_at,
              pr.display_name AS author_name,
              pr.handle       AS author_handle,
@@ -83,7 +83,11 @@ const postRoutes: FastifyPluginAsync = async (app) => {
              EXISTS (
                SELECT 1 FROM post_likes pl
                WHERE pl.post_id = p.id AND pl.account_id = ${req.accountId}
-             ) AS liked
+             ) AS liked,
+             EXISTS (
+               SELECT 1 FROM saved_posts sp
+               WHERE sp.post_id = p.id AND sp.account_id = ${req.accountId}
+             ) AS saved
       FROM posts p
       JOIN profiles pr ON pr.account_id = p.author_id
       WHERE p.deleted_at IS NULL
@@ -125,6 +129,55 @@ const postRoutes: FastifyPluginAsync = async (app) => {
       posts: rows.map((r) => ({ ...r, media: byPost.get(r.id as string) ?? [] })),
       next_cursor: rows.length === 20 ? rows[rows.length - 1]!.created_at : null,
     };
+  });
+
+  /** Bookmark toggle. Private to the saver; the author never knows. */
+  app.post('/v1/posts/:id/save', { preHandler: [app.requireAuth] }, async (req) => {
+    const { id } = req.params as { id: string };
+    const removed = await sql`
+      DELETE FROM saved_posts
+      WHERE post_id = ${id} AND account_id = ${req.accountId} RETURNING 1
+    `;
+    if (removed.length > 0) return { saved: false };
+    await sql`
+      INSERT INTO saved_posts (account_id, post_id) VALUES (${req.accountId}, ${id})
+      ON CONFLICT DO NOTHING
+    `;
+    return { saved: true };
+  });
+
+  app.get('/v1/saved', { preHandler: [app.requireAuth] }, async (req) => {
+    const rows = await sql`
+      SELECT p.id, p.author_id, p.body, p.kind::text AS kind, p.place_name,
+             p.like_count, p.comment_count, p.created_at,
+             pr.display_name AS author_name,
+             pr.handle       AS author_handle,
+             pr.court_value  AS author_court_value,
+             (pr.verification = 'approved') AS author_verified,
+             true AS saved,
+             EXISTS (SELECT 1 FROM post_likes pl
+                     WHERE pl.post_id = p.id AND pl.account_id = ${req.accountId}) AS liked
+      FROM saved_posts sp
+      JOIN posts p ON p.id = sp.post_id AND p.deleted_at IS NULL
+      JOIN profiles pr ON pr.account_id = p.author_id
+      WHERE sp.account_id = ${req.accountId}
+      ORDER BY sp.created_at DESC
+      LIMIT 100
+    `;
+    const ids = rows.map((r) => r.id as string);
+    const media = ids.length
+      ? await sql<Array<{ post_id: string; media_id: string; kind: string }>>`
+          SELECT post_id, media_id, kind::text AS kind FROM post_media
+          WHERE post_id = ANY(${ids}) AND media_id IS NOT NULL ORDER BY position
+        `
+      : [];
+    const byPost = new Map<string, Array<{ id: string; kind: string; url: string }>>();
+    for (const m of media) {
+      const list = byPost.get(m.post_id) ?? [];
+      list.push({ id: m.media_id, kind: m.kind, url: `/v1/media/${m.media_id}` });
+      byPost.set(m.post_id, list);
+    }
+    return { posts: rows.map((r) => ({ ...r, media: byPost.get(r.id as string) ?? [] })) };
   });
 
   app.post('/v1/posts/:id/like', { preHandler: [app.requireAuth] }, async (req) => {

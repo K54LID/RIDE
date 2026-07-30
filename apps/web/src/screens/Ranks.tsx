@@ -5,12 +5,13 @@ import { useT } from '../i18n';
 import { Button, EmptyState, Skeleton } from '../components/ui';
 import { VerifiedMark } from '../components/VerifiedMark';
 
-type Board = 'court' | 'woofs' | 'gifts' | 'followers';
+type Board = 'court' | 'woofs' | 'gifts' | 'followers' | 'posts';
 type Period = 'day' | 'week' | 'month' | 'all';
 
-const BOARDS: Array<[Board, 'ranks.court' | 'ranks.woofs' | 'ranks.gifts' | 'ranks.followers']> = [
+const BOARDS: Array<[Board, 'ranks.court' | 'ranks.woofs' | 'ranks.gifts' | 'ranks.followers' | 'ranks.posts']> = [
   ['court', 'ranks.court'],
   ['woofs', 'ranks.woofs'],
+  ['posts', 'ranks.posts'],
   ['gifts', 'ranks.gifts'],
   ['followers', 'ranks.followers'],
 ];

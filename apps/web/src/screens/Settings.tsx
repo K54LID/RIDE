@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useI18n, LOCALES, type Locale } from '../i18n';
 import { Button, Skeleton } from '../components/ui';
+import { useMediaUpload } from '../lib/useMediaUpload';
 
 type Vis = 'everyone' | 'members' | 'friends' | 'nobody';
 
@@ -49,6 +50,8 @@ export default function Settings({ onBack, onAdmin }: {
   const { t, locale, setLocale } = useI18n();
   const [s, setS] = useState<SettingsState | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const selfie = useMediaUpload(1);
+  const selfieInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => tg.backButton(onBack), [onBack]);
 
@@ -76,16 +79,25 @@ export default function Settings({ onBack, onAdmin }: {
     }).catch(() => { tg.notify('error'); load(); });
   };
 
-  const requestVerification = async () => {
+  /**
+   * A verification request carries a selfie when one is picked — the
+   * reviewer needs something to compare against. Without a photo it
+   * still queues, so the flow is never blocked by a camera problem.
+   */
+  const requestVerification = () => {
     tg.tap('medium');
-    try {
-      await apiFetch('/v1/verification', { method: 'POST' });
-      tg.notify('success');
-      load();
-    } catch {
-      tg.notify('error');
-    }
+    selfieInput.current?.click();
   };
+
+  useEffect(() => {
+    if (selfie.mediaIds.length === 0 || selfie.uploading) return;
+    const mediaId = selfie.mediaIds[0]!;
+    selfie.reset();
+    void apiFetch('/v1/verification', {
+      method: 'POST', body: JSON.stringify({ media_id: mediaId }),
+    }).then(() => { tg.notify('success'); load(); })
+      .catch(() => tg.notify('error'));
+  }, [selfie, load]);
 
   const deleteAccount = async () => {
     try {
@@ -181,6 +193,8 @@ export default function Settings({ onBack, onAdmin }: {
       </div>
 
       <div className="set-group">
+        <input ref={selfieInput} type="file" accept="image/*" capture="user" hidden
+               onChange={(e) => { void selfie.add(e.target.files); e.target.value = ''; }} />
         <div className="eyebrow" style={{ marginBottom: 8 }}>{t('settings.verification')}</div>
         <div className="set-list">
           <Row

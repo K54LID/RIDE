@@ -3,6 +3,7 @@ import { apiFetch, ApiError } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import { Button, EmptyState, Skeleton } from '../components/ui';
+import Media from '../components/Media';
 
 interface Overview {
   users_active: number; users_total: number; active_24h: number; new_7d: number;
@@ -17,10 +18,12 @@ interface AdminUser {
 }
 
 interface VerificationReq {
-  id: string; account_id: string; display_name: string; handle: string | null; created_at: string;
+  id: string; account_id: string; display_name: string;
+  handle: string | null; created_at: string;
+  selfie_media_id: string | null;
 }
 
-type Pane = 'overview' | 'users' | 'verify' | 'log';
+type Pane = 'overview' | 'users' | 'verify' | 'storage' | 'log';
 
 export default function Admin({ onBack }: { onBack: () => void }) {
   const t = useT();
@@ -31,6 +34,8 @@ export default function Admin({ onBack }: { onBack: () => void }) {
   const [log, setLog] = useState<Array<Record<string, unknown>> | null>(null);
   const [q, setQ] = useState('');
   const [denied, setDenied] = useState(false);
+  const [storage, setStorage] = useState<Array<{ step: string; ok: boolean; detail: string }> | null>(null);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => tg.backButton(onBack), [onBack]);
 
@@ -94,7 +99,7 @@ export default function Admin({ onBack }: { onBack: () => void }) {
       <div className="head"><h1>{t('admin.title')}</h1></div>
 
       <div className="seg">
-        {(['overview', 'users', 'verify', 'log'] as Pane[]).map((p) => (
+        {(['overview', 'users', 'verify', 'storage', 'log'] as Pane[]).map((p) => (
           <button key={p} aria-pressed={pane === p} onClick={() => { tg.select(); setPane(p); }}>
             {t(`admin.${p}` as 'admin.overview')}
           </button>
@@ -192,7 +197,11 @@ export default function Admin({ onBack }: { onBack: () => void }) {
         verifs.length === 0 ? <EmptyState title={t('admin.noVerify')} body={t('admin.noVerify.body')} /> :
         verifs.map((v) => (
           <div key={v.id} className="person" style={{ flexWrap: 'wrap' }}>
-            <div className="person-avatar">{v.display_name.charAt(0).toUpperCase()}</div>
+            {v.selfie_media_id
+              ? <div className="avatar-img" style={{ width: 48, height: 48, borderRadius: 14 }}>
+                  <Media id={v.selfie_media_id} kind="image" thumb />
+                </div>
+              : <div className="person-avatar">{v.display_name.charAt(0).toUpperCase()}</div>}
             <div className="person-main">
               <div className="person-name">{v.display_name}</div>
               {v.handle ? <div className="person-sub num">@{v.handle}</div> : null}
@@ -208,6 +217,39 @@ export default function Admin({ onBack }: { onBack: () => void }) {
             </div>
           </div>
         ))
+      )}
+
+      {pane === 'storage' && (
+        <>
+          <p style={{ fontSize: '0.88rem', marginBottom: 14 }}>
+            Verifies the bot token, the storage channel, a real upload and a
+            download URL — in that order, so a failure names its own cause.
+          </p>
+          <Button disabled={checking} onClick={async () => {
+            setChecking(true); setStorage(null); tg.tap('medium');
+            try {
+              const r = await apiFetch<{ steps: Array<{ step: string; ok: boolean; detail: string }> }>(
+                '/v1/admin/storage-check');
+              setStorage(r.steps);
+            } catch { tg.notify('error'); }
+            finally { setChecking(false); }
+          }}>{checking ? t('common.loading') : t('admin.storageCheck')}</Button>
+
+          {storage ? (
+            <div className="set-list" style={{ marginTop: 16 }}>
+              {storage.map((st) => (
+                <div key={st.step} className="set-row">
+                  <span>
+                    <div className="set-row-label">
+                      {st.ok ? '✓' : '✕'} {st.step}
+                    </div>
+                    <div className="set-row-sub">{st.detail}</div>
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </>
       )}
 
       {pane === 'log' && (

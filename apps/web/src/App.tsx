@@ -9,6 +9,7 @@ import { Button, Skeleton, EmptyState } from './components/ui';
 import Onboarding from './screens/Onboarding';
 import Home from './screens/Home';
 import Chats from './screens/Chats';
+import ChatThread from './screens/ChatThread';
 import Discover from './screens/Discover';
 import Ranks from './screens/Ranks';
 import Profile from './screens/Profile';
@@ -19,6 +20,7 @@ import Compose from './screens/Compose';
 import Achievements from './screens/Achievements';
 import SettingsScreen from './screens/Settings';
 import Admin from './screens/Admin';
+import Saved from './screens/Saved';
 
 type Phase = 'loading' | 'onboarding' | 'ready' | 'error';
 
@@ -26,18 +28,15 @@ export default function App() {
   const t = useT();
   const [phase, setPhase] = useState<Phase>('loading');
   const [me, setMe] = useState<Me | null>(null);
-  const [route, go] = useRoute();
+  const [{ route, chatId }, go, openChat] = useRoute();
   const [feedKey, setFeedKey] = useState(0);
 
   const load = useCallback(() => {
     apiFetch<Me>('/v1/me')
       .then((data) => { setMe(data); setPhase('ready'); })
       .catch((err: unknown) => {
-        setPhase(
-          err instanceof ApiError && err.code === 'ONBOARDING_REQUIRED'
-            ? 'onboarding'
-            : 'error',
-        );
+        setPhase(err instanceof ApiError && err.code === 'ONBOARDING_REQUIRED'
+          ? 'onboarding' : 'error');
       });
   }, []);
 
@@ -70,8 +69,16 @@ export default function App() {
     return <Onboarding onDone={() => { setPhase('loading'); load(); }} />;
   }
 
-  // Routes that take over the whole screen and hide the bar.
+  const meId = me?.account_id ?? '';
+  const meName = me?.display_name ?? '';
+
+  // A chat thread owns the whole screen — the bar would fight the composer.
+  if (chatId) {
+    return <ChatThread conversationId={chatId} meId={meId} onBack={() => go('chats')} />;
+  }
+
   if (route === 'alerts') return <Alerts onBack={() => go('home')} />;
+  if (route === 'saved') return <Saved meId={meId} onBack={() => go('you')} />;
   if (route === 'wallet') return <Wallet onBack={() => go('you')} onBalanceChange={load} />;
   if (route === 'settings') {
     return <SettingsScreen onBack={() => go('you')} onAdmin={() => go('admin')} />;
@@ -87,17 +94,18 @@ export default function App() {
   return (
     <>
       {tab === 'home' && (
-        <Home key={feedKey} onCompose={() => go('create')} onAlerts={() => go('alerts')} />
+        <Home key={feedKey} meId={meId} meName={meName}
+              onCompose={() => go('create')} onAlerts={() => go('alerts')} />
       )}
       {tab === 'achievements' && <Achievements />}
-      {tab === 'chats' && <Chats />}
+      {tab === 'chats' && <Chats meId={meId} onOpen={openChat} />}
       {tab === 'discover' && (
-        <Discover balance={me?.coin_balance ?? 0} onBalanceChange={load} />
+        <Discover balance={me?.coin_balance ?? 0} onBalanceChange={load} onOpenChat={openChat} />
       )}
       {tab === 'ranks' && <Ranks />}
       {tab === 'you' && me && (
         <Profile me={me} onEdit={() => go('edit')} onWallet={() => go('wallet')}
-                 onSettings={() => go('settings')} />
+                 onSettings={() => go('settings')} onSaved={() => go('saved')} />
       )}
 
       <BottomNav route={route} onGo={go} />
