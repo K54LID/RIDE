@@ -28,15 +28,50 @@ import type { Sql } from 'postgres';
 // block us, so it must not collide with application-level locks.
 const LOCK_KEY = 4823741;
 
-function migrationsDir(): string {
-  // An explicit override wins, so a non-standard image layout (Nixpacks,
-  // a different WORKDIR) can be corrected without a code change.
-  if (process.env.MIGRATIONS_DIR) return process.env.MIGRATIONS_DIR;
+/**
+ * Candidate locations, in priority order.
+ *
+ *  1. MIGRATIONS_DIR       — explicit override, always wins.
+ *  2. <dist>/db/migrations — production. Bundled into dist at build
+ *                            time so it arrives with the compiled code
+ *                            and cannot be shadowed by a volume mounted
+ *                            at /app/db.
+ *  3. <repo>/db/migrations — local development via tsx.
+ */
+function migrationCandidates(): string[] {
+  if (process.env.MIGRATIONS_DIR) return [process.env.MIGRATIONS_DIR];
 
-  // Otherwise resolve relative to the compiled file so it works both in
-  // the container (dist/lib/ -> /app/db/migrations) and via tsx in dev.
-  const here = dirname(fileURLToPath(import.meta.url));
-  return join(here, '..', '..', 'db', 'migrations');
+  const here = dirname(fileURLToPath(import.meta.url)); // dist/lib or src/lib
+  return [
+    join(here, '..', 'db', 'migrations'),
+    join(here, '..', '..', 'db', 'migrations'),
+    join(here, '..', '..', '..', 'db', 'migrations'),
+  ];
+}
+
+async function resolveMigrationsDir(
+  log: (msg: string) => void,
+): Promise<{ dir: string; files: string[] }> {
+  const candidates = migrationCandidates();
+  const tried: string[] = [];
+
+  for (const dir of candidates) {
+    try {
+      const files = (await readdir(dir)).filter((f) => f.endsWith('.sql')).sort();
+      if (files.length > 0) {
+        log(`Reading migrations from ${dir}`);
+        return { dir, files };
+      }
+      tried.push(`${dir} (exists, no .sql files)`);
+    } catch {
+      tried.push(`${dir} (not found)`);
+    }
+  }
+
+  throw new Error(
+    `No migrations found. Tried:\n  ${tried.join('\n  ')}\n` +
+      `Set MIGRATIONS_DIR to an absolute path to override.`,
+  );
 }
 
 function checksum(contents: string): string {
@@ -52,24 +87,7 @@ export async function runMigrations(
   sql: Sql,
   log: (msg: string) => void = console.log,
 ): Promise<void> {
-  const dir = migrationsDir();
-
-  log(`Reading migrations from ${dir}`);
-
-  let files: string[];
-  try {
-    files = (await readdir(dir)).filter((f) => f.endsWith('.sql')).sort();
-  } catch {
-    throw new Error(
-      `Migrations directory not found at ${dir}. ` +
-        `If the image layout differs, set MIGRATIONS_DIR to the absolute path.`,
-    );
-  }
-
-  if (files.length === 0) {
-    log('No migration files found; nothing to do.');
-    return;
-  }
+  const { dir, files } = await resolveMigrationsDir(log);
 
   // A dedicated connection — advisory locks are session-scoped, so a
   // pooled connection could hand the lock to an unrelated query.
