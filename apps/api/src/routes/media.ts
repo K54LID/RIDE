@@ -30,7 +30,11 @@ async function readUpload(
 
   let form: FormData;
   try {
-    form = await new Response(body, { headers: { 'content-type': contentType } }).formData();
+    // Same Buffer/BodyInit typing mismatch as in telegramStorage: a
+    // Uint8Array view over the same bytes satisfies the DOM signature.
+    form = await new Response(new Uint8Array(body), {
+      headers: { 'content-type': contentType },
+    }).formData();
   } catch {
     throw new HttpError(400, 'MALFORMED_MULTIPART');
   }

@@ -107,10 +107,13 @@ export const profilePhotoRoutes = async (app: import('fastify').FastifyInstance)
       if (!m) throw new HttpError(400, 'MEDIA_NOT_OWNED');
       if (m.kind !== 'image') throw new HttpError(400, 'PHOTOS_ONLY');
 
-      const [{ n }] = await tx<Array<{ n: number }>>`
+      const counted = await tx<Array<{ n: number }>>`
         SELECT count(*)::int AS n FROM profile_photos
         WHERE account_id = ${me} AND media_id IS NOT NULL
       `;
+      // COUNT always returns a row, but the row type is indexed-access
+      // checked, so read it defensively rather than destructuring.
+      const n = counted[0]?.n ?? 0;
       if (n >= 9) throw new HttpError(400, 'PHOTO_LIMIT', 'Up to 9 photos');
 
       const [created] = await tx`

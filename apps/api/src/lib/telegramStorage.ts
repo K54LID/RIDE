@@ -47,7 +47,10 @@ export async function uploadToTelegram(
 
   const form = new FormData();
   form.append('chat_id', config.TELEGRAM_STORAGE_CHAT_ID);
-  form.append(field, new Blob([buffer], { type: mime }), filename);
+  // Buffer is typed Buffer<ArrayBufferLike> under @types/node 22, which the
+  // DOM BlobPart union rejects. A Uint8Array view over the same memory is
+  // accepted and copies nothing.
+  form.append(field, new Blob([new Uint8Array(buffer)], { type: mime }), filename);
   form.append('disable_notification', 'true');
 
   const res = await fetch(`${API()}/${method}`, { method: 'POST', body: form });
