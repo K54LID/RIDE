@@ -1,0 +1,185 @@
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+/* Ambient depth — two soft pools of colour so the ground isn't flat
+   black. Fixed, so it doesn't scroll with content. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 40% at 85% -5%, rgba(124, 77, 255, 0.16), transparent 70%),
+    radial-gradient(50% 35% at 0% 100%, rgba(255, 61, 129, 0.10), transparent 70%);
+}
+
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; margin: 0; }
+h1 { font-size: 1.75rem; line-height: 1.15; }
+h2 { font-size: 1.25rem; }
+p { margin: 0; color: var(--muted); }
+
+.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+
+.screen {
+  position: relative;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: calc(16px + env(safe-area-inset-top)) var(--pad)
+           calc(var(--nav-h) + 32px + env(safe-area-inset-bottom));
+  animation: rise 0.32s var(--ease) both;
+}
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+
+.eyebrow {
+  font-family: var(--font-data);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* ---- controls ---- */
+.field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
+.field > span { font-size: 0.85rem; color: var(--muted); }
+.field input, .field textarea {
+  width: 100%;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: 13px 15px;
+  font: inherit;
+  outline: none;
+  transition: border-color 0.18s var(--ease), background 0.18s var(--ease);
+}
+.field input:focus, .field textarea:focus {
+  border-color: var(--violet);
+  background: var(--raised);
+}
+.field input::placeholder, .field textarea::placeholder { color: var(--faint); }
+.hint { font-size: 0.78rem; color: var(--faint); }
+
+.btn {
+  width: 100%;
+  border: 0;
+  border-radius: var(--r-md);
+  padding: 15px;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--pulse), var(--pulse-dim));
+  transition: transform 0.14s var(--ease), opacity 0.14s var(--ease);
+}
+.btn:active:not(:disabled) { transform: scale(0.975); }
+.btn:disabled { opacity: 0.35; }
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--hairline);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: var(--r-pill);
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 0.88rem;
+  transition: all 0.16s var(--ease);
+}
+.chip[aria-pressed='true'] {
+  border-color: var(--violet);
+  background: rgba(124, 77, 255, 0.16);
+  color: var(--ink);
+}
+.chip:active { transform: scale(0.95); }
+
+.error {
+  color: var(--pulse);
+  font-size: 0.88rem;
+  margin: 4px 0 8px;
+  animation: shake 0.3s var(--ease);
+}
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* ---- glass card ---- */
+.card {
+  background: linear-gradient(160deg, rgba(32, 24, 56, 0.9), rgba(22, 16, 43, 0.75));
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: 18px;
+  backdrop-filter: blur(14px);
+}
+
+/* ---- skeleton ---- */
+.skel {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--raised) 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  border-radius: var(--r-sm);
+  animation: sweep 1.3s linear infinite;
+}
+@keyframes sweep { to { background-position: -200% 0; } }
+
+/* ---- bottom nav ---- */
+.nav {
+  position: fixed;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  width: min(calc(100% - 24px), 496px);
+  height: var(--nav-h);
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  align-items: center;
+  background: rgba(22, 16, 43, 0.82);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  backdrop-filter: blur(20px);
+  z-index: 50;
+}
+.nav button {
+  background: none; border: 0; padding: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  color: var(--faint);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+  transition: color 0.18s var(--ease);
+}
+.nav button[aria-current='page'] { color: var(--ink); }
+.nav button[aria-current='page'] svg { filter: drop-shadow(0 0 8px rgba(255, 61, 129, 0.7)); }
+.nav .dot {
+  position: absolute; top: 6px;
+  width: 18px; height: 2px; border-radius: 2px;
+  background: var(--pulse);
+  transition: opacity 0.2s var(--ease);
+}
+
+.empty { text-align: center; padding: 56px 12px; }
+.empty h2 { margin-bottom: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

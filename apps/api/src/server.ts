@@ -8,6 +8,7 @@ import { HttpError } from './lib/errors.js';
 import { runMigrations } from './lib/migrate.js';
 import authPlugin from './auth/plugin.js';
 import onboardingRoutes from './routes/onboarding.js';
+import profileRoutes from './routes/profile.js';
 
 const app = Fastify({
   logger: {
@@ -58,22 +59,11 @@ await app.register(cors, {
 await app.register(rateLimit, { max: 120, timeWindow: '1 minute' });
 await app.register(authPlugin);
 await app.register(onboardingRoutes);
+await app.register(profileRoutes);
 
 app.get('/health', async () => {
   await sql`SELECT 1`;
   return { ok: true, ts: new Date().toISOString() };
-});
-
-app.get('/v1/me', { preHandler: [app.requireAuth] }, async (req) => {
-  const rows = await sql`
-    SELECT p.display_name, p.handle, p.bio, p.court_value,
-           p.verification::text AS verification, p.vip_until,
-           COALESCE(b.balance, 0) AS coin_balance
-    FROM profiles p
-    LEFT JOIN coin_balances b ON b.account_id = p.account_id
-    WHERE p.account_id = ${req.accountId}
-  `;
-  return rows[0] ?? null;
 });
 
 const shutdown = async (signal: string) => {

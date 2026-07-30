@@ -1,58 +1,38 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { z } from 'zod';
 import { sql } from '../lib/db.js';
 import { HttpError } from '../lib/errors.js';
+import { OnboardingSchema, ageOn, MIN_AGE } from '../lib/profileSchema.js';
 
 /**
  * POST /v1/onboarding — creates account + identity + profile atomically.
  *
- * Runs on verifyTma, not requireAuth: this is the one route that must
- * work while no account exists yet.
+ * Runs on verifyTma, not requireAuth: the one route that must work while
+ * no account exists yet.
  *
- * The 18+ gate lives in three layers on purpose: client UI, this
- * handler, and the CHECK constraint in the schema. The first is
- * courtesy, the second gives a clean error, the third is the guarantee.
+ * The 18+ gate lives in three layers deliberately — client, this
+ * handler, and a CHECK constraint in the schema. The first is courtesy,
+ * the second gives a clean error, the third is the guarantee.
  */
-
-const BodySchema = z.object({
-  display_name: z.string().trim().min(1).max(50),
-  birth_date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD'),
-  gender: z.string().trim().max(30).optional(),
-  bio: z.string().trim().max(500).optional(),
-});
-
-function ageOn(today: Date, birth: Date): number {
-  let age = today.getUTCFullYear() - birth.getUTCFullYear();
-  const monthDiff = today.getUTCMonth() - birth.getUTCMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getUTCDate() < birth.getUTCDate())) {
-    age -= 1;
-  }
-  return age;
-}
-
 const onboardingRoutes: FastifyPluginAsync = async (app) => {
   app.post('/v1/onboarding', async (req) => {
     const tma = app.verifyTma(req);
 
-    const parsed = BodySchema.safeParse(req.body);
+    const parsed = OnboardingSchema.safeParse(req.body);
     if (!parsed.success) {
       throw new HttpError(400, 'INVALID_BODY', parsed.error.issues[0]?.message);
     }
-    const body = parsed.data;
+    const b = parsed.data;
 
-    const birth = new Date(`${body.birth_date}T00:00:00Z`);
+    const birth = new Date(`${b.birth_date}T00:00:00Z`);
     if (Number.isNaN(birth.getTime()) || birth.getUTCFullYear() < 1900) {
       throw new HttpError(400, 'INVALID_BIRTH_DATE');
     }
-    if (ageOn(new Date(), birth) < 18) {
-      // Deliberate: no soft failure, no retry hint. RIDE is 18+.
+    if (ageOn(new Date(), birth) < MIN_AGE) {
       throw new HttpError(403, 'UNDERAGE');
     }
 
     try {
-      const profile = await sql.begin(async (tx) => {
+      const result = await sql.begin(async (tx) => {
         const [account] = await tx<{ id: string }[]>`
           INSERT INTO accounts DEFAULT VALUES RETURNING id
         `;
@@ -65,28 +45,36 @@ const onboardingRoutes: FastifyPluginAsync = async (app) => {
                   ${tma.user.is_premium ?? false})
         `;
 
-        const [created] = await tx`
-          INSERT INTO profiles
-            (account_id, display_name, birth_date, gender, bio, age_gate_passed_at)
-          VALUES
-            (${accountId}, ${body.display_name}, ${body.birth_date},
-             ${body.gender ?? null}, ${body.bio ?? null}, now())
-          RETURNING display_name, handle, bio, court_value, verification::text AS verification
-        `;
-
         await tx`
-          INSERT INTO coin_balances (account_id, balance) VALUES (${accountId}, 0)
+          INSERT INTO profiles (
+            account_id, display_name, handle, birth_date, bio,
+            gender, pronouns, orientation, relationship_status, body_type,
+            looking_for, interests, languages, tribes,
+            height_cm, weight_kg, age_gate_passed_at
+          ) VALUES (
+            ${accountId}, ${b.display_name}, ${b.handle ?? null},
+            ${b.birth_date}, ${b.bio ?? null},
+            ${b.gender ?? null}, ${b.pronouns ?? null}, ${b.orientation ?? null},
+            ${b.relationship_status ?? null}, ${b.body_type ?? null},
+            ${b.looking_for ?? null}, ${b.interests ?? null},
+            ${b.languages ?? null}, ${b.tribes ?? null},
+            ${b.height_cm ?? null}, ${b.weight_kg ?? null}, now()
+          )
         `;
 
-        return created;
+        await tx`INSERT INTO coin_balances (account_id, balance) VALUES (${accountId}, 0)`;
+        return { accountId };
       });
 
-      return { ok: true, profile };
+      return { ok: true, account_id: result.accountId };
     } catch (err) {
-      // 23505 on telegram_identities.telegram_id: the account already
-      // exists (double-tap, retry after timeout). Idempotent success.
       const pg = err as { code?: string; constraint_name?: string };
+      // Duplicate telegram_id: double-tap or retry after timeout.
+      // Idempotent success beats a confusing error.
       if (pg.code === '23505') {
+        if (pg.constraint_name === 'profiles_handle_key') {
+          throw new HttpError(409, 'HANDLE_TAKEN', 'That handle is already in use.');
+        }
         return { ok: true, already_onboarded: true };
       }
       throw err;
