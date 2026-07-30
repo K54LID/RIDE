@@ -17,15 +17,34 @@ const schema = z.object({
    * a bare 100-prefixed numeric id gets its dash back. A @username or
    * an already-negative id passes through untouched.
    */
+  /**
+   * Private channel holding uploaded media; the bot must be an admin.
+   *
+   * Canonical form is -100xxxxxxxxxx. In practice this value arrives
+   * mangled in several ways: env editors strip a leading dash (treating
+   * it as an option delimiter), or store the surrounding quotes
+   * literally, sometimes backslash-escaped. Telegram then answers
+   * "chat not found" for what is really a formatting problem.
+   *
+   * So rather than trust the string, we extract the number from it and
+   * rebuild the id. An explicit minus sign is honoured (old-style group
+   * ids are not -100 prefixed); otherwise a 100-prefixed number gets its
+   * dash back and a bare internal id gets the full prefix.
+   */
   TELEGRAM_STORAGE_CHAT_ID: z
     .string()
     .min(4)
     .transform((raw) => {
-      const v = raw.trim().replace(/^["']|["']$/g, '');
-      if (v.startsWith('@') || v.startsWith('-')) return v;
-      if (/^100\d{6,}$/.test(v)) return `-${v}`;   // dash was stripped
-      if (/^\d{6,}$/.test(v)) return `-100${v}`;   // raw internal id
-      return v;
+      const cleaned = raw.trim().replace(/[\\"'\s]/g, '');
+      if (cleaned.startsWith('@')) return cleaned;
+
+      const negative = cleaned.startsWith('-');
+      const digits = cleaned.replace(/\D/g, '');
+      if (digits.length === 0) return cleaned;
+
+      if (negative) return `-${digits}`;
+      if (digits.startsWith('100')) return `-${digits}`;
+      return `-100${digits}`;
     }),
   SESSION_SECRET: z.string().min(32),
   CORS_ORIGIN: z.string().default('https://ridethatbot.fun'),

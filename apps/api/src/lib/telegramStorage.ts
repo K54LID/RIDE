@@ -164,13 +164,14 @@ export async function diagnoseStorage(): Promise<StorageCheckStep[]> {
       : { step: 'bot token', ok: false, detail: String(me.description ?? 'getMe failed') });
     if (!me.ok) return steps;
 
+    const rawEnv = process.env.TELEGRAM_STORAGE_CHAT_ID ?? '';
     const chat = await call('getChat', { chat_id: config.TELEGRAM_STORAGE_CHAT_ID });
     steps.push(chat.ok
       ? { step: 'storage channel', ok: true, detail: (chat.result as { title?: string })?.title ?? 'found' }
       : { step: 'storage channel', ok: false,
-          detail: `${String(chat.description ?? '')} — tried chat_id ${config.TELEGRAM_STORAGE_CHAT_ID}. `
-                + `A channel id must look like -100xxxxxxxxxx. Confirm the bot is an `
-                + `administrator of that channel.` });
+          detail: `${String(chat.description ?? '')} | env raw: ${JSON.stringify(rawEnv)} `
+                + `| sent: ${config.TELEGRAM_STORAGE_CHAT_ID} `
+                + `| If "sent" looks right, the bot is not an administrator of that channel.` });
     if (!chat.ok) return steps;
 
     try {
