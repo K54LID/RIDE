@@ -7,9 +7,26 @@ const schema = z.object({
   REDIS_URL: z.string().url(),
   TELEGRAM_BOT_TOKEN: z.string().min(20),
   TELEGRAM_WEBHOOK_SECRET: z.string().min(16).optional(),
-  // Private channel that holds uploaded media. The bot must be an admin
-  // of it. Format: -100xxxxxxxxxx
-  TELEGRAM_STORAGE_CHAT_ID: z.string().min(4),
+  /**
+   * Private channel holding uploaded media; the bot must be an admin.
+   *
+   * Canonical form is -100xxxxxxxxxx, but several env editors treat a
+   * leading dash as an option delimiter and silently strip it, leaving
+   * 100xxxxxxxxxx which Telegram rejects with "chat not found". Rather
+   * than depend on everyone quoting the value correctly, normalise it:
+   * a bare 100-prefixed numeric id gets its dash back. A @username or
+   * an already-negative id passes through untouched.
+   */
+  TELEGRAM_STORAGE_CHAT_ID: z
+    .string()
+    .min(4)
+    .transform((raw) => {
+      const v = raw.trim().replace(/^["']|["']$/g, '');
+      if (v.startsWith('@') || v.startsWith('-')) return v;
+      if (/^100\d{6,}$/.test(v)) return `-${v}`;   // dash was stripped
+      if (/^\d{6,}$/.test(v)) return `-100${v}`;   // raw internal id
+      return v;
+    }),
   SESSION_SECRET: z.string().min(32),
   CORS_ORIGIN: z.string().default('https://ridethatbot.fun'),
   // Used as the deep link in Telegram push notifications.

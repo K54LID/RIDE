@@ -168,7 +168,9 @@ export async function diagnoseStorage(): Promise<StorageCheckStep[]> {
     steps.push(chat.ok
       ? { step: 'storage channel', ok: true, detail: (chat.result as { title?: string })?.title ?? 'found' }
       : { step: 'storage channel', ok: false,
-          detail: `${String(chat.description ?? '')} — check TELEGRAM_STORAGE_CHAT_ID (${config.TELEGRAM_STORAGE_CHAT_ID}) and that the bot is a member` });
+          detail: `${String(chat.description ?? '')} — tried chat_id ${config.TELEGRAM_STORAGE_CHAT_ID}. `
+                + `A channel id must look like -100xxxxxxxxxx. Confirm the bot is an `
+                + `administrator of that channel.` });
     if (!chat.ok) return steps;
 
     try {
