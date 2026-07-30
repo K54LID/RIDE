@@ -142,7 +142,7 @@ const storyRoutes: FastifyPluginAsync = async (app) => {
         INSERT INTO story_replies (story_id, sender_id, body)
         VALUES (${id}, ${me}, ${body})
       `;
-      await notify(tx, { accountId: story.author_id, actorId: me, kind: 'comment',
+      await notify(tx, { accountId: story.author_id, actorId: me, kind: 'story_reply',
                          payload: { story_id: id } });
     });
     return { ok: true };

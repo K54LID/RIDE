@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { sql } from '../lib/db.js';
 import { HttpError } from '../lib/errors.js';
 import { diagnoseStorage } from '../lib/telegramStorage.js';
+import { notify } from '../lib/notify.js';
 
 /**
  * Admin and moderator surface.
@@ -72,7 +73,13 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
         (SELECT count(*)::int FROM reports WHERE state = 'open')                           AS open_reports,
         (SELECT COALESCE(sum(stars_amount), 0)::int FROM star_purchases
            WHERE refunded_at IS NULL AND telegram_charge_id NOT LIKE 'pending:%')          AS stars_revenue,
-        (SELECT COALESCE(sum(balance), 0)::int FROM coin_balances)                         AS coins_outstanding
+        (SELECT COALESCE(sum(balance), 0)::int FROM coin_balances)                         AS coins_outstanding,
+        (SELECT count(*)::int FROM accounts WHERE last_seen_at > now() - interval '5 minutes') AS online_now,
+        (SELECT count(*)::int FROM accounts WHERE created_at > now() - interval '24 hours') AS new_24h,
+        (SELECT count(*)::int FROM gift_transfers)                                        AS gifts_sent,
+        (SELECT count(*)::int FROM messages WHERE deleted_at IS NULL)                     AS messages_sent,
+        (SELECT count(*)::int FROM stories WHERE expires_at > now())                      AS stories_live,
+        (SELECT count(*)::int FROM woofs WHERE created_at > now() - interval '24 hours')  AS woofs_24h
     `;
     return stats;
   });
@@ -223,8 +230,107 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
         VALUES (${req.accountId}, ${r.account_id},
                 ${approve ? 'verify_approve' : 'verify_reject'}, ${reason ?? null})
       `;
+      // The applicant is told either way — silence on a rejection is
+      // the thing people complain about.
+      await notify(tx, { accountId: r.account_id, kind: 'verification',
+                         payload: { approved: approve } });
     });
     return { ok: true };
+  });
+
+  /** Remove any post. Soft delete, so the audit trail survives. */
+  app.delete('/v1/admin/posts/:id', { preHandler: [app.requireAuth, staffOnly] }, async (req, reply) => {
+    await requirePermission(req, 'delete_content');
+    const { id } = req.params as { id: string };
+    await sql.begin(async (tx) => {
+      const [row] = await tx<Array<{ author_id: string }>>`
+        UPDATE posts SET deleted_at = now()
+        WHERE id = ${id} AND deleted_at IS NULL
+        RETURNING author_id
+      `;
+      if (!row) throw new HttpError(404, 'POST_NOT_FOUND');
+      await tx`
+        INSERT INTO moderation_actions (actor_id, target_id, action, metadata)
+        VALUES (${req.accountId}, ${row.author_id}, 'delete_post',
+                ${JSON.stringify({ post_id: id })}::jsonb)
+      `;
+    });
+    reply.code(204);
+  });
+
+  app.delete('/v1/admin/comments/:id', { preHandler: [app.requireAuth, staffOnly] }, async (req, reply) => {
+    await requirePermission(req, 'delete_content');
+    const { id } = req.params as { id: string };
+    await sql.begin(async (tx) => {
+      const [row] = await tx<Array<{ author_id: string; post_id: string }>>`
+        UPDATE comments SET deleted_at = now()
+        WHERE id = ${id} AND deleted_at IS NULL
+        RETURNING author_id, post_id
+      `;
+      if (!row) throw new HttpError(404, 'COMMENT_NOT_FOUND');
+      await tx`
+        UPDATE posts SET comment_count = GREATEST(0, comment_count - 1)
+        WHERE id = ${row.post_id}
+      `;
+      await tx`
+        INSERT INTO moderation_actions (actor_id, target_id, action, metadata)
+        VALUES (${req.accountId}, ${row.author_id}, 'delete_comment',
+                ${JSON.stringify({ comment_id: id })}::jsonb)
+      `;
+    });
+    reply.code(204);
+  });
+
+  /** Grant or revoke the badge directly, without a request in the queue. */
+  app.post('/v1/admin/users/:id/verification', { preHandler: [app.requireAuth, staffOnly] }, async (req) => {
+    await requirePermission(req, 'approve_verification');
+    const { id } = req.params as { id: string };
+    const { verified } = z.object({ verified: z.boolean() }).parse(req.body);
+
+    await sql.begin(async (tx) => {
+      await tx`
+        UPDATE profiles
+        SET verification = ${verified ? 'approved' : 'none'},
+            verified_at  = ${verified ? sql`now()` : null}
+        WHERE account_id = ${id}
+      `;
+      await tx`
+        INSERT INTO moderation_actions (actor_id, target_id, action)
+        VALUES (${req.accountId}, ${id}, ${verified ? 'verify_grant' : 'verify_revoke'})
+      `;
+      await notify(tx, { accountId: id, kind: 'verification',
+                         payload: { approved: verified } });
+    });
+    return { ok: true };
+  });
+
+  /** Per-user detail: balance, ledger, counts — the drill-down view. */
+  app.get('/v1/admin/users/:id', { preHandler: [app.requireAuth, staffOnly] }, async (req) => {
+    const { id } = req.params as { id: string };
+    const [user] = await sql`
+      SELECT a.id, a.status::text AS status, a.role::text AS role,
+             a.created_at, a.last_seen_at, a.suspended_until, a.suspension_reason,
+             p.display_name, p.handle, p.bio, p.court_value,
+             p.verification::text AS verification,
+             date_part('year', age(p.birth_date))::int AS age,
+             COALESCE(b.balance, 0)::int AS balance,
+             (SELECT count(*)::int FROM posts   WHERE author_id = a.id AND deleted_at IS NULL) AS posts,
+             (SELECT count(*)::int FROM woofs   WHERE target_id = a.id) AS woofs,
+             (SELECT count(*)::int FROM follows WHERE followee_id = a.id) AS followers,
+             (SELECT count(*)::int FROM gift_transfers WHERE receiver_id = a.id) AS gifts
+      FROM accounts a
+      JOIN profiles p ON p.account_id = a.id
+      LEFT JOIN coin_balances b ON b.account_id = a.id
+      WHERE a.id = ${id}
+    `;
+    if (!user) throw new HttpError(404, 'USER_NOT_FOUND');
+
+    const ledger = await sql`
+      SELECT delta::int, reason::text AS reason, created_at
+      FROM coin_ledger WHERE account_id = ${id}
+      ORDER BY id DESC LIMIT 30
+    `;
+    return { user, ledger };
   });
 
   app.get('/v1/admin/reports', { preHandler: [app.requireAuth, staffOnly] }, async () => {

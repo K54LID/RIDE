@@ -28,6 +28,16 @@ export type Locale = keyof typeof LOCALES;
 export const RTL: ReadonlySet<Locale> = new Set<Locale>(['ar']);
 
 const en = {
+  'admin.onlineNow': 'Online now',
+  'admin.new24': 'New 24h',
+  'admin.giftsSent': 'Gifts sent',
+  'admin.messagesSent': 'Messages',
+  'admin.storiesLive': 'Live stories',
+  'admin.woofs24': 'Woofs 24h',
+  'admin.grantVerify': 'Verify',
+  'admin.unverify': 'Remove badge',
+  'admin.debit100': '-100 coins',
+  'profile.savedShort': 'Saved',
   'story.your': 'Your story',
   'story.delete': 'Delete',
   'story.report': 'Report',
@@ -289,6 +299,16 @@ const en = {
 export type T = Record<keyof typeof en, string>;
 
 const tr: T = {
+  'admin.onlineNow': 'Şu an çevrimiçi',
+  'admin.new24': '24s yeni',
+  'admin.giftsSent': 'Gönderilen hediye',
+  'admin.messagesSent': 'Mesajlar',
+  'admin.storiesLive': 'Aktif hikâye',
+  'admin.woofs24': '24s woof',
+  'admin.grantVerify': 'Doğrula',
+  'admin.unverify': 'Rozeti kaldır',
+  'admin.debit100': '-100 jeton',
+  'profile.savedShort': 'Kayıtlı',
   'story.your': 'Hikâyen',
   'story.delete': 'Sil',
   'story.report': 'Bildir',
@@ -428,6 +448,16 @@ const tr: T = {
 };
 
 const ru: T = {
+  'admin.onlineNow': 'Сейчас онлайн',
+  'admin.new24': 'Новых за 24ч',
+  'admin.giftsSent': 'Отправлено подарков',
+  'admin.messagesSent': 'Сообщения',
+  'admin.storiesLive': 'Активные истории',
+  'admin.woofs24': 'Вуфов за 24ч',
+  'admin.grantVerify': 'Подтвердить',
+  'admin.unverify': 'Снять значок',
+  'admin.debit100': '-100 монет',
+  'profile.savedShort': 'Сохранённое',
   'story.your': 'Твоя история',
   'story.delete': 'Удалить',
   'story.report': 'Пожаловаться',
@@ -567,6 +597,16 @@ const ru: T = {
 };
 
 const ar: T = {
+  'admin.onlineNow': 'متصل الآن',
+  'admin.new24': 'جدد 24س',
+  'admin.giftsSent': 'الهدايا المرسلة',
+  'admin.messagesSent': 'الرسائل',
+  'admin.storiesLive': 'قصص نشطة',
+  'admin.woofs24': 'ووف 24س',
+  'admin.grantVerify': 'توثيق',
+  'admin.unverify': 'إزالة الشارة',
+  'admin.debit100': '-100 عملة',
+  'profile.savedShort': 'المحفوظات',
   'story.your': 'قصتك',
   'story.delete': 'حذف',
   'story.report': 'إبلاغ',
@@ -706,6 +746,16 @@ const ar: T = {
 };
 
 const az: T = {
+  'admin.onlineNow': 'İndi onlayn',
+  'admin.new24': '24s yeni',
+  'admin.giftsSent': 'Göndərilən hədiyyə',
+  'admin.messagesSent': 'Mesajlar',
+  'admin.storiesLive': 'Aktiv hekayə',
+  'admin.woofs24': '24s woof',
+  'admin.grantVerify': 'Təsdiqlə',
+  'admin.unverify': 'Nişanı götür',
+  'admin.debit100': '-100 sikkə',
+  'profile.savedShort': 'Yadda saxlanan',
   'story.your': 'Hekayən',
   'story.delete': 'Sil',
   'story.report': 'Şikayət et',
@@ -845,6 +895,16 @@ const az: T = {
 };
 
 const es: T = {
+  'admin.onlineNow': 'En línea ahora',
+  'admin.new24': 'Nuevos 24h',
+  'admin.giftsSent': 'Regalos enviados',
+  'admin.messagesSent': 'Mensajes',
+  'admin.storiesLive': 'Historias activas',
+  'admin.woofs24': 'Woofs 24h',
+  'admin.grantVerify': 'Verificar',
+  'admin.unverify': 'Quitar insignia',
+  'admin.debit100': '-100 monedas',
+  'profile.savedShort': 'Guardados',
   'story.your': 'Tu historia',
   'story.delete': 'Eliminar',
   'story.report': 'Reportar',
@@ -984,6 +1044,16 @@ const es: T = {
 };
 
 const de: T = {
+  'admin.onlineNow': 'Jetzt online',
+  'admin.new24': 'Neu 24 Std',
+  'admin.giftsSent': 'Geschenke gesendet',
+  'admin.messagesSent': 'Nachrichten',
+  'admin.storiesLive': 'Aktive Stories',
+  'admin.woofs24': 'Woofs 24 Std',
+  'admin.grantVerify': 'Verifizieren',
+  'admin.unverify': 'Abzeichen entfernen',
+  'admin.debit100': '-100 Münzen',
+  'profile.savedShort': 'Gespeichert',
   'story.your': 'Deine Story',
   'story.delete': 'Löschen',
   'story.report': 'Melden',
@@ -1123,6 +1193,16 @@ const de: T = {
 };
 
 const fr: T = {
+  'admin.onlineNow': 'En ligne',
+  'admin.new24': 'Nouveaux 24 h',
+  'admin.giftsSent': 'Cadeaux envoyés',
+  'admin.messagesSent': 'Messages',
+  'admin.storiesLive': 'Stories actives',
+  'admin.woofs24': 'Woofs 24 h',
+  'admin.grantVerify': 'Vérifier',
+  'admin.unverify': 'Retirer le badge',
+  'admin.debit100': '-100 pièces',
+  'profile.savedShort': 'Enregistrés',
   'story.your': 'Ta story',
   'story.delete': 'Supprimer',
   'story.report': 'Signaler',
@@ -1262,6 +1342,16 @@ const fr: T = {
 };
 
 const it: T = {
+  'admin.onlineNow': 'Online ora',
+  'admin.new24': 'Nuovi 24h',
+  'admin.giftsSent': 'Regali inviati',
+  'admin.messagesSent': 'Messaggi',
+  'admin.storiesLive': 'Storie attive',
+  'admin.woofs24': 'Woof 24h',
+  'admin.grantVerify': 'Verifica',
+  'admin.unverify': 'Rimuovi badge',
+  'admin.debit100': '-100 monete',
+  'profile.savedShort': 'Salvati',
   'story.your': 'La tua storia',
   'story.delete': 'Elimina',
   'story.report': 'Segnala',
@@ -1401,6 +1491,16 @@ const it: T = {
 };
 
 const pt: T = {
+  'admin.onlineNow': 'Online agora',
+  'admin.new24': 'Novos 24h',
+  'admin.giftsSent': 'Presentes enviados',
+  'admin.messagesSent': 'Mensagens',
+  'admin.storiesLive': 'Stories ativos',
+  'admin.woofs24': 'Woofs 24h',
+  'admin.grantVerify': 'Verificar',
+  'admin.unverify': 'Remover selo',
+  'admin.debit100': '-100 moedas',
+  'profile.savedShort': 'Salvos',
   'story.your': 'Seu story',
   'story.delete': 'Excluir',
   'story.report': 'Denunciar',

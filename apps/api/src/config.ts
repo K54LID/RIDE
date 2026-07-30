@@ -12,6 +12,8 @@ const schema = z.object({
   TELEGRAM_STORAGE_CHAT_ID: z.string().min(4),
   SESSION_SECRET: z.string().min(32),
   CORS_ORIGIN: z.string().default('https://ridethatbot.fun'),
+  // Used as the deep link in Telegram push notifications.
+  MINI_APP_URL: z.string().default('https://ridethatbot.fun'),
   LOCATION_GRID_METERS: z.coerce.number().default(500),
 });
 

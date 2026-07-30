@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { sql } from '../lib/db.js';
 import { redis } from '../lib/redis.js';
 import { HttpError } from '../lib/errors.js';
+import { notify } from '../lib/notify.js';
 
 /**
  * Messaging, v1: HTTP polling.
@@ -220,6 +221,17 @@ const chatRoutes: FastifyPluginAsync = async (app) => {
         RETURNING id, created_at
       `;
       await tx`UPDATE conversations SET last_message_at = now() WHERE id = ${id}`;
+
+      // Push to the other participant. Inside the transaction so a
+      // failed send cannot exist for a message that never landed.
+      const [peer] = await tx<Array<{ account_id: string }>>`
+        SELECT account_id FROM conversation_members
+        WHERE conversation_id = ${id} AND account_id <> ${me}
+      `;
+      if (peer) {
+        await notify(tx, { accountId: peer.account_id, actorId: me, kind: 'message',
+                           payload: { conversation_id: id } });
+      }
       // Sending is also reading — your own view is current up to now.
       await tx`
         UPDATE conversation_members SET last_read_at = now()

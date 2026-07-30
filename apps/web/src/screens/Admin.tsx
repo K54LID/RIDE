@@ -9,6 +9,8 @@ interface Overview {
   users_active: number; users_total: number; active_24h: number; new_7d: number;
   banned: number; posts: number; pending_verifications: number;
   open_reports: number; stars_revenue: number; coins_outstanding: number;
+  online_now: number; new_24h: number; gifts_sent: number;
+  messages_sent: number; stories_live: number; woofs_24h: number;
 }
 
 interface AdminUser {
@@ -146,6 +148,30 @@ export default function Admin({ onBack }: { onBack: () => void }) {
                   {overview.open_reports}
                 </div>
               </div>
+              <div className="admin-stat">
+                <div className="eyebrow">{t('admin.onlineNow')}</div>
+                <div className="num" style={{ color: '#37D27A' }}>{overview.online_now}</div>
+              </div>
+              <div className="admin-stat">
+                <div className="eyebrow">{t('admin.new24')}</div>
+                <div className="num">{overview.new_24h}</div>
+              </div>
+              <div className="admin-stat">
+                <div className="eyebrow">{t('admin.giftsSent')}</div>
+                <div className="num">{overview.gifts_sent}</div>
+              </div>
+              <div className="admin-stat">
+                <div className="eyebrow">{t('admin.messagesSent')}</div>
+                <div className="num">{overview.messages_sent}</div>
+              </div>
+              <div className="admin-stat">
+                <div className="eyebrow">{t('admin.storiesLive')}</div>
+                <div className="num">{overview.stories_live}</div>
+              </div>
+              <div className="admin-stat">
+                <div className="eyebrow">{t('admin.woofs24')}</div>
+                <div className="num">{overview.woofs_24h}</div>
+              </div>
             </div>
             <Button variant="ghost" onClick={load}>{t('common.retry')}</Button>
           </>
@@ -185,6 +211,14 @@ export default function Admin({ onBack }: { onBack: () => void }) {
                 )}
                 <button className="chip" onClick={() => act(`/v1/admin/users/${u.id}/credit`, { amount: 100 })}>
                   {t('admin.credit100')}
+                </button>
+                <button className="chip" onClick={() => act(`/v1/admin/users/${u.id}/credit`, { amount: -100 })}>
+                  {t('admin.debit100')}
+                </button>
+                <button className="chip"
+                        onClick={() => act(`/v1/admin/users/${u.id}/verification`,
+                                           { verified: u.verification !== 'approved' })}>
+                  {u.verification === 'approved' ? t('admin.unverify') : t('admin.grantVerify')}
                 </button>
               </div>
             </div>

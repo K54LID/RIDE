@@ -5,10 +5,10 @@ import { useT } from '../i18n';
 import { Button, EmptyState, Skeleton } from '../components/ui';
 import { VerifiedMark } from '../components/VerifiedMark';
 
-type Board = 'court' | 'woofs' | 'gifts' | 'followers' | 'posts';
+type Board = 'court' | 'woofs' | 'posts' | 'gifts' | 'followers';
 type Period = 'day' | 'week' | 'month' | 'all';
 
-const BOARDS: Array<[Board, 'ranks.court' | 'ranks.woofs' | 'ranks.gifts' | 'ranks.followers' | 'ranks.posts']> = [
+const BOARDS: Array<[Board, 'ranks.court' | 'ranks.woofs' | 'ranks.posts' | 'ranks.gifts' | 'ranks.followers']> = [
   ['court', 'ranks.court'],
   ['woofs', 'ranks.woofs'],
   ['posts', 'ranks.posts'],
@@ -17,11 +17,43 @@ const BOARDS: Array<[Board, 'ranks.court' | 'ranks.woofs' | 'ranks.gifts' | 'ran
 ];
 
 const PERIODS: Array<[Period, 'ranks.day' | 'ranks.week' | 'ranks.month' | 'ranks.all']> = [
-  ['day', 'ranks.day'],
-  ['week', 'ranks.week'],
-  ['month', 'ranks.month'],
-  ['all', 'ranks.all'],
+  ['day', 'ranks.day'], ['week', 'ranks.week'],
+  ['month', 'ranks.month'], ['all', 'ranks.all'],
 ];
+
+function Initial({ name, size }: { name: string; size: number }) {
+  return (
+    <div className="rank-av" style={{ width: size, height: size, fontSize: size * 0.4 }}>
+      {name.trim().charAt(0).toUpperCase() || '?'}
+    </div>
+  );
+}
+
+/** Top three get the podium; the rest is a dense list. */
+function Podium({ top }: { top: RankEntry[] }) {
+  const order = [top[1], top[0], top[2]];      // silver, gold, bronze
+  const heights = [58, 78, 46];
+  const medals = ['🥈', '🥇', '🥉'];
+  return (
+    <div className="podium">
+      {order.map((e, i) =>
+        e ? (
+          <div key={e.account_id} className="podium-col">
+            <Initial name={e.display_name} size={i === 1 ? 52 : 42} />
+            <div className="podium-name">
+              {e.display_name.split(' ')[0]}
+              {e.verified ? <VerifiedMark size={11} /> : null}
+            </div>
+            <div className="podium-score num">{e.score}</div>
+            <div className={`podium-block p${i}`} style={{ height: heights[i] }}>
+              <span>{medals[i]}</span>
+            </div>
+          </div>
+        ) : <div key={i} className="podium-col" />,
+      )}
+    </div>
+  );
+}
 
 export default function Ranks() {
   const t = useT();
@@ -44,21 +76,16 @@ export default function Ranks() {
     <div className="screen">
       <div className="head"><h1>{t('ranks.title')}</h1></div>
 
-      <div className="seg">
+      <div className="seg tight">
         {BOARDS.map(([b, key]) => (
           <button key={b} aria-pressed={board === b}
-                  onClick={() => { tg.select(); setBoard(b); }}>
-            {t(key)}
-          </button>
+                  onClick={() => { tg.select(); setBoard(b); }}>{t(key)}</button>
         ))}
       </div>
-
-      <div className="seg">
+      <div className="seg tight">
         {PERIODS.map(([p, key]) => (
           <button key={p} aria-pressed={period === p}
-                  onClick={() => { tg.select(); setPeriod(p); }}>
-            {t(key)}
-          </button>
+                  onClick={() => { tg.select(); setPeriod(p); }}>{t(key)}</button>
         ))}
       </div>
 
@@ -66,34 +93,30 @@ export default function Ranks() {
         <EmptyState title={t('common.offline')} body={t('common.offline.body')}
                     action={<Button onClick={load}>{t('common.retry')}</Button>} />
       ) : entries === null ? (
-        <>
-          <Skeleton h={52} mb={8} />
-          <Skeleton h={52} mb={8} />
-          <Skeleton h={52} />
-        </>
+        <><Skeleton h={110} mb={10} /><Skeleton h={44} mb={6} /><Skeleton h={44} /></>
       ) : entries.length === 0 ? (
         <EmptyState title={t('ranks.empty')} body={t('ranks.empty.body')} />
       ) : (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          {entries.map((e) => (
-            <div key={e.account_id} className={`rank rank-${e.rank}`}>
-              <span className="rank-pos">
-                {e.rank <= 3 ? ['🥇', '🥈', '🥉'][e.rank - 1] : e.rank}
-              </span>
-              <div className="person-avatar" style={{ width: 34, height: 34, borderRadius: 11, fontSize: '0.85rem' }}>
-                {e.display_name.trim().charAt(0).toUpperCase() || '?'}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div className="person-name" style={{ fontSize: '0.92rem' }}>
-                  {e.display_name}
-                  {e.verified ? <VerifiedMark size={13} /> : null}
+        <>
+          <Podium top={entries.slice(0, 3)} />
+          {entries.length > 3 ? (
+            <div className="card compact" style={{ padding: 0, overflow: 'hidden' }}>
+              {entries.slice(3).map((e) => (
+                <div key={e.account_id} className="rank">
+                  <span className="rank-pos num">{e.rank}</span>
+                  <Initial name={e.display_name} size={30} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div className="person-name" style={{ fontSize: '0.88rem' }}>
+                      {e.display_name}
+                      {e.verified ? <VerifiedMark size={12} /> : null}
+                    </div>
+                  </div>
+                  <span className="rank-score num">{e.score}</span>
                 </div>
-                {e.handle ? <div className="person-sub num">@{e.handle}</div> : null}
-              </div>
-              <span className="rank-score num">{e.score}</span>
+              ))}
             </div>
-          ))}
-        </div>
+          ) : null}
+        </>
       )}
     </div>
   );

@@ -233,7 +233,15 @@ export default function Home({ meId, meName, onCompose, onAlerts }: {
 
       <div className="head">
         <h1>{t('home.title')}</h1>
-        <button className="icon-btn" aria-label={t('alerts.title')}
+        <div style={{ display: 'flex', gap: 6 }}>
+        <button className="icon-btn sm" aria-label={t('common.retry')}
+                onClick={() => { tg.tap('medium'); load(); }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5" />
+          </svg>
+        </button>
+        <button className="icon-btn sm" aria-label={t('alerts.title')}
                 onClick={() => { tg.tap('light'); onAlerts(); }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -241,6 +249,7 @@ export default function Home({ meId, meName, onCompose, onAlerts }: {
           </svg>
           {unread > 0 ? <span className="badge num">{unread > 9 ? '9+' : unread}</span> : null}
         </button>
+        </div>
       </div>
 
       <StoriesRail authors={authors} meId={meId} meName={meName}

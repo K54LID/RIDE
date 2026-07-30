@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { sql } from '../lib/db.js';
 import { HttpError } from '../lib/errors.js';
+import { notify } from '../lib/notify.js';
 
 const Visibility = z.enum(['everyone', 'members', 'friends', 'nobody']);
 
@@ -104,6 +105,17 @@ const settingsRoutes: FastifyPluginAsync = async (app) => {
       await tx`
         UPDATE profiles SET verification = 'pending' WHERE account_id = ${req.accountId}
       `;
+
+      // Every reviewer hears about it, so a request can't sit unseen
+      // because one admin wasn't looking.
+      const staff = await tx<Array<{ id: string }>>`
+        SELECT id FROM accounts
+        WHERE role IN ('admin', 'moderator') AND status = 'active'
+      `;
+      for (const s of staff) {
+        await notify(tx, { accountId: s.id, actorId: req.accountId!,
+                           kind: 'verification_request' });
+      }
     });
     return { ok: true };
   });

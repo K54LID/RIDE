@@ -20,6 +20,7 @@ import adminRoutes from './routes/admin.js';
 import socialRoutes from './routes/social.js';
 import economyRoutes from './routes/economy.js';
 import notificationRoutes from './routes/notifications.js';
+import { startNotificationWorker } from './lib/telegramNotify.js';
 import storyRoutes from './routes/stories.js';
 import chatRoutes from './routes/chat.js';
 import { profilePhotoRoutes } from './routes/profile.js';
@@ -104,3 +105,7 @@ process.on('SIGTERM', () => void shutdown('SIGTERM'));
 process.on('SIGINT', () => void shutdown('SIGINT'));
 
 await app.listen({ port: config.PORT, host: '0.0.0.0' });
+
+// Outbound Telegram pushes are delivered by a background worker; see
+// lib/telegramNotify.ts for why this is an outbox rather than an inline send.
+startNotificationWorker(app.log.info.bind(app.log));
