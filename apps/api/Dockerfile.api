@@ -3,21 +3,27 @@
 # Build context is the REPOSITORY ROOT, not apps/api.
 # Coolify: Build Pack = Dockerfile, Base Directory = /,
 #          Dockerfile Location = /apps/api/Dockerfile.
+#
+# Requires package-lock.json to be committed at the repo root.
 
 FROM node:22-alpine AS build
 WORKDIR /repo
-# npm validates the lockfile against ALL declared workspaces, so every
-# workspace manifest must be present even when installing just one.
+
+# Coolify injects ARG NODE_ENV=production into every stage. npm honours
+# NODE_ENV=production by omitting devDependencies — which would strip
+# TypeScript and break the build. --include=dev overrides that
+# regardless of what the environment says.
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
-RUN npm ci
+RUN npm ci --include=dev
+
 COPY apps/api apps/api
 COPY db db
 RUN npm run build --workspace @ride/api
 
-# Migrations live INSIDE dist. They then arrive via the same single COPY
-# as the compiled code, so they cannot be lost by a missed copy and
+# Migrations live INSIDE dist, so they arrive via the same single COPY
+# as the compiled code — they cannot be lost by a missed copy, and
 # cannot be masked by a volume mounted at /app/db.
 RUN mkdir -p apps/api/dist/db/migrations \
  && cp db/migrations/*.sql apps/api/dist/db/migrations/ \
