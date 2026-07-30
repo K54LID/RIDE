@@ -74,6 +74,36 @@ async function resolveMigrationsDir(
   );
 }
 
+
+/**
+ * Converts a Postgres error into one that names the migration file and
+ * the line number of the failing statement. The server reports a
+ * character position within the submitted script; counting newlines up
+ * to it gives the line. Without this, a failed migration logs a bare
+ * "type does not exist" with no location — which costs a debugging
+ * round trip every single time.
+ */
+function describeSqlFailure(err: unknown, file: string, contents: string): Error {
+  const pgErr = err as { message?: string; code?: string; position?: string };
+  const message = typeof pgErr.message === 'string' ? pgErr.message : String(err);
+  const code = typeof pgErr.code === 'string' ? pgErr.code : 'unknown';
+
+  let location = '';
+  const pos = Number(pgErr.position);
+  if (Number.isFinite(pos) && pos > 0 && pos <= contents.length) {
+    const upTo = contents.slice(0, pos - 1);
+    const line = upTo.split('\n').length;
+    const failingLine = contents.split('\n')[line - 1]?.trim() ?? '';
+    location = ` at line ${line}: "${failingLine}"`;
+  }
+
+  const wrapped = new Error(
+    `Migration ${file} failed${location}\n  ${message} (SQLSTATE ${code})\n` +
+      `  The transaction was rolled back; no partial schema was left behind.`,
+  );
+  if (err instanceof Error) (wrapped as Error & { cause?: unknown }).cause = err;
+  return wrapped;
+}
 function checksum(contents: string): string {
   return createHash('sha256').update(contents).digest('hex');
 }
@@ -129,15 +159,19 @@ export async function runMigrations(
       }
 
       log(`Applying ${file}…`);
-      await conn.begin(async (tx) => {
-        // .simple() uses the simple query protocol, which is what allows
-        // a file containing many statements to run as one call.
-        await tx.unsafe(contents).simple();
-        await tx`
-          INSERT INTO schema_migrations (version, checksum)
-          VALUES (${file}, ${hash})
-        `;
-      });
+      try {
+        await conn.begin(async (tx) => {
+          // .simple() uses the simple query protocol, which is what
+          // allows a file of many statements to run as one call.
+          await tx.unsafe(contents).simple();
+          await tx`
+            INSERT INTO schema_migrations (version, checksum)
+            VALUES (${file}, ${hash})
+          `;
+        });
+      } catch (err) {
+        throw describeSqlFailure(err, file, contents);
+      }
       log(`Applied ${file}`);
       count += 1;
     }

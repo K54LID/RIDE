@@ -1,0 +1,36 @@
+/* Minimal dark base in RIDE's stated direction (dark violet). This is a
+   foundation, not the design language — that's a dedicated pass later. */
+:root {
+  --bg: #0d0b1a;
+  --surface: #171331;
+  --text: #ece9f8;
+  --muted: #9a93b8;
+  --accent: #8b5cf6;
+  --danger: #f87171;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+main { padding: 24px 20px calc(24px + env(safe-area-inset-bottom)); max-width: 480px; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin: 0 0 4px; }
+p { color: var(--muted); line-height: 1.5; }
+form { display: flex; flex-direction: column; gap: 14px; margin-top: 20px; }
+label { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; color: var(--muted); }
+input, textarea {
+  background: var(--surface); color: var(--text);
+  border: 1px solid #2a2450; border-radius: 12px;
+  padding: 12px 14px; font-size: 1rem; outline: none;
+}
+input:focus, textarea:focus { border-color: var(--accent); }
+button {
+  background: var(--accent); color: #fff; border: 0; border-radius: 12px;
+  padding: 14px; font-size: 1rem; font-weight: 600; margin-top: 6px;
+}
+button:disabled { opacity: 0.5; }
+.error { color: var(--danger); font-size: 0.9rem; }
+.stat { color: var(--text); font-variant-numeric: tabular-nums; }

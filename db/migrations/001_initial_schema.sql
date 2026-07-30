@@ -16,6 +16,7 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS citext;   -- profiles.handle
 
 -- ---------------------------------------------------------------------
 -- ENUMS
@@ -186,9 +187,12 @@ CREATE TABLE woofs (
   created_at  timestamptz NOT NULL DEFAULT now(),
   CHECK (sender_id <> target_id)
 );
--- One woof per pair per day; rate limiting lives in Redis on top of this.
+-- One woof per pair per UTC day; rate limiting lives in Redis on top.
+-- created_at::date is timezone-dependent and therefore not IMMUTABLE, so
+-- Postgres rejects it in an index; the AT TIME ZONE form pins the day
+-- boundary to UTC and is immutable.
 CREATE UNIQUE INDEX woofs_daily_unique
-  ON woofs (sender_id, target_id, (created_at::date));
+  ON woofs (sender_id, target_id, ((created_at AT TIME ZONE 'UTC')::date));
 CREATE INDEX woofs_target_idx ON woofs (target_id, created_at DESC);
 
 -- ---------------------------------------------------------------------
