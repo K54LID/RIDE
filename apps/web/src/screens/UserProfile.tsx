@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiFetch, type PublicUser, type ProfilePhoto } from '../lib/api';
+import { apiFetch, type PublicUser, type ProfilePhoto, type CourtInfo } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import Page from '../components/Page';
 import Media from '../components/Media';
+import PhotoCarousel from '../components/PhotoCarousel';
 import PersonActions from '../components/PersonActions';
 import { VerifiedMark } from '../components/VerifiedMark';
 import { Button, Skeleton } from '../components/ui';
@@ -26,9 +27,11 @@ export default function UserProfile({ accountId, balance, onClose, onBalanceChan
   const [photos, setPhotos] = useState<ProfilePhoto[]>([]);
   const [lockedCount, setLockedCount] = useState(0);
   const [failed, setFailed] = useState(false);
+  const [court, setCourt] = useState<CourtInfo | null>(null);
 
   const load = useCallback(() => {
     apiFetch<Payload>(`/v1/users/${accountId}`).then(setData).catch(() => setFailed(true));
+    apiFetch<CourtInfo>(`/v1/users/${accountId}/court`).then(setCourt).catch(() => undefined);
     apiFetch<{ photos: ProfilePhoto[]; locked_count: number }>(`/v1/users/${accountId}/photos`)
       .then((r) => { setPhotos(r.photos); setLockedCount(r.locked_count); })
       .catch(() => undefined);
@@ -104,7 +107,7 @@ export default function UserProfile({ accountId, balance, onClose, onBalanceChan
 
       <PersonActions
         targetId={u.account_id}
-        courtValue={u.court_value}
+        courtValue={court?.court_value ?? u.court_value}
         balance={balance}
         initialFollowing={u.i_follow}
         initialWoofed={u.woofed_today}
@@ -121,23 +124,28 @@ export default function UserProfile({ accountId, balance, onClose, onBalanceChan
         </div>
       </div>
 
+      {/* Who paid for this person's standing. */}
+      {court?.courter ? (
+        <div className="courted-by">
+          <span style={{ fontSize: '1.2rem' }}>♛</span>
+          <div style={{ minWidth: 0 }}>
+            <div className="courted-by-label">{t('court.courtedBy')}</div>
+            <div className="courted-by-name">
+              {court.courter.display_name}
+              {court.courter.handle ? (
+                <span className="num" style={{ color: 'var(--muted)', fontWeight: 400 }}>
+                  {' '}@{court.courter.handle}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {photos.length > 0 || lockedCount > 0 ? (
         <>
           <div className="eyebrow tight">{t('profile.photos')}</div>
-          <div className="photo-grid">
-            {photos.map((p) => (
-              <div key={p.id} className="photo-cell">
-                <Media id={p.media_id} kind="image" thumb />
-                {p.is_private ? <span className="photo-tag">🔒</span> : null}
-              </div>
-            ))}
-            {lockedCount > 0 ? (
-              <div className="photo-cell locked">
-                <span>🔒</span>
-                <span className="num">{lockedCount}</span>
-              </div>
-            ) : null}
-          </div>
+          <PhotoCarousel photos={photos} lockedCount={lockedCount} />
           {lockedCount > 0 ? <p className="hint">{t('album.lockedHint')}</p> : null}
         </>
       ) : null}

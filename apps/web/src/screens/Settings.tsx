@@ -50,6 +50,8 @@ export default function Settings({ onBack, onAdmin }: {
   const { t, locale, setLocale } = useI18n();
   const [s, setS] = useState<SettingsState | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [verifyIntro, setVerifyIntro] = useState(false);
+  const [verifySent, setVerifySent] = useState(false);
   const selfie = useMediaUpload(1);
   const selfieInput = useRef<HTMLInputElement>(null);
 
@@ -84,9 +86,14 @@ export default function Settings({ onBack, onAdmin }: {
    * reviewer needs something to compare against. Without a photo it
    * still queues, so the flow is never blocked by a camera problem.
    */
+  /**
+   * Explain first, then open the camera. Previously tapping Request
+   * opened a file picker with no context, so nobody knew a selfie was
+   * being asked for or who would see it.
+   */
   const requestVerification = () => {
     tg.tap('medium');
-    selfieInput.current?.click();
+    setVerifyIntro(true);
   };
 
   useEffect(() => {
@@ -95,7 +102,7 @@ export default function Settings({ onBack, onAdmin }: {
     selfie.reset();
     void apiFetch('/v1/verification', {
       method: 'POST', body: JSON.stringify({ media_id: mediaId }),
-    }).then(() => { tg.notify('success'); load(); })
+    }).then(() => { tg.notify('success'); setVerifySent(true); load(); })
       .catch(() => tg.notify('error'));
   }, [selfie, load]);
 
@@ -247,6 +254,28 @@ export default function Settings({ onBack, onAdmin }: {
                onClick={() => { tg.tap('heavy'); setConfirmDelete(true); }} />
         </div>
       </div>
+
+      {verifySent ? (
+        <div className="card" style={{ marginTop: 16, borderColor: 'var(--verify)' }}>
+          <h2 style={{ marginBottom: 8 }}>{t('verify.sentTitle')}</h2>
+          <p style={{ marginBottom: 16 }}>{t('verify.sentBody')}</p>
+          <Button variant="ghost" onClick={() => setVerifySent(false)}>{t('common.done')}</Button>
+        </div>
+      ) : null}
+
+      {verifyIntro ? (
+        <div className="card" style={{ marginTop: 16, borderColor: 'var(--verify)' }}>
+          <h2 style={{ marginBottom: 8 }}>{t('verify.title')}</h2>
+          <p style={{ marginBottom: 6 }}>{t('verify.step1')}</p>
+          <p style={{ marginBottom: 6 }}>{t('verify.step2')}</p>
+          <p style={{ marginBottom: 16 }}>{t('verify.step3')}</p>
+          <Button onClick={() => { setVerifyIntro(false); selfieInput.current?.click(); }}>
+            {t('verify.takeSelfie')}
+          </Button>
+          <div style={{ height: 10 }} />
+          <Button variant="ghost" onClick={() => setVerifyIntro(false)}>{t('common.cancel')}</Button>
+        </div>
+      ) : null}
 
       {confirmDelete ? (
         <div className="card" style={{ marginTop: 16, borderColor: 'var(--pulse)' }}>

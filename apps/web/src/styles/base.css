@@ -1051,3 +1051,102 @@ h2 { font-size: 1.02rem; }
 }
 .photo-cell.locked .num { font-size: 0.75rem; }
 .pro-age-row { color: var(--muted); font-size: 0.85rem; }
+
+
+/* ---- centre button, actually centred ----
+   With seven 1fr columns the create button sits in column 4, but it was
+   relying on source order. Pinning the column makes it exact regardless
+   of how many items flank it, and the label row height no longer shifts
+   it vertically. */
+.nav-7 .nav-create {
+  grid-column: 4;
+  grid-row: 1;
+  justify-self: center;
+  align-self: start;
+  margin-top: -18px;
+}
+.nav-7 > button:not(.nav-create) { align-self: start; padding-top: 8px; }
+
+/* failed upload thumbnails */
+.media-thumb.failed { border-color: var(--pulse); opacity: 0.65; }
+.media-err {
+  position: absolute; bottom: 3px; inset-inline-start: 3px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--pulse); color: #fff;
+  display: grid; place-items: center; font-size: 0.7rem; font-weight: 700;
+}
+
+/* ---- profile standing ---- */
+.standing {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+  margin-top: 12px;
+}
+.standing-cell {
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: var(--r-md); padding: 10px 12px;
+}
+.standing-cell .eyebrow { font-size: 0.58rem; }
+.standing-rank {
+  font-family: var(--font-data); font-size: 1.05rem; font-weight: 700;
+  display: flex; align-items: baseline; gap: 5px;
+}
+.standing-rank small { font-size: 0.68rem; color: var(--faint); font-weight: 400; }
+.tier-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: var(--r-pill);
+  background: linear-gradient(135deg, rgba(240,210,100,0.22), rgba(201,162,39,0.10));
+  border: 1px solid rgba(201, 162, 39, 0.45);
+  color: var(--court-lit); font-weight: 700; font-size: 0.85rem;
+}
+
+/* ---- photo carousel ---- */
+.carousel {
+  position: relative; margin-top: 12px;
+  border-radius: var(--r-md); overflow: hidden;
+  background: var(--raised); border: 1px solid var(--hairline);
+}
+.carousel-track {
+  display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+  scrollbar-width: none; aspect-ratio: 1;
+}
+.carousel-track::-webkit-scrollbar { display: none; }
+.carousel-slide {
+  flex: 0 0 100%; scroll-snap-align: center;
+  position: relative; display: grid; place-items: center;
+}
+.carousel-slide img { width: 100%; height: 100%; object-fit: cover; }
+.carousel-slide .skel { width: 100%; height: 100%; }
+.carousel-dots {
+  position: absolute; bottom: 8px; left: 0; right: 0;
+  display: flex; justify-content: center; gap: 5px;
+}
+.carousel-dots span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,0.45); transition: all 0.2s var(--ease);
+}
+.carousel-dots span.on { background: #fff; width: 16px; border-radius: 3px; }
+.carousel-lock {
+  position: absolute; top: 8px; inset-inline-end: 8px;
+  background: rgba(6,3,14,0.78); color: var(--court-lit);
+  padding: 4px 9px; border-radius: var(--r-pill); font-size: 0.7rem;
+}
+
+/* ---- courted-by strip ---- */
+.courted-by {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 12px; padding: 10px 12px;
+  background: linear-gradient(135deg, rgba(201,162,39,0.14), transparent);
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  border-radius: var(--r-md);
+}
+.courted-by-label { font-size: 0.7rem; color: var(--muted); }
+.courted-by-name { font-weight: 700; font-size: 0.9rem; }
+.act-cost {
+  display: block; margin-top: 2px;
+  color: var(--court-lit); font-size: 0.78rem;
+}
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}

@@ -28,6 +28,17 @@ export type Locale = keyof typeof LOCALES;
 export const RTL: ReadonlySet<Locale> = new Set<Locale>(['ar']);
 
 const en = {
+  'woof.cooldown': 'You already woofed them. Try again in 12 hours.',
+  'woof.failed': 'Could not woof',
+  'court.courtedBy': 'Courted by',
+  'verify.title': 'Get verified',
+  'verify.step1': '1. Take a clear selfie showing your face.',
+  'verify.step2': '2. It is sent privately to the admins — never posted.',
+  'verify.step3': '3. Once approved, a blue check appears next to your name.',
+  'verify.takeSelfie': 'Take selfie',
+  'verify.sentTitle': 'Request submitted',
+  'verify.sentBody': 'Your verification request is awaiting admin approval. You will get a message when it is reviewed.',
+  'upload.removeFailed': 'Remove the failed photo to continue',
   'ranks.likes': 'Likes',
   'chat.typing': 'typing…',
   'album.toggle': 'Private album access',
@@ -303,6 +314,17 @@ const en = {
 export type T = Record<keyof typeof en, string>;
 
 const tr: T = {
+  'woof.cooldown': 'Zaten woof gönderdin. 12 saat sonra tekrar dene.',
+  'woof.failed': 'Woof gönderilemedi',
+  'court.courtedBy': 'Kur yapan',
+  'verify.title': 'Doğrulanmış ol',
+  'verify.step1': '1. Yüzünün net göründüğü bir selfie çek.',
+  'verify.step2': '2. Yalnızca yöneticilere özel olarak gönderilir, paylaşılmaz.',
+  'verify.step3': '3. Onaylanınca adının yanında mavi tik görünür.',
+  'verify.takeSelfie': 'Selfie çek',
+  'verify.sentTitle': 'Talep gönderildi',
+  'verify.sentBody': 'Doğrulama talebin yönetici onayını bekliyor. İncelenince mesaj alacaksın.',
+  'upload.removeFailed': 'Devam etmek için başarısız fotoğrafı kaldır',
   'ranks.likes': 'Beğeni',
   'chat.typing': 'yazıyor…',
   'album.toggle': 'Özel albüm erişimi',
@@ -456,6 +478,17 @@ const tr: T = {
 };
 
 const ru: T = {
+  'woof.cooldown': 'Вы уже вуфнули. Попробуйте через 12 часов.',
+  'woof.failed': 'Не удалось',
+  'court.courtedBy': 'Ухаживает',
+  'verify.title': 'Пройти верификацию',
+  'verify.step1': '1. Сделайте чёткое селфи, где видно лицо.',
+  'verify.step2': '2. Оно уйдёт только администраторам и не будет опубликовано.',
+  'verify.step3': '3. После одобрения рядом с именем появится синяя галочка.',
+  'verify.takeSelfie': 'Сделать селфи',
+  'verify.sentTitle': 'Заявка отправлена',
+  'verify.sentBody': 'Заявка ожидает одобрения администратора. Вы получите сообщение после проверки.',
+  'upload.removeFailed': 'Удалите неудачное фото, чтобы продолжить',
   'ranks.likes': 'Лайки',
   'chat.typing': 'печатает…',
   'album.toggle': 'Доступ к приватному альбому',
@@ -609,6 +642,17 @@ const ru: T = {
 };
 
 const ar: T = {
+  'woof.cooldown': 'لقد أرسلت ووف بالفعل. حاول بعد 12 ساعة.',
+  'woof.failed': 'تعذّر الإرسال',
+  'court.courtedBy': 'غازله',
+  'verify.title': 'احصل على التوثيق',
+  'verify.step1': '1. التقط صورة سيلفي واضحة تظهر وجهك.',
+  'verify.step2': '2. تُرسل بشكل خاص للمشرفين ولا تُنشر أبداً.',
+  'verify.step3': '3. بعد الموافقة تظهر علامة زرقاء بجوار اسمك.',
+  'verify.takeSelfie': 'التقط سيلفي',
+  'verify.sentTitle': 'تم إرسال الطلب',
+  'verify.sentBody': 'طلب التوثيق بانتظار موافقة المشرف. ستصلك رسالة عند المراجعة.',
+  'upload.removeFailed': 'أزل الصورة الفاشلة للمتابعة',
   'ranks.likes': 'الإعجابات',
   'chat.typing': 'يكتب…',
   'album.toggle': 'الوصول للألبوم الخاص',
@@ -762,6 +806,17 @@ const ar: T = {
 };
 
 const az: T = {
+  'woof.cooldown': 'Artıq woof göndərmisən. 12 saat sonra yenidən cəhd et.',
+  'woof.failed': 'Alınmadı',
+  'court.courtedBy': 'Kur edən',
+  'verify.title': 'Təsdiqlən',
+  'verify.step1': '1. Üzün aydın görünən selfi çək.',
+  'verify.step2': '2. Yalnız adminlərə göndərilir, heç vaxt paylaşılmır.',
+  'verify.step3': '3. Təsdiqlənəndə adının yanında mavi işarə görünür.',
+  'verify.takeSelfie': 'Selfi çək',
+  'verify.sentTitle': 'Sorğu göndərildi',
+  'verify.sentBody': 'Təsdiq sorğun admin təsdiqini gözləyir. Baxılanda mesaj alacaqsan.',
+  'upload.removeFailed': 'Davam etmək üçün uğursuz şəkli sil',
   'ranks.likes': 'Bəyənmə',
   'chat.typing': 'yazır…',
   'album.toggle': 'Şəxsi albom girişi',
@@ -915,6 +970,17 @@ const az: T = {
 };
 
 const es: T = {
+  'woof.cooldown': 'Ya les hiciste woof. Inténtalo en 12 horas.',
+  'woof.failed': 'No se pudo',
+  'court.courtedBy': 'Cortejado por',
+  'verify.title': 'Verifícate',
+  'verify.step1': '1. Hazte un selfie claro donde se vea tu cara.',
+  'verify.step2': '2. Se envía en privado a los administradores, nunca se publica.',
+  'verify.step3': '3. Al aprobarse, aparece una marca azul junto a tu nombre.',
+  'verify.takeSelfie': 'Hacer selfie',
+  'verify.sentTitle': 'Solicitud enviada',
+  'verify.sentBody': 'Tu solicitud espera aprobación del administrador. Recibirás un mensaje al revisarse.',
+  'upload.removeFailed': 'Quita la foto fallida para continuar',
   'ranks.likes': 'Me gusta',
   'chat.typing': 'escribiendo…',
   'album.toggle': 'Acceso al álbum privado',
@@ -1068,6 +1134,17 @@ const es: T = {
 };
 
 const de: T = {
+  'woof.cooldown': 'Du hast schon gewooft. Versuch es in 12 Stunden.',
+  'woof.failed': 'Fehlgeschlagen',
+  'court.courtedBy': 'Umworben von',
+  'verify.title': 'Verifizieren lassen',
+  'verify.step1': '1. Mach ein klares Selfie, auf dem dein Gesicht zu sehen ist.',
+  'verify.step2': '2. Es geht privat an die Admins und wird nie veröffentlicht.',
+  'verify.step3': '3. Nach Freigabe erscheint ein blauer Haken neben deinem Namen.',
+  'verify.takeSelfie': 'Selfie aufnehmen',
+  'verify.sentTitle': 'Anfrage gesendet',
+  'verify.sentBody': 'Deine Anfrage wartet auf Freigabe. Du bekommst eine Nachricht nach der Prüfung.',
+  'upload.removeFailed': 'Entferne das fehlgeschlagene Foto',
   'ranks.likes': 'Likes',
   'chat.typing': 'schreibt…',
   'album.toggle': 'Zugriff auf privates Album',
@@ -1221,6 +1298,17 @@ const de: T = {
 };
 
 const fr: T = {
+  'woof.cooldown': 'Tu les as déjà wooffés. Réessaie dans 12 heures.',
+  'woof.failed': 'Échec',
+  'court.courtedBy': 'Courtisé par',
+  'verify.title': 'Se faire vérifier',
+  'verify.step1': '1. Prends un selfie net où l’on voit ton visage.',
+  'verify.step2': '2. Il est envoyé en privé aux admins, jamais publié.',
+  'verify.step3': '3. Une fois approuvé, une coche bleue apparaît près de ton nom.',
+  'verify.takeSelfie': 'Prendre un selfie',
+  'verify.sentTitle': 'Demande envoyée',
+  'verify.sentBody': 'Ta demande attend l’approbation d’un admin. Tu recevras un message après examen.',
+  'upload.removeFailed': 'Retire la photo en échec pour continuer',
   'ranks.likes': 'J’aime',
   'chat.typing': 'écrit…',
   'album.toggle': 'Accès à l’album privé',
@@ -1374,6 +1462,17 @@ const fr: T = {
 };
 
 const it: T = {
+  'woof.cooldown': 'Li hai già woofati. Riprova tra 12 ore.',
+  'woof.failed': 'Non riuscito',
+  'court.courtedBy': 'Corteggiato da',
+  'verify.title': 'Fatti verificare',
+  'verify.step1': '1. Fai un selfie nitido in cui si veda il viso.',
+  'verify.step2': '2. Viene inviato in privato agli admin, mai pubblicato.',
+  'verify.step3': '3. Una volta approvato, appare una spunta blu accanto al nome.',
+  'verify.takeSelfie': 'Scatta selfie',
+  'verify.sentTitle': 'Richiesta inviata',
+  'verify.sentBody': 'La tua richiesta attende l’approvazione. Riceverai un messaggio dopo la revisione.',
+  'upload.removeFailed': 'Rimuovi la foto non riuscita',
   'ranks.likes': 'Mi piace',
   'chat.typing': 'sta scrivendo…',
   'album.toggle': 'Accesso album privato',
@@ -1527,6 +1626,17 @@ const it: T = {
 };
 
 const pt: T = {
+  'woof.cooldown': 'Você já deu woof. Tente em 12 horas.',
+  'woof.failed': 'Não foi possível',
+  'court.courtedBy': 'Cortejado por',
+  'verify.title': 'Seja verificado',
+  'verify.step1': '1. Tire uma selfie nítida mostrando o rosto.',
+  'verify.step2': '2. É enviada em privado aos administradores, nunca publicada.',
+  'verify.step3': '3. Após aprovação, um selo azul aparece ao lado do seu nome.',
+  'verify.takeSelfie': 'Tirar selfie',
+  'verify.sentTitle': 'Pedido enviado',
+  'verify.sentBody': 'Seu pedido aguarda aprovação. Você receberá uma mensagem após a análise.',
+  'upload.removeFailed': 'Remova a foto com falha para continuar',
   'ranks.likes': 'Curtidas',
   'chat.typing': 'digitando…',
   'album.toggle': 'Acesso ao álbum privado',

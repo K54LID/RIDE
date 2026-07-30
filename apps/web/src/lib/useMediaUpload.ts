@@ -49,8 +49,17 @@ export function useMediaUpload(max = 10) {
             if (xhr.status >= 200 && xhr.status < 300) {
               resolve((JSON.parse(xhr.responseText) as { id: string }).id);
             } else {
+              // Name the cause where we can: a 502 here almost always
+              // means the storage channel is misconfigured, which is
+              // fixable but invisible from a generic 'upload failed'.
               let msg = 'Upload failed';
-              try { msg = (JSON.parse(xhr.responseText) as { message?: string }).message ?? msg; } catch { /* keep default */ }
+              try {
+                const b = JSON.parse(xhr.responseText) as { message?: string; error?: string };
+                msg = b.message ?? b.error ?? msg;
+                if (xhr.status === 502) msg = 'Media storage is not reachable. Ask an admin to run the storage check.';
+                if (xhr.status === 413) msg = 'That file is too large.';
+                if (xhr.status === 415) msg = 'That file type is not supported.';
+              } catch { /* keep default */ }
               reject(new Error(msg));
             }
           };

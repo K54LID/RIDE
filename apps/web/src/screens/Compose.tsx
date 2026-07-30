@@ -72,16 +72,27 @@ export default function Compose({ onPosted, onCancel }: {
         ) : null}
       </label>
 
+      {/* A failed upload used to leave no trace: the thumbnail sat
+          there, mediaIds stayed empty and Publish stayed disabled with
+          no explanation. Errors are now visible per item and in one
+          summary line. */}
+      {media.items.some((m) => m.error) ? (
+        <p className="error">
+          {media.items.find((m) => m.error)?.error}
+        </p>
+      ) : null}
+
       {media.items.length > 0 ? (
         <div className="media-strip">
           {media.items.map((m) => (
             <div key={m.localId}
-                 className={`media-thumb ${m.mediaId === null && !m.error ? 'pending' : ''}`}>
+                 className={`media-thumb ${m.mediaId === null && !m.error ? 'pending' : ''} ${m.error ? 'failed' : ''}`}>
               {m.kind === 'video'
                 ? <video src={m.previewUrl} muted playsInline />
                 : <img src={m.previewUrl} alt="" />}
               <button className="remove" aria-label={t('common.close')}
                       onClick={() => { tg.tap('light'); media.remove(m.localId); }}>×</button>
+              {m.error ? <span className="media-err">!</span> : null}
             </div>
           ))}
         </div>
@@ -134,6 +145,9 @@ export default function Compose({ onPosted, onCancel }: {
       </div>
 
       {error ? <p className="error">{error}</p> : null}
+      {media.items.some((m) => m.error) && media.mediaIds.length === 0
+        && body.trim().length === 0
+        ? <p className="hint">{t('upload.removeFailed')}</p> : null}
 
       <Button
         onClick={publish}

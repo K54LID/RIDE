@@ -142,6 +142,15 @@ const economyRoutes: FastifyPluginAsync = async (app) => {
         INSERT INTO court_events (courter_id, target_id, coin_cost, value_before, value_after)
         VALUES (${me}, ${id}, ${cost}, ${before}, ${after})
       `;
+      // Current holder of the courtship — this is what renders on the
+      // courted person's profile as "courted by".
+      await tx`
+        INSERT INTO courtships (target_id, courter_id, coin_cost, court_value)
+        VALUES (${id}, ${me}, ${cost}, ${after})
+        ON CONFLICT (target_id) DO UPDATE
+          SET courter_id = ${me}, coin_cost = ${cost},
+              court_value = ${after}, created_at = now()
+      `;
       await notify(tx, {
         accountId: id, actorId: me, kind: 'court',
         payload: { value_before: before, value_after: after },
@@ -151,6 +160,33 @@ const economyRoutes: FastifyPluginAsync = async (app) => {
     });
 
     return { ok: true, ...result };
+  });
+
+  /** What courting this person costs right now, and who holds them. */
+  app.get('/v1/users/:id/court', { preHandler: [app.requireAuth] }, async (req) => {
+    const { id } = IdParam.parse(req.params);
+    const [row] = await sql<Array<{
+      court_value: number; courter_id: string | null;
+      courter_name: string | null; courter_handle: string | null;
+      courted_at: string | null;
+    }>>`
+      SELECT p.court_value::int AS court_value,
+             c.courter_id, c.created_at AS courted_at,
+             cp.display_name AS courter_name, cp.handle AS courter_handle
+      FROM profiles p
+      LEFT JOIN courtships c ON c.target_id = p.account_id
+      LEFT JOIN profiles cp  ON cp.account_id = c.courter_id
+      WHERE p.account_id = ${id}
+    `;
+    if (!row) throw new HttpError(404, 'USER_NOT_FOUND');
+    return {
+      court_value: row.court_value,
+      next_cost: row.court_value * 2,
+      courter: row.courter_id
+        ? { account_id: row.courter_id, display_name: row.courter_name,
+            handle: row.courter_handle, at: row.courted_at }
+        : null,
+    };
   });
 
   // ---- featured slots ----

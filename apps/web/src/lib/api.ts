@@ -206,3 +206,19 @@ export interface AlbumGrant {
   display_name: string; handle: string | null;
   avatar_media_id: string | null;
 }
+
+export interface Standing {
+  court_value: number;
+  tier: string;
+  next_tier: string | null;
+  next_tier_at: number | null;
+  total_players: number;
+  ranks: { court: number; woofs: number; likes: number; gifts: number; followers: number } | null;
+  totals: { woofs: number; likes: number; gifts: number; followers: number };
+}
+
+export interface CourtInfo {
+  court_value: number;
+  next_cost: number;
+  courter: { account_id: string; display_name: string | null; handle: string | null; at: string } | null;
+}

@@ -68,6 +68,10 @@ export default function PhotoManager() {
       <input ref={input} type="file" accept="image/*" hidden
              onChange={(e) => { void media.add(e.target.files); e.target.value = ''; }} />
 
+      {media.items.some((m) => m.error) ? (
+        <p className="error">{media.items.find((m) => m.error)?.error}</p>
+      ) : null}
+
       <div className="photo-grid">
         {(photos ?? []).map((p) => (
           <div key={p.id}

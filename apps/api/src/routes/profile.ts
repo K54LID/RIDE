@@ -114,7 +114,7 @@ export const profilePhotoRoutes = async (app: import('fastify').FastifyInstance)
       // COUNT always returns a row, but the row type is indexed-access
       // checked, so read it defensively rather than destructuring.
       const n = counted[0]?.n ?? 0;
-      if (n >= 9) throw new HttpError(400, 'PHOTO_LIMIT', 'Up to 9 photos');
+      if (n >= 60) throw new HttpError(400, 'PHOTO_LIMIT', 'Up to 60 photos');
 
       const [created] = await tx`
         INSERT INTO profile_photos (account_id, media_id, storage_key, position)

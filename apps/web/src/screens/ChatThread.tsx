@@ -315,6 +315,11 @@ export default function ChatThread({ conversationId, meId, onBack, onOpenUser }:
       </div>
 
       <div className="composer">
+        {media.items.some((m) => m.error) ? (
+          <p className="error" style={{ margin: '0 0 6px' }}>
+            {media.items.find((m) => m.error)?.error}
+          </p>
+        ) : null}
         {replyTo ? (
           <div className="composer-reply">
             <span>{(replyTo.body ?? '').slice(0, 60)}</span>

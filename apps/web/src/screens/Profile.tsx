@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { apiFetch, type Me, type OwnedGift, type ProfilePhoto } from '../lib/api';
+import { apiFetch, type Me, type OwnedGift, type ProfilePhoto, type Standing } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import CourtCrest, { courtTier } from '../components/CourtCrest';
 import PhotoManager from '../components/PhotoManager';
+import PhotoCarousel from '../components/PhotoCarousel';
 import Media from '../components/Media';
 import { VerifiedMark } from '../components/VerifiedMark';
 import { Button } from '../components/ui';
@@ -42,8 +43,10 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved }: {
   const [gifts, setGifts] = useState<OwnedGift[]>([]);
   const [photos, setPhotos] = useState<ProfilePhoto[]>([]);
   const [editingPhotos, setEditingPhotos] = useState(false);
+  const [standing, setStanding] = useState<Standing | null>(null);
 
   useEffect(() => {
+    apiFetch<Standing>('/v1/standing').then(setStanding).catch(() => undefined);
     apiFetch<{ collection: OwnedGift[] }>('/v1/users/me/gifts')
       .then((r) => setGifts(r.collection)).catch(() => undefined);
     apiFetch<{ photos: ProfilePhoto[] }>('/v1/me/photos')
@@ -127,30 +130,61 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved }: {
 
       {/* Court standing stays visible but compact — it's the app's
           signature metric, not a whole card's worth of screen. */}
+      {/* Standing: the tier's name and the position it earns, because a
+          bare court value tells you nothing about where you stand. */}
       <div className="pro-court">
         <CourtCrest value={me.court_value} size={54} />
-        <div>
-          <div className="eyebrow">{t('profile.courtValue')} · {t('profile.tier')} {tier}</div>
-          <div className="num pro-court-val">{me.court_value}</div>
+        <div style={{ minWidth: 0 }}>
+          <span className="tier-badge">
+            ♛ {standing?.tier ?? t('profile.tier') + ' ' + tier}
+          </span>
+          <div className="num pro-court-val" style={{ marginTop: 4 }}>{me.court_value}</div>
         </div>
-        <div className="pro-court-next num">
-          {me.court_value * 2} {t('profile.toNextTier')} {tier + 1}
-        </div>
+        {standing?.ranks ? (
+          <div className="pro-court-next num">
+            #{standing.ranks.court} / {standing.total_players}
+          </div>
+        ) : null}
       </div>
+
+      {standing?.ranks ? (
+        <div className="standing">
+          <div className="standing-cell">
+            <div className="eyebrow">{t('ranks.woofs')}</div>
+            <div className="standing-rank">#{standing.ranks.woofs}
+              <small>{standing.totals.woofs}</small></div>
+          </div>
+          <div className="standing-cell">
+            <div className="eyebrow">{t('ranks.likes')}</div>
+            <div className="standing-rank">#{standing.ranks.likes}
+              <small>{standing.totals.likes}</small></div>
+          </div>
+          <div className="standing-cell">
+            <div className="eyebrow">{t('ranks.gifts')}</div>
+            <div className="standing-rank">#{standing.ranks.gifts}
+              <small>{standing.totals.gifts}</small></div>
+          </div>
+          <div className="standing-cell">
+            <div className="eyebrow">{t('ranks.followers')}</div>
+            <div className="standing-rank">#{standing.ranks.followers}
+              <small>{standing.totals.followers}</small></div>
+          </div>
+        </div>
+      ) : null}
+
+      {standing?.next_tier ? (
+        <p className="hint" style={{ marginTop: 8 }}>
+          {standing.next_tier_at} {t('profile.toNextTier')} {standing.next_tier}
+        </p>
+      ) : null}
 
       {editingPhotos ? (
         <>
           <div className="eyebrow tight">{t('profile.photos')}</div>
           <PhotoManager />
         </>
-      ) : photos.length > 1 ? (
-        <div className="pro-strip">
-          {photos.map((p) => (
-            <div key={p.id} className="pro-strip-cell">
-              <Media id={p.media_id} kind="image" thumb />
-            </div>
-          ))}
-        </div>
+      ) : photos.length > 0 ? (
+        <PhotoCarousel photos={photos} />
       ) : null}
 
       {gifts.length > 0 ? (

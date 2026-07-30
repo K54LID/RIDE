@@ -34,16 +34,31 @@ const socialRoutes: FastifyPluginAsync = async (app) => {
     if (id === me) throw new HttpError(400, 'CANNOT_WOOF_SELF');
     await assertNotBlocked(me, id);
 
-    try {
-      await sql.begin(async (tx) => {
-        await tx`INSERT INTO woofs (sender_id, target_id) VALUES (${me}, ${id})`;
-        await notify(tx, { accountId: id, actorId: me, kind: 'woof' });
-      });
-    } catch (err) {
-      if ((err as { code?: string }).code === '23505') {
-        return { ok: true, already_woofed_today: true };
-      }
-      throw err;
+    /**
+     * One woof per pair per 12 hours. The window is checked and the row
+     * inserted in one transaction, and the SELECT takes a lock on the
+     * pair so two simultaneous taps cannot both pass the check.
+     */
+    const result = await sql.begin(async (tx) => {
+      await tx`SELECT pg_advisory_xact_lock(hashtextextended(${me + ':' + id}, 7))`;
+
+      const [recent] = await tx<Array<{ next_at: string }>>`
+        SELECT (created_at + interval '12 hours') AS next_at
+        FROM woofs
+        WHERE sender_id = ${me} AND target_id = ${id}
+          AND created_at > now() - interval '12 hours'
+        ORDER BY created_at DESC LIMIT 1
+      `;
+      if (recent) return { cooling: true, next_at: recent.next_at };
+
+      await tx`INSERT INTO woofs (sender_id, target_id) VALUES (${me}, ${id})`;
+      await notify(tx, { accountId: id, actorId: me, kind: 'woof' });
+      return { cooling: false, next_at: null };
+    });
+
+    if (result.cooling) {
+      throw new HttpError(429, 'WOOF_COOLDOWN',
+        'You can woof this person again in a few hours');
     }
 
     const [count] = await sql<{ n: number }[]>`

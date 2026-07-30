@@ -2,6 +2,11 @@ import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { verifyInitData, InitDataError, type VerifiedInitData } from './telegram.js';
 import { config } from '../config.js';
+
+/** Parsed once; membership is checked on every authenticated request. */
+const ADMIN_IDS = new Set(
+  config.ADMIN_TELEGRAM_IDS.split(',').map((s) => s.trim()).filter(Boolean),
+);
 import { sql } from '../lib/db.js';
 import { forbidden, unauthorized } from '../lib/errors.js';
 
@@ -47,6 +52,15 @@ async function resolveAccount(
     SET is_premium = ${isPremium}, language_code = ${lang}
     WHERE telegram_id = ${telegramId}
   `.catch(() => undefined);
+
+  // Bootstrap admins. Runs on the sign-in path so the very first
+  // administrator exists without a manual database edit; it only ever
+  // promotes, never demotes, so revoking is still done in the panel.
+  if (ADMIN_IDS.has(String(telegramId)) && row.role === 'user') {
+    void sql`
+      UPDATE accounts SET role = 'admin' WHERE id = ${row.account_id} AND role = 'user'
+    `.catch(() => undefined);
+  }
 
   void sql`
     UPDATE accounts SET last_seen_at = now()

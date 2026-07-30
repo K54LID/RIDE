@@ -14,6 +14,11 @@ const schema = z.object({
   CORS_ORIGIN: z.string().default('https://ridethatbot.fun'),
   // Used as the deep link in Telegram push notifications.
   MINI_APP_URL: z.string().default('https://ridethatbot.fun'),
+  // Comma-separated Telegram user IDs promoted to admin on sign-in.
+  // Without this nobody can ever become an admin: the only grant
+  // endpoint is itself admin-only, so the panel would stay invisible
+  // forever and verification requests could never be approved.
+  ADMIN_TELEGRAM_IDS: z.string().default(''),
   LOCATION_GRID_METERS: z.coerce.number().default(500),
 });
 

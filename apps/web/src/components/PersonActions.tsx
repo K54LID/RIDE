@@ -35,9 +35,18 @@ export default function PersonActions({
 
   const woof = async () => {
     tg.tap('medium');
+    setError(null);
     setWoofed(true);
-    try { await apiFetch(`/v1/users/${targetId}/woof`, { method: 'POST' }); tg.notify('success'); }
-    catch { setWoofed(false); tg.notify('error'); }
+    try {
+      await apiFetch(`/v1/users/${targetId}/woof`, { method: 'POST' });
+      tg.notify('success');
+    } catch (err) {
+      setWoofed(false);
+      tg.notify('error');
+      // A cooldown is not a failure — say so rather than showing nothing.
+      setError(err instanceof ApiError && err.code === 'WOOF_COOLDOWN'
+        ? t('woof.cooldown') : t('woof.failed'));
+    }
   };
 
   const follow = async () => {
@@ -82,7 +91,10 @@ export default function PersonActions({
         </button>
         <button className="act act-court" onClick={() => { tg.tap('heavy'); court(); }} disabled={busy}>
           <span className="act-glyph">♛</span>
-          <span className="act-label">{t('action.court')} <b className="num">{courtCost}</b></span>
+          <span className="act-label">
+            {t('action.court')}
+            <b className="num act-cost">{courtCost}</b>
+          </span>
         </button>
       </div>
 
