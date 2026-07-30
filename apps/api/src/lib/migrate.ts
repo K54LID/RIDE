@@ -11,17 +11,27 @@ import type { Sql } from 'postgres';
  *
  *  - A Postgres advisory lock serialises concurrent runners. When two
  *    API containers boot simultaneously, the second blocks until the
- *    first finishes, then observes the work is already done. This is
- *    what makes it safe to scale to multiple replicas without changing
- *    anything here.
+ *    first finishes, then observes the work is already done.
  *
- *  - Each file is applied inside a transaction. Postgres has
- *    transactional DDL, so a failure halfway through a migration rolls
- *    back cleanly rather than leaving a half-built schema.
+ *  - The lock is session-scoped, so EVERYTHING here must run on one
+ *    pinned session (sql.reserve()). That is also why transactions are
+ *    managed manually with BEGIN/COMMIT rather than sql.begin():
+ *    sql.begin() allocates its own pool connection, which would put the
+ *    lock and the transaction on different sessions and silently void
+ *    the concurrency guarantee.
+ *
+ *  - postgres.js blocks manual `BEGIN` via tagged templates
+ *    (UNSAFE_TRANSACTION) because that is dangerous on pooled
+ *    connections. conn.unsafe('BEGIN') is the intended escape hatch,
+ *    and is safe here because the session is reserved.
+ *
+ *  - Each file is applied inside one transaction. Postgres has
+ *    transactional DDL, so a failure rolls back cleanly. Consequence:
+ *    migration files must NOT contain their own BEGIN/COMMIT.
  *
  *  - Checksums are recorded. Editing an already-applied migration is
- *    the single most common way to get production and development to
- *    silently diverge, so we refuse to start instead.
+ *    the most common way to make environments silently diverge, so we
+ *    refuse to start instead.
  */
 
 // Arbitrary but fixed. Any other process using this same key would
@@ -32,10 +42,8 @@ const LOCK_KEY = 4823741;
  * Candidate locations, in priority order.
  *
  *  1. MIGRATIONS_DIR       — explicit override, always wins.
- *  2. <dist>/db/migrations — production. Bundled into dist at build
- *                            time so it arrives with the compiled code
- *                            and cannot be shadowed by a volume mounted
- *                            at /app/db.
+ *  2. <dist>/db/migrations — production; bundled into dist at build
+ *                            time so migrations travel with the code.
  *  3. <repo>/db/migrations — local development via tsx.
  */
 function migrationCandidates(): string[] {
@@ -52,10 +60,9 @@ function migrationCandidates(): string[] {
 async function resolveMigrationsDir(
   log: (msg: string) => void,
 ): Promise<{ dir: string; files: string[] }> {
-  const candidates = migrationCandidates();
   const tried: string[] = [];
 
-  for (const dir of candidates) {
+  for (const dir of migrationCandidates()) {
     try {
       const files = (await readdir(dir)).filter((f) => f.endsWith('.sql')).sort();
       if (files.length > 0) {
@@ -74,14 +81,11 @@ async function resolveMigrationsDir(
   );
 }
 
-
 /**
  * Converts a Postgres error into one that names the migration file and
- * the line number of the failing statement. The server reports a
- * character position within the submitted script; counting newlines up
- * to it gives the line. Without this, a failed migration logs a bare
- * "type does not exist" with no location — which costs a debugging
- * round trip every single time.
+ * the line of the failing statement. The server reports a character
+ * position within the submitted script; counting newlines up to it
+ * gives the line.
  */
 function describeSqlFailure(err: unknown, file: string, contents: string): Error {
   const pgErr = err as { message?: string; code?: string; position?: string };
@@ -104,6 +108,7 @@ function describeSqlFailure(err: unknown, file: string, contents: string): Error
   if (err instanceof Error) (wrapped as Error & { cause?: unknown }).cause = err;
   return wrapped;
 }
+
 function checksum(contents: string): string {
   return createHash('sha256').update(contents).digest('hex');
 }
@@ -119,8 +124,7 @@ export async function runMigrations(
 ): Promise<void> {
   const { dir, files } = await resolveMigrationsDir(log);
 
-  // A dedicated connection — advisory locks are session-scoped, so a
-  // pooled connection could hand the lock to an unrelated query.
+  // One pinned session for the lock AND all transactions — see header.
   const conn = await sql.reserve();
 
   try {
@@ -152,24 +156,29 @@ export async function runMigrations(
             `Migration ${file} was modified after being applied.\n` +
               `  recorded: ${previous}\n` +
               `  current:  ${hash}\n` +
-              `Migrations are immutable. Add a new file instead of editing this one.`,
+              `Migrations are immutable once applied. Add a new file instead.`,
           );
         }
         continue;
       }
 
       log(`Applying ${file}…`);
+      await conn.unsafe('BEGIN');
       try {
-        await conn.begin(async (tx) => {
-          // .simple() uses the simple query protocol, which is what
-          // allows a file of many statements to run as one call.
-          await tx.unsafe(contents).simple();
-          await tx`
-            INSERT INTO schema_migrations (version, checksum)
-            VALUES (${file}, ${hash})
-          `;
-        });
+        // .simple() uses the simple query protocol, which is what
+        // allows a file of many statements to run as one call. The
+        // statements execute inside the transaction opened above.
+        await conn.unsafe(contents).simple();
+        await conn`
+          INSERT INTO schema_migrations (version, checksum)
+          VALUES (${file}, ${hash})
+        `;
+        await conn.unsafe('COMMIT');
       } catch (err) {
+        // Must ROLLBACK before the finally-block unlock: an aborted
+        // transaction rejects every later command on this session,
+        // including pg_advisory_unlock.
+        await conn.unsafe('ROLLBACK').catch(() => undefined);
         throw describeSqlFailure(err, file, contents);
       }
       log(`Applied ${file}`);
@@ -182,8 +191,6 @@ export async function runMigrations(
         : `Applied ${count} migration(s).`,
     );
   } finally {
-    // Release before returning the connection to the pool, or the lock
-    // outlives this run and the next boot hangs.
     await conn`SELECT pg_advisory_unlock(${LOCK_KEY})`.catch(() => undefined);
     conn.release();
   }
