@@ -62,13 +62,6 @@ export default function GiftShop({
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
-        <h2>{t('gifts.title')}</h2>
-        <span className="num" style={{ color: 'var(--court-lit)', fontWeight: 700 }}>
-          {balance}
-        </span>
-      </div>
-
       {error ? <p className="error">{error}</p> : null}
 
       {categories.map((cat) => (

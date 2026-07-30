@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { sql } from '../lib/db.js';
 import { config } from '../config.js';
 import { HttpError } from '../lib/errors.js';
+import { handleBotCommand } from '../lib/botCommands.js';
 
 /**
  * Wallet and Telegram Stars top-up.
@@ -95,18 +96,30 @@ const walletRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const update = req.body as {
-      pre_checkout_query?: {
-        id: string;
-        invoice_payload: string;
-      };
       message?: {
+        chat?: { id: number };
+        from?: { language_code?: string };
+        text?: string;
         successful_payment?: {
           invoice_payload: string;
           telegram_payment_charge_id: string;
           total_amount: number;
         };
       };
+      pre_checkout_query?: {
+        id: string;
+        invoice_payload: string;
+      };
     };
+
+    // Plain chat commands (/start, /help) — the only thing the bot
+    // itself does besides payments and pushes.
+    const msg = update.message;
+    if (msg?.text && msg.chat) {
+      const handled = await handleBotCommand(
+        msg.chat.id, msg.text, msg.from?.language_code ?? null);
+      if (handled) { reply.code(200); return { ok: true }; }
+    }
 
     /**
      * Telegram holds the payment sheet open until we answer the

@@ -3,11 +3,15 @@ import { apiFetch, type Post } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import { EmptyState, Skeleton } from '../components/ui';
+import Sheet from '../components/Sheet';
+import CommentSheet from '../components/CommentSheet';
 import { PostCard } from './Home';
 
 export default function Saved({ meId, onBack }: { meId: string; onBack: () => void }) {
   const t = useT();
   const [posts, setPosts] = useState<Post[] | null>(null);
+  const [commentPost, setCommentPost] = useState<Post | null>(null);
+  const [menuPost, setMenuPost] = useState<Post | null>(null);
 
   useEffect(() => tg.backButton(onBack), [onBack]);
 
@@ -27,13 +31,24 @@ export default function Saved({ meId, onBack }: { meId: string; onBack: () => vo
 
   const unsave = async (p: Post) => {
     tg.tap('light');
+    setMenuPost(null);
     setPosts((cur) => cur?.filter((x) => x.id !== p.id) ?? cur);
     try { await apiFetch(`/v1/posts/${p.id}/save`, { method: 'POST' }); } catch { load(); }
+  };
+
+  const share = (p: Post) => {
+    tg.tap('light');
+    setMenuPost(null);
+    const text = `${p.author_name} on RIDE: ${(p.body ?? '').slice(0, 120)}`;
+    window.open(
+      `https://t.me/share/url?url=${encodeURIComponent('https://ridethatbot.fun')}&text=${encodeURIComponent(text)}`,
+      '_blank');
   };
 
   return (
     <div className="screen">
       <div className="head"><h1>{t('saved.title')}</h1></div>
+
       {posts === null ? (
         <><Skeleton h={96} mb={12} /><Skeleton h={96} /></>
       ) : posts.length === 0 ? (
@@ -41,9 +56,36 @@ export default function Saved({ meId, onBack }: { meId: string; onBack: () => vo
       ) : (
         posts.map((p) => (
           <PostCard key={p.id} post={p} meId={meId}
-                    onLike={like} onComment={() => undefined} onMenu={unsave} />
+                    onLike={like} onComment={setCommentPost} onMenu={setMenuPost} />
         ))
       )}
+
+      <Sheet open={commentPost !== null} onClose={() => setCommentPost(null)}>
+        {commentPost ? (
+          <CommentSheet
+            postId={commentPost.id}
+            meId={meId}
+            onCountChange={(d) => setPosts((cur) => cur?.map((x) =>
+              x.id === commentPost.id
+                ? { ...x, comment_count: Math.max(0, x.comment_count + d) } : x) ?? cur)}
+          />
+        ) : null}
+      </Sheet>
+
+      {/* The ⋯ opens a menu here too. Previously it silently unsaved,
+          which is a destructive action behind an ambiguous affordance. */}
+      <Sheet open={menuPost !== null} onClose={() => setMenuPost(null)}>
+        {menuPost ? (
+          <div className="set-list">
+            <button className="set-row" onClick={() => share(menuPost)}>
+              <span className="set-row-label">{t('post.share')}</span>
+            </button>
+            <button className="set-row danger" onClick={() => unsave(menuPost)}>
+              <span className="set-row-label">{t('post.unsave')}</span>
+            </button>
+          </div>
+        ) : null}
+      </Sheet>
     </div>
   );
 }

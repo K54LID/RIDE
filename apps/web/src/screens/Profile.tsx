@@ -115,10 +115,9 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved }: {
         </div>
       </div>
 
-      <div className="pro-name">
-        {me.display_name}
-        {age !== null ? <span className="pro-age">{age}</span> : null}
-      </div>
+      {/* The handle is already in the header; repeating the display
+          name here was the duplicate. Only age and bio remain. */}
+      {age !== null ? <div className="pro-age-row num">{age}</div> : null}
       {me.bio ? <p className="pro-bio">{me.bio}</p> : null}
 
       <div className="pro-actions">

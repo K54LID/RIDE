@@ -135,9 +135,14 @@ async function send(telegramId: string, text: string): Promise<boolean> {
       body: JSON.stringify({
         chat_id: telegramId,
         text,
-        // Telegram opens the Mini App from this button.
+        // web_app opens the Mini App inside Telegram. A plain `url`
+        // would kick the user out to a browser, losing their session
+        // and the whole point of a Mini App.
         reply_markup: {
-          inline_keyboard: [[{ text: 'Open RIDE', url: config.MINI_APP_URL ?? 'https://ridethatbot.fun' }]],
+          inline_keyboard: [[{
+            text: 'Open RIDE',
+            web_app: { url: config.MINI_APP_URL },
+          }]],
         },
       }),
     });

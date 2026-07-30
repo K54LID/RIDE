@@ -28,6 +28,11 @@ export type Locale = keyof typeof LOCALES;
 export const RTL: ReadonlySet<Locale> = new Set<Locale>(['ar']);
 
 const en = {
+  'ranks.likes': 'Likes',
+  'chat.typing': 'typing…',
+  'album.toggle': 'Private album access',
+  'album.togglePhoto': 'Public or private',
+  'album.lockedHint': 'Locked photos become visible if they give you album access.',
   'admin.onlineNow': 'Online now',
   'admin.new24': 'New 24h',
   'admin.giftsSent': 'Gifts sent',
@@ -68,7 +73,6 @@ const en = {
   'photos.empty': 'Add up to 9 photos. The first is your main picture.',
   'admin.storage': 'Storage',
   'admin.storageCheck': 'Run storage check',
-  'ranks.posts': 'Posts',
   'action.woof': 'Woof',
   'action.follow': 'Follow',
   'action.following': 'Following',
@@ -299,6 +303,11 @@ const en = {
 export type T = Record<keyof typeof en, string>;
 
 const tr: T = {
+  'ranks.likes': 'Beğeni',
+  'chat.typing': 'yazıyor…',
+  'album.toggle': 'Özel albüm erişimi',
+  'album.togglePhoto': 'Herkese açık veya özel',
+  'album.lockedHint': 'Kilitli fotoğraflar, albüm erişimi verilirse görünür olur.',
   'admin.onlineNow': 'Şu an çevrimiçi',
   'admin.new24': '24s yeni',
   'admin.giftsSent': 'Gönderilen hediye',
@@ -339,7 +348,6 @@ const tr: T = {
   'photos.empty': '9 fotoğrafa kadar ekle. İlki ana fotoğrafın olur.',
   'admin.storage': 'Depolama',
   'admin.storageCheck': 'Depolama kontrolü çalıştır',
-  'ranks.posts': 'Gönderiler',
   'action.woof': 'Woof',
   'action.follow': 'Takip et',
   'action.following': 'Takipte',
@@ -448,6 +456,11 @@ const tr: T = {
 };
 
 const ru: T = {
+  'ranks.likes': 'Лайки',
+  'chat.typing': 'печатает…',
+  'album.toggle': 'Доступ к приватному альбому',
+  'album.togglePhoto': 'Публично или приватно',
+  'album.lockedHint': 'Закрытые фото станут видны, если вам дадут доступ к альбому.',
   'admin.onlineNow': 'Сейчас онлайн',
   'admin.new24': 'Новых за 24ч',
   'admin.giftsSent': 'Отправлено подарков',
@@ -488,7 +501,6 @@ const ru: T = {
   'photos.empty': 'До 9 фото. Первое — основное.',
   'admin.storage': 'Хранилище',
   'admin.storageCheck': 'Проверить хранилище',
-  'ranks.posts': 'Посты',
   'action.woof': 'Вуф',
   'action.follow': 'Подписаться',
   'action.following': 'Вы подписаны',
@@ -597,6 +609,11 @@ const ru: T = {
 };
 
 const ar: T = {
+  'ranks.likes': 'الإعجابات',
+  'chat.typing': 'يكتب…',
+  'album.toggle': 'الوصول للألبوم الخاص',
+  'album.togglePhoto': 'عام أو خاص',
+  'album.lockedHint': 'تصبح الصور المقفلة مرئية إذا مُنحت حق الوصول للألبوم.',
   'admin.onlineNow': 'متصل الآن',
   'admin.new24': 'جدد 24س',
   'admin.giftsSent': 'الهدايا المرسلة',
@@ -637,7 +654,6 @@ const ar: T = {
   'photos.empty': 'أضف حتى 9 صور. الأولى هي صورتك الرئيسية.',
   'admin.storage': 'التخزين',
   'admin.storageCheck': 'فحص التخزين',
-  'ranks.posts': 'المنشورات',
   'action.woof': 'ووف',
   'action.follow': 'متابعة',
   'action.following': 'تتابع',
@@ -746,6 +762,11 @@ const ar: T = {
 };
 
 const az: T = {
+  'ranks.likes': 'Bəyənmə',
+  'chat.typing': 'yazır…',
+  'album.toggle': 'Şəxsi albom girişi',
+  'album.togglePhoto': 'İctimai və ya şəxsi',
+  'album.lockedHint': 'Kilidli şəkillər albom girişi verilsə görünəcək.',
   'admin.onlineNow': 'İndi onlayn',
   'admin.new24': '24s yeni',
   'admin.giftsSent': 'Göndərilən hədiyyə',
@@ -786,7 +807,6 @@ const az: T = {
   'photos.empty': '9 şəklə qədər əlavə et. Birincisi əsas şəklindir.',
   'admin.storage': 'Anbar',
   'admin.storageCheck': 'Anbarı yoxla',
-  'ranks.posts': 'Paylaşımlar',
   'action.woof': 'Woof',
   'action.follow': 'İzlə',
   'action.following': 'İzləyirsən',
@@ -895,6 +915,11 @@ const az: T = {
 };
 
 const es: T = {
+  'ranks.likes': 'Me gusta',
+  'chat.typing': 'escribiendo…',
+  'album.toggle': 'Acceso al álbum privado',
+  'album.togglePhoto': 'Público o privado',
+  'album.lockedHint': 'Las fotos bloqueadas se ven si te dan acceso al álbum.',
   'admin.onlineNow': 'En línea ahora',
   'admin.new24': 'Nuevos 24h',
   'admin.giftsSent': 'Regalos enviados',
@@ -935,7 +960,6 @@ const es: T = {
   'photos.empty': 'Añade hasta 9 fotos. La primera es la principal.',
   'admin.storage': 'Almacenamiento',
   'admin.storageCheck': 'Comprobar almacenamiento',
-  'ranks.posts': 'Publicaciones',
   'action.woof': 'Woof',
   'action.follow': 'Seguir',
   'action.following': 'Siguiendo',
@@ -1044,6 +1068,11 @@ const es: T = {
 };
 
 const de: T = {
+  'ranks.likes': 'Likes',
+  'chat.typing': 'schreibt…',
+  'album.toggle': 'Zugriff auf privates Album',
+  'album.togglePhoto': 'Öffentlich oder privat',
+  'album.lockedHint': 'Gesperrte Fotos werden sichtbar, wenn du Albumzugriff bekommst.',
   'admin.onlineNow': 'Jetzt online',
   'admin.new24': 'Neu 24 Std',
   'admin.giftsSent': 'Geschenke gesendet',
@@ -1084,7 +1113,6 @@ const de: T = {
   'photos.empty': 'Bis zu 9 Fotos. Das erste ist dein Hauptbild.',
   'admin.storage': 'Speicher',
   'admin.storageCheck': 'Speicher prüfen',
-  'ranks.posts': 'Beiträge',
   'action.woof': 'Woof',
   'action.follow': 'Folgen',
   'action.following': 'Folgt',
@@ -1193,6 +1221,11 @@ const de: T = {
 };
 
 const fr: T = {
+  'ranks.likes': 'J’aime',
+  'chat.typing': 'écrit…',
+  'album.toggle': 'Accès à l’album privé',
+  'album.togglePhoto': 'Public ou privé',
+  'album.lockedHint': 'Les photos verrouillées apparaissent si l’accès à l’album t’est donné.',
   'admin.onlineNow': 'En ligne',
   'admin.new24': 'Nouveaux 24 h',
   'admin.giftsSent': 'Cadeaux envoyés',
@@ -1233,7 +1266,6 @@ const fr: T = {
   'photos.empty': 'Jusqu’à 9 photos. La première est la principale.',
   'admin.storage': 'Stockage',
   'admin.storageCheck': 'Vérifier le stockage',
-  'ranks.posts': 'Publications',
   'action.woof': 'Woof',
   'action.follow': 'Suivre',
   'action.following': 'Suivi',
@@ -1342,6 +1374,11 @@ const fr: T = {
 };
 
 const it: T = {
+  'ranks.likes': 'Mi piace',
+  'chat.typing': 'sta scrivendo…',
+  'album.toggle': 'Accesso album privato',
+  'album.togglePhoto': 'Pubblico o privato',
+  'album.lockedHint': 'Le foto bloccate diventano visibili se ti danno accesso all’album.',
   'admin.onlineNow': 'Online ora',
   'admin.new24': 'Nuovi 24h',
   'admin.giftsSent': 'Regali inviati',
@@ -1382,7 +1419,6 @@ const it: T = {
   'photos.empty': 'Fino a 9 foto. La prima è quella principale.',
   'admin.storage': 'Archiviazione',
   'admin.storageCheck': 'Verifica archiviazione',
-  'ranks.posts': 'Post',
   'action.woof': 'Woof',
   'action.follow': 'Segui',
   'action.following': 'Segui già',
@@ -1491,6 +1527,11 @@ const it: T = {
 };
 
 const pt: T = {
+  'ranks.likes': 'Curtidas',
+  'chat.typing': 'digitando…',
+  'album.toggle': 'Acesso ao álbum privado',
+  'album.togglePhoto': 'Público ou privado',
+  'album.lockedHint': 'As fotos bloqueadas ficam visíveis se derem acesso ao álbum.',
   'admin.onlineNow': 'Online agora',
   'admin.new24': 'Novos 24h',
   'admin.giftsSent': 'Presentes enviados',
@@ -1531,7 +1572,6 @@ const pt: T = {
   'photos.empty': 'Até 9 fotos. A primeira é a principal.',
   'admin.storage': 'Armazenamento',
   'admin.storageCheck': 'Verificar armazenamento',
-  'ranks.posts': 'Publicações',
   'action.woof': 'Woof',
   'action.follow': 'Seguir',
   'action.following': 'Seguindo',

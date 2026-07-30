@@ -44,6 +44,18 @@ export default function PhotoManager() {
     } catch { tg.notify('error'); }
   };
 
+  const togglePrivacy = async (photo: ProfilePhoto) => {
+    tg.tap('light');
+    setPhotos((cur) => cur?.map((p) =>
+      p.id === photo.id ? { ...p, is_private: !p.is_private } : p) ?? cur);
+    try {
+      await apiFetch(`/v1/me/photos/${photo.id}/privacy`, {
+        method: 'PATCH', body: JSON.stringify({ is_private: !photo.is_private }),
+      });
+      load();
+    } catch { tg.notify('error'); load(); }
+  };
+
   const remove = async (id: string) => {
     tg.tap('heavy');
     setPhotos((cur) => cur?.filter((p) => p.id !== id) ?? cur);
@@ -58,11 +70,14 @@ export default function PhotoManager() {
 
       <div className="photo-grid">
         {(photos ?? []).map((p) => (
-          <div key={p.id} className={`photo-cell ${p.position === 0 ? 'primary' : ''}`}>
+          <div key={p.id}
+               className={`photo-cell ${p.position === 0 && !p.is_private ? 'primary' : ''} ${p.is_private ? 'private' : ''}`}>
             <Media id={p.media_id} kind="image" thumb />
             {p.position === 0 ? <span className="photo-tag">{t('photos.primary')}</span> : null}
             <div className="photo-tools">
-              {p.position !== 0 ? (
+              <button onClick={() => togglePrivacy(p)}
+                      aria-label={t('album.togglePhoto')}>{p.is_private ? '🔒' : '🌐'}</button>
+              {p.position !== 0 && !p.is_private ? (
                 <button onClick={() => makePrimary(p.id)} aria-label={t('photos.makePrimary')}>★</button>
               ) : null}
               <button onClick={() => remove(p.id)} aria-label={t('post.delete')}>✕</button>

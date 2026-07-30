@@ -21,6 +21,7 @@ import Achievements from './screens/Achievements';
 import SettingsScreen from './screens/Settings';
 import Admin from './screens/Admin';
 import Saved from './screens/Saved';
+import UserProfile from './screens/UserProfile';
 
 type Phase = 'loading' | 'onboarding' | 'ready' | 'error';
 
@@ -30,6 +31,7 @@ export default function App() {
   const [me, setMe] = useState<Me | null>(null);
   const [{ route, chatId }, go, openChat] = useRoute();
   const [feedKey, setFeedKey] = useState(0);
+  const [viewingUser, setViewingUser] = useState<string | null>(null);
 
   const load = useCallback(() => {
     apiFetch<Me>('/v1/me')
@@ -73,8 +75,26 @@ export default function App() {
   const meName = me?.display_name ?? '';
 
   // A chat thread owns the whole screen — the bar would fight the composer.
+  // A person's profile overlays whatever is beneath it, so it works
+  // identically from Discover, a chat header, or the feed.
+  const userOverlay = viewingUser ? (
+    <UserProfile
+      accountId={viewingUser}
+      balance={me?.coin_balance ?? 0}
+      onClose={() => setViewingUser(null)}
+      onBalanceChange={load}
+      onOpenChat={(id) => { setViewingUser(null); openChat(id); }}
+    />
+  ) : null;
+
   if (chatId) {
-    return <ChatThread conversationId={chatId} meId={meId} onBack={() => go('chats')} />;
+    return (
+      <>
+        <ChatThread conversationId={chatId} meId={meId}
+                    onBack={() => go('chats')} onOpenUser={setViewingUser} />
+        {userOverlay}
+      </>
+    );
   }
 
   if (route === 'alerts') return <Alerts onBack={() => go('home')} />;
@@ -99,9 +119,7 @@ export default function App() {
       )}
       {tab === 'achievements' && <Achievements />}
       {tab === 'chats' && <Chats meId={meId} onOpen={openChat} />}
-      {tab === 'discover' && (
-        <Discover balance={me?.coin_balance ?? 0} onBalanceChange={load} onOpenChat={openChat} />
-      )}
+      {tab === 'discover' && <Discover onOpenUser={setViewingUser} />}
       {tab === 'ranks' && <Ranks />}
       {tab === 'you' && me && (
         <Profile me={me} onEdit={() => go('edit')} onWallet={() => go('wallet')}
@@ -109,6 +127,8 @@ export default function App() {
       )}
 
       <BottomNav route={route} onGo={go} />
+
+      {userOverlay}
 
       <Sheet open={route === 'create'} onClose={() => go('home')}>
         <Compose

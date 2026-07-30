@@ -3,6 +3,7 @@ import { apiFetch, ApiError, type Me } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import { Button, ChipGroup, ChipPick, Field } from '../components/ui';
+import PhotoManager from '../components/PhotoManager';
 
 const GENDERS = ['Man', 'Woman', 'Non-binary', 'Trans man', 'Trans woman', 'Prefer not to say'] as const;
 const PRONOUNS = ['he/him', 'she/her', 'they/them', 'any'] as const;
@@ -79,6 +80,11 @@ export default function EditProfile({ me, onSaved, onBack }: {
   return (
     <div className="screen">
       <div className="head"><h1>{t('profile.edit')}</h1></div>
+
+      {/* Photos first — it's the change people come here to make. */}
+      <div className="eyebrow tight" style={{ marginTop: 0 }}>{t('profile.photos')}</div>
+      <PhotoManager />
+      <div style={{ height: 18 }} />
 
       <Field label={t('profile.displayName')}>
         <input value={displayName} maxLength={50}

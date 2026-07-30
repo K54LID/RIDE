@@ -1,11 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { apiFetch, type ChatMessage } from '../lib/api';
+import { apiFetch, type ChatMessage, type ChatSummary } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import { Skeleton } from '../components/ui';
 import { useMediaUpload } from '../lib/useMediaUpload';
 import Media from '../components/Media';
 import Sheet from '../components/Sheet';
+import Avatar from '../components/Avatar';
+
+function ago(iso: string): string {
+  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (m < 1) return 'now';
+  if (m < 60) return `${m}m`;
+  if (m < 1440) return `${Math.floor(m / 60)}h`;
+  return `${Math.floor(m / 1440)}d`;
+}
 
 const REACTIONS = ['❤️', '🔥', '😂', '😮', '😢', '🐾'];
 const POLL_MS = 2500;
@@ -17,15 +26,18 @@ const POLL_MS = 2500;
  * messages. Sending is optimistic — the bubble appears immediately with
  * a pending flag and reconciles when the server assigns a real id.
  */
-export default function ChatThread({ conversationId, meId, onBack }: {
+export default function ChatThread({ conversationId, meId, onBack, onOpenUser }: {
   conversationId: string;
   meId: string;
   onBack: () => void;
+  onOpenUser: (accountId: string) => void;
 }) {
   const t = useT();
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [peerRead, setPeerRead] = useState<string | null>(null);
   const [peerTyping, setPeerTyping] = useState(false);
+  const [peer, setPeer] = useState<ChatSummary | null>(null);
+  const [albumGranted, setAlbumGranted] = useState(false);
   const [body, setBody] = useState('');
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [menuMsg, setMenuMsg] = useState<ChatMessage | null>(null);
@@ -40,6 +52,23 @@ export default function ChatThread({ conversationId, meId, onBack }: {
   const typingSent = useRef(0);
 
   useEffect(() => tg.backButton(onBack), [onBack]);
+
+  // The header needs the other person's name, photo and presence. The
+  // chat list already returns exactly that shape, so reuse it rather
+  // than adding a second endpoint.
+  useEffect(() => {
+    apiFetch<{ chats: ChatSummary[] }>('/v1/chats')
+      .then((r) => {
+        const found = r.chats.find((c) => c.id === conversationId) ?? null;
+        setPeer(found);
+        if (found) {
+          apiFetch<{ i_granted: boolean }>(`/v1/albums/grants/${found.peer_id}`)
+            .then((g) => setAlbumGranted(g.i_granted))
+            .catch(() => undefined);
+        }
+      })
+      .catch(() => undefined);
+  }, [conversationId]);
 
   const scrollDown = () => {
     requestAnimationFrame(() => bottom.current?.scrollIntoView({ block: 'end' }));
@@ -170,8 +199,61 @@ export default function ChatThread({ conversationId, meId, onBack }: {
   const seen = lastMine && peerRead
     ? new Date(peerRead) >= new Date(lastMine.created_at) : false;
 
+  const toggleAlbum = async () => {
+    if (!peer) return;
+    tg.tap('medium');
+    const next = !albumGranted;
+    setAlbumGranted(next);
+    try {
+      await apiFetch('/v1/albums/grants', {
+        method: 'POST',
+        body: JSON.stringify({ account_id: peer.peer_id, granted: next }),
+      });
+      tg.notify('success');
+    } catch { setAlbumGranted(!next); tg.notify('error'); }
+  };
+
+  const presence = peerTyping
+    ? t('chat.typing')
+    : peer?.peer_online
+      ? t('discover.online')
+      : peer?.peer_last_seen
+        ? `${t('settings.showLastSeen')} ${ago(peer.peer_last_seen)}`
+        : '';
+
   return (
     <div className="screen chat-screen">
+      <header className="chat-head">
+        <button className="page-back" aria-label="Back"
+                onClick={() => { tg.tap('light'); onBack(); }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        <button className="chat-head-id"
+                onClick={() => { if (peer) { tg.tap('light'); onOpenUser(peer.peer_id); } }}>
+          <div style={{ position: 'relative', flex: 'none' }}>
+            <Avatar name={peer?.peer_name ?? '?'} mediaId={peer?.peer_avatar_media_id} size={36} radius={18} />
+            {peer?.peer_online ? <span className="chat-online sm" /> : null}
+          </div>
+          <span style={{ minWidth: 0 }}>
+            <span className="chat-head-name">{peer?.peer_name ?? ''}</span>
+            <span className={`chat-head-sub ${peerTyping ? 'typing' : ''}`}>{presence}</span>
+          </span>
+        </button>
+
+        {/* Album key. Granting from inside the conversation is the only
+            place it makes sense — you share with someone you're talking
+            to, and revoking is the same tap. */}
+        <button className={`chat-lock ${albumGranted ? 'on' : ''}`}
+                aria-label={t('album.toggle')}
+                onClick={toggleAlbum}>
+          {albumGranted ? '🔓' : '🔒'}
+        </button>
+      </header>
+
       <div className="thread">
         {messages === null ? (
           <><Skeleton h={40} mb={10} /><Skeleton h={40} mb={10} /><Skeleton h={40} /></>

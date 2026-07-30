@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { sql } from '../lib/db.js';
 import { HttpError } from '../lib/errors.js';
+import { notify } from '../lib/notify.js';
 
 /**
  * Text posts only for now — media needs object storage, which isn't
@@ -198,6 +199,14 @@ const postRoutes: FastifyPluginAsync = async (app) => {
         INSERT INTO post_likes (post_id, account_id) VALUES (${id}, ${req.accountId})
       `;
       await tx`UPDATE posts SET like_count = like_count + 1 WHERE id = ${id}`;
+
+      const [post] = await tx<Array<{ author_id: string }>>`
+        SELECT author_id FROM posts WHERE id = ${id}
+      `;
+      if (post) {
+        await notify(tx, { accountId: post.author_id, actorId: req.accountId!,
+                           kind: 'post_like', payload: { post_id: id } });
+      }
       return true;
     });
 
@@ -221,12 +230,35 @@ const postRoutes: FastifyPluginAsync = async (app) => {
 
   app.delete('/v1/posts/:id', { preHandler: [app.requireAuth] }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const rows = await sql`
-      UPDATE posts SET deleted_at = now()
-      WHERE id = ${id} AND author_id = ${req.accountId} AND deleted_at IS NULL
-      RETURNING id
-    `;
-    if (rows.length === 0) throw new HttpError(404, 'POST_NOT_FOUND');
+    /**
+     * Hard delete. A soft delete left the row, its likes, its comments
+     * and its media rows behind — which is what "deleted posts come
+     * back" looks like from the outside. Foreign keys cascade from
+     * posts, so one DELETE clears post_media, post_likes, comments and
+     * saved_posts with it.
+     */
+    const removed = await sql.begin(async (tx) => {
+      const media = await tx<Array<{ media_id: string | null }>>`
+        SELECT media_id FROM post_media WHERE post_id = ${id}
+      `;
+      const rows = await tx`
+        DELETE FROM posts WHERE id = ${id} AND author_id = ${req.accountId}
+        RETURNING id
+      `;
+      if (rows.length === 0) return false;
+
+      // Media rows are owned by the account, not the post, so they are
+      // not cascaded. Drop the ones this post introduced.
+      const ids = media.map((m) => m.media_id).filter((v): v is string => v !== null);
+      if (ids.length > 0) {
+        await tx`
+          DELETE FROM media WHERE id = ANY(${ids}) AND owner_id = ${req.accountId}
+        `;
+      }
+      return true;
+    });
+
+    if (!removed) throw new HttpError(404, 'POST_NOT_FOUND');
     reply.code(204);
   });
 };

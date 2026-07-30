@@ -5,8 +5,7 @@ import { useT } from '../i18n';
 import { Button, ChipGroup, ChipPick, EmptyState, Field, Skeleton } from '../components/ui';
 import ComingSoon from '../components/ComingSoon';
 import PersonCard from '../components/PersonCard';
-import PersonActions from '../components/PersonActions';
-import Sheet from '../components/Sheet';
+import Page from '../components/Page';
 
 type View = 'list' | 'map';
 type Sort = 'active' | 'new' | 'court' | 'nearby';
@@ -23,17 +22,14 @@ const AGE_BOUNDS: Record<string, [number, number]> = {
   '45–54': [45, 54], '55+': [55, 120],
 };
 
-export default function Discover({ balance, onBalanceChange, onOpenChat }: {
-  balance: number;
-  onBalanceChange: () => void;
-  onOpenChat: (conversationId: string) => void;
+export default function Discover({ onOpenUser }: {
+  onOpenUser: (accountId: string) => void;
 }) {
   const t = useT();
   const [view, setView] = useState<View>('list');
   const [people, setPeople] = useState<Person[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [selected, setSelected] = useState<Person | null>(null);
 
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<Sort>('active');
@@ -140,42 +136,20 @@ export default function Discover({ balance, onBalanceChange, onOpenChat }: {
       ) : (
         people.map((p) => (
           <button key={p.account_id} style={{ all: 'unset', display: 'block', width: '100%' }}
-                  onClick={() => { tg.tap('light'); setSelected(p); }}>
+                  onClick={() => { tg.tap('light'); onOpenUser(p.account_id); }}>
             <PersonCard person={p} />
           </button>
         ))
       )}
 
-      <Sheet open={selected !== null} onClose={() => setSelected(null)}>
-        {selected ? (
-          <>
-            <h2 style={{ marginBottom: 4 }}>{selected.display_name}</h2>
-            <p style={{ fontSize: '0.85rem' }}>
-              {[selected.age, selected.gender, selected.distance].filter(Boolean).join(' · ')}
-            </p>
-            {selected.bio ? <p style={{ marginTop: 10, color: 'var(--ink)' }}>{selected.bio}</p> : null}
-            <Button variant="ghost" onClick={async () => {
-              tg.tap('light');
-              try {
-                const r = await apiFetch<{ conversation_id: string }>('/v1/chats/open', {
-                  method: 'POST',
-                  body: JSON.stringify({ account_id: selected.account_id }),
-                });
-                onOpenChat(r.conversation_id);
-              } catch { tg.notify('error'); }
-            }}>{t('chats.title')}</Button>
-            <PersonActions
-              targetId={selected.account_id}
-              courtValue={selected.court_value}
-              balance={balance}
-              onChange={() => { onBalanceChange(); load(); }}
-            />
-          </>
-        ) : null}
-      </Sheet>
-
-      <Sheet open={filtersOpen} onClose={() => setFiltersOpen(false)}>
-        <h2 style={{ marginBottom: 16 }}>{t('common.filters')}</h2>
+      {filtersOpen ? (
+        <Page
+          title={t('common.filters')}
+          onClose={() => setFiltersOpen(false)}
+          action={
+            <button className="page-clear" onClick={clearAll}>{t('common.clear')}</button>
+          }
+        >
 
         <Field label={t('discover.sort')}>
           <ChipPick
@@ -227,10 +201,10 @@ export default function Discover({ balance, onBalanceChange, onOpenChat }: {
           </button>
         </div>
 
-        <Button onClick={() => setFiltersOpen(false)}>{t('common.apply')}</Button>
-        <div style={{ height: 10 }} />
-        <Button variant="ghost" onClick={clearAll}>{t('common.clear')}</Button>
-      </Sheet>
+          <div style={{ height: 12 }} />
+          <Button onClick={() => setFiltersOpen(false)}>{t('common.apply')}</Button>
+        </Page>
+      ) : null}
     </div>
   );
 }

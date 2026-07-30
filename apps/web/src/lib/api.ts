@@ -186,3 +186,23 @@ export interface Comment {
   id: string; body: string; created_at: string; author_id: string;
   author_name: string; author_handle: string | null; author_verified: boolean;
 }
+
+export interface PublicUser {
+  account_id: string; display_name: string; handle: string | null;
+  bio: string | null; court_value: number;
+  gender: string | null; pronouns: string | null; orientation: string | null;
+  relationship_status: string | null;
+  looking_for: string[] | null; interests: string[] | null;
+  languages: string[] | null; tribes: string[] | null;
+  height_cm: number | null; weight_kg: number | null;
+  verified: boolean; vip: boolean; age: number | null;
+  online: boolean | null;
+  woofs_received: number; followers: number; gifts_received: number;
+  i_follow: boolean; woofed_today: boolean;
+}
+
+export interface AlbumGrant {
+  viewer_id: string; granted_at: string;
+  display_name: string; handle: string | null;
+  avatar_media_id: string | null;
+}
