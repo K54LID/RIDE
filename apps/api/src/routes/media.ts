@@ -4,32 +4,84 @@ import { HttpError } from '../lib/errors.js';
 import { uploadToTelegram, resolveFileUrl } from '../lib/telegramStorage.js';
 
 const MAX_IMAGE = 10 * 1024 * 1024;
-const MAX_VIDEO = 45 * 1024 * 1024;   // Bot API upload ceiling is 50 MB
+const MAX_VIDEO = 45 * 1024 * 1024;
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
 
+/**
+ * Multipart parsing without @fastify/multipart.
+ *
+ * Node 22 bundles undici, whose Response implements formData(). Handing
+ * it the raw body plus the original content-type header (which carries
+ * the boundary) gets a fully parsed form with real File objects — the
+ * same parser a fetch() call would use.
+ *
+ * Zero dependencies, so the committed lockfile stays valid.
+ */
+async function readUpload(
+  body: unknown,
+  contentType: string | undefined,
+): Promise<{ buffer: Buffer; filename: string; mimetype: string }> {
+  if (!Buffer.isBuffer(body)) throw new HttpError(400, 'NO_FILE');
+  if (!contentType?.startsWith('multipart/form-data')) {
+    throw new HttpError(415, 'EXPECTED_MULTIPART');
+  }
+
+  let form: FormData;
+  try {
+    form = await new Response(body, { headers: { 'content-type': contentType } }).formData();
+  } catch {
+    throw new HttpError(400, 'MALFORMED_MULTIPART');
+  }
+
+  // Accept the conventional field name, or the first file in the form —
+  // clients disagree about naming and this costs nothing to tolerate.
+  let file = form.get('file');
+  if (!(file instanceof File)) {
+    for (const value of form.values()) {
+      if (value instanceof File) { file = value; break; }
+    }
+  }
+  if (!(file instanceof File)) throw new HttpError(400, 'NO_FILE');
+
+  return {
+    buffer: Buffer.from(await file.arrayBuffer()),
+    filename: file.name || 'upload',
+    mimetype: file.type || 'application/octet-stream',
+  };
+}
+
 const mediaRoutes: FastifyPluginAsync = async (app) => {
   /**
-   * POST /v1/media — multipart upload, one file per request.
+   * Raw-body parser for uploads. Registered on this plugin instance, so
+   * JSON parsing elsewhere is untouched.
+   */
+  app.addContentTypeParser(
+    'multipart/form-data',
+    { parseAs: 'buffer', bodyLimit: MAX_VIDEO + 1024 * 1024 },
+    (_req, body, done) => done(null, body),
+  );
+
+  /**
+   * POST /v1/media — one file per request.
    *
-   * Returns a media id the client attaches to a post, story or profile.
-   * Uploading and attaching are separate steps so a slow upload never
-   * blocks the compose form, and an abandoned upload is just an orphan
-   * row rather than a half-created post.
+   * Uploading and attaching are separate steps: a slow upload never
+   * blocks the compose form, and an abandoned upload is an orphan row
+   * rather than a half-created post.
    */
   app.post('/v1/media', { preHandler: [app.requireAuth] }, async (req, reply) => {
-    const file = await req.file();
-    if (!file) throw new HttpError(400, 'NO_FILE');
+    const { buffer, filename, mimetype } = await readUpload(
+      req.body,
+      req.headers['content-type'],
+    );
 
-    const mime = file.mimetype;
-    const isImage = IMAGE_TYPES.has(mime);
-    const isVideo = VIDEO_TYPES.has(mime);
+    const isImage = IMAGE_TYPES.has(mimetype);
+    const isVideo = VIDEO_TYPES.has(mimetype);
     if (!isImage && !isVideo) {
-      throw new HttpError(415, 'UNSUPPORTED_TYPE', `${mime} is not accepted`);
+      throw new HttpError(415, 'UNSUPPORTED_TYPE', `${mimetype} is not accepted`);
     }
 
-    const buffer = await file.toBuffer();
     const limit = isImage ? MAX_IMAGE : MAX_VIDEO;
     if (buffer.byteLength > limit) {
       throw new HttpError(413, 'FILE_TOO_LARGE',
@@ -38,7 +90,7 @@ const mediaRoutes: FastifyPluginAsync = async (app) => {
 
     let stored;
     try {
-      stored = await uploadToTelegram(buffer, file.filename, mime, isImage ? 'image' : 'video');
+      stored = await uploadToTelegram(buffer, filename, mimetype, isImage ? 'image' : 'video');
     } catch (err) {
       req.log.error({ err }, 'media upload failed');
       throw new HttpError(502, 'UPLOAD_FAILED', 'Storage rejected the file');
