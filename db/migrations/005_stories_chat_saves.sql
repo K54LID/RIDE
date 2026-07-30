@@ -1,4 +1,8 @@
--- Stories interactions, chat reactions, saved posts, media links.
+-- Stories interactions, saved posts, chat media, message reaction timestamps.
+--
+-- NOTE: message_reactions, messages_conversation_idx and
+-- conversation_members_account_idx already exist in 001. This file only
+-- adds what 001 did not define.
 
 -- Woof reactions on stories: one per viewer per story.
 CREATE TABLE story_reactions (
@@ -29,19 +33,18 @@ CREATE TABLE saved_posts (
 );
 CREATE INDEX saved_posts_account_idx ON saved_posts (account_id, created_at DESC);
 
--- One reaction per person per message; sending another replaces it.
-CREATE TABLE message_reactions (
-  message_id bigint NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
-  account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-  emoji      text NOT NULL CHECK (char_length(emoji) <= 8),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (message_id, account_id)
-);
+-- message_reactions exists since 001 but has no created_at. The reaction
+-- handler writes it on every upsert (ON CONFLICT ... DO UPDATE SET
+-- created_at = now()), so without this column reacting fails at runtime.
+ALTER TABLE message_reactions
+  ADD COLUMN created_at timestamptz NOT NULL DEFAULT now();
+
+-- Bound the emoji column; 001 left it unconstrained text.
+ALTER TABLE message_reactions
+  ADD CONSTRAINT message_reactions_emoji_len CHECK (char_length(emoji) <= 8);
 
 -- Messages carry media the same way posts do.
 ALTER TABLE messages ADD COLUMN media_id uuid REFERENCES media(id) ON DELETE SET NULL;
 
--- The queries the chat and story screens run constantly.
-CREATE INDEX messages_conversation_idx ON messages (conversation_id, id DESC);
-CREATE INDEX conversation_members_account_idx ON conversation_members (account_id);
+-- Story rail queries this on every Home load.
 CREATE INDEX stories_live_idx ON stories (author_id, expires_at DESC);
