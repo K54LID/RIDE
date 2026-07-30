@@ -35,6 +35,9 @@ export default function Admin({ onBack }: { onBack: () => void }) {
   const [verifs, setVerifs] = useState<VerificationReq[] | null>(null);
   const [log, setLog] = useState<Array<Record<string, unknown>> | null>(null);
   const [q, setQ] = useState('');
+  const [amounts, setAmounts] = useState<Record<string, string>>({});
+  const [selfieView, setSelfieView] = useState<string | null>(null);
+  const [armedReset, setArmedReset] = useState<string | null>(null);
   const [denied, setDenied] = useState(false);
   const [storage, setStorage] = useState<Array<{ step: string; ok: boolean; detail: string }> | null>(null);
   const [checking, setChecking] = useState(false);
@@ -215,6 +218,42 @@ export default function Admin({ onBack }: { onBack: () => void }) {
                 <button className="chip" onClick={() => act(`/v1/admin/users/${u.id}/credit`, { amount: -100 })}>
                   {t('admin.debit100')}
                 </button>
+                {/* Any amount, positive or negative — the endpoint has
+                    always accepted it; only the UI capped it at ±100. */}
+                <input
+                  className="admin-amount num"
+                  type="number" inputMode="numeric"
+                  placeholder={t('admin.amount')}
+                  value={amounts[u.id] ?? ''}
+                  onChange={(e) => setAmounts((cur) => ({ ...cur, [u.id]: e.target.value }))}
+                />
+                <button
+                  className="chip"
+                  disabled={!Number.parseInt(amounts[u.id] ?? '', 10)}
+                  onClick={() => {
+                    const amount = Number.parseInt(amounts[u.id] ?? '', 10);
+                    if (!amount) return;
+                    setAmounts((cur) => ({ ...cur, [u.id]: '' }));
+                    void act(`/v1/admin/users/${u.id}/credit`, { amount });
+                  }}
+                >
+                  {t('admin.apply')}
+                </button>
+                {/* Two taps: the first arms, the second fires. A rank
+                    wipe should never ride on one stray thumb. */}
+                <button className="chip"
+                        style={armedReset === u.id ? { color: 'var(--pulse)' } : undefined}
+                        onClick={() => {
+                          if (armedReset === u.id) {
+                            setArmedReset(null);
+                            void act(`/v1/admin/users/${u.id}/reset-stats`, {});
+                          } else {
+                            tg.tap('light');
+                            setArmedReset(u.id);
+                          }
+                        }}>
+                  {armedReset === u.id ? t('admin.confirm') : t('admin.resetStats')}
+                </button>
                 <button className="chip"
                         onClick={() => act(`/v1/admin/users/${u.id}/verification`,
                                            { verified: u.verification !== 'approved' })}>
@@ -232,9 +271,12 @@ export default function Admin({ onBack }: { onBack: () => void }) {
         verifs.map((v) => (
           <div key={v.id} className="person" style={{ flexWrap: 'wrap' }}>
             {v.selfie_media_id
-              ? <div className="avatar-img" style={{ width: 48, height: 48, borderRadius: 14 }}>
+              ? <button className="avatar-img admin-selfie"
+                        style={{ width: 48, height: 48, borderRadius: 14, padding: 0, border: 0 }}
+                        aria-label={t('admin.viewSelfie')}
+                        onClick={() => { tg.tap('light'); setSelfieView(v.selfie_media_id); }}>
                   <Media id={v.selfie_media_id} kind="image" thumb />
-                </div>
+                </button>
               : <div className="person-avatar">{v.display_name.charAt(0).toUpperCase()}</div>}
             <div className="person-main">
               <div className="person-name">{v.display_name}</div>
@@ -301,6 +343,14 @@ export default function Admin({ onBack }: { onBack: () => void }) {
           </div>
         )
       )}
+      {selfieView ? (
+        <div className="lightbox" role="dialog" aria-modal="true"
+             onClick={() => setSelfieView(null)}>
+          <button className="lightbox-close" aria-label={t('common.close')}
+                  onClick={() => setSelfieView(null)}>✕</button>
+          <Media id={selfieView} kind="image" />
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -162,19 +162,34 @@ const economyRoutes: FastifyPluginAsync = async (app) => {
     return { ok: true, ...result };
   });
 
-  /** What courting this person costs right now, and who holds them. */
+  /**
+   * What courting this person costs right now, and who holds them.
+   *
+   * A courtship is a 30-day title, not a permanent one: past that
+   * window the "courted by" strip disappears until someone pays again.
+   * The upsert in the court route stamps created_at = now() on every
+   * court, so a re-court resets the 30 days — and since the cost is
+   * always the doubled value, the price has gone up with it.
+   */
   app.get('/v1/users/:id/court', { preHandler: [app.requireAuth] }, async (req) => {
     const { id } = IdParam.parse(req.params);
     const [row] = await sql<Array<{
       court_value: number; courter_id: string | null;
       courter_name: string | null; courter_handle: string | null;
-      courted_at: string | null;
+      courted_at: string | null; expires_at: string | null;
+      courter_avatar_media_id: string | null;
     }>>`
       SELECT p.court_value::int AS court_value,
              c.courter_id, c.created_at AS courted_at,
-             cp.display_name AS courter_name, cp.handle AS courter_handle
+             (c.created_at + interval '30 days') AS expires_at,
+             cp.display_name AS courter_name, cp.handle AS courter_handle,
+             (SELECT ph.media_id FROM profile_photos ph
+              WHERE ph.account_id = c.courter_id AND ph.position = 0
+                AND NOT ph.is_private AND ph.media_id IS NOT NULL
+              LIMIT 1) AS courter_avatar_media_id
       FROM profiles p
       LEFT JOIN courtships c ON c.target_id = p.account_id
+        AND c.created_at > now() - interval '30 days'
       LEFT JOIN profiles cp  ON cp.account_id = c.courter_id
       WHERE p.account_id = ${id}
     `;
@@ -184,7 +199,9 @@ const economyRoutes: FastifyPluginAsync = async (app) => {
       next_cost: row.court_value * 2,
       courter: row.courter_id
         ? { account_id: row.courter_id, display_name: row.courter_name,
-            handle: row.courter_handle, at: row.courted_at }
+            handle: row.courter_handle, at: row.courted_at,
+            expires_at: row.expires_at,
+            avatar_media_id: row.courter_avatar_media_id }
         : null,
     };
   });

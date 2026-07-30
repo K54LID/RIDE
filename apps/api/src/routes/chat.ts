@@ -65,7 +65,17 @@ const chatRoutes: FastifyPluginAsync = async (app) => {
                WHERE x.conversation_id = cm.conversation_id) = 2
         LIMIT 1
       `;
-      if (existing) return existing.conversation_id;
+      if (existing) {
+        // Deliberately opening the chat resurfaces it for me if I had
+        // deleted it — otherwise the thread stays invisible in my list
+        // even as I write into it.
+        await tx`
+          UPDATE conversation_members SET is_archived = false
+          WHERE conversation_id = ${existing.conversation_id}
+            AND account_id = ${me} AND is_archived
+        `;
+        return existing.conversation_id;
+      }
 
       const [conv] = await tx<Array<{ id: string }>>`
         INSERT INTO conversations DEFAULT VALUES RETURNING id
@@ -86,6 +96,7 @@ const chatRoutes: FastifyPluginAsync = async (app) => {
     const rows = await sql`
       SELECT c.id,
              c.last_message_at,
+             mine.is_pinned AS pinned,
              peer.account_id AS peer_id,
              pp.display_name AS peer_name,
              pp.handle       AS peer_handle,
@@ -107,7 +118,8 @@ const chatRoutes: FastifyPluginAsync = async (app) => {
               WHERE m.conversation_id = c.id
                 AND m.sender_id <> ${me}
                 AND m.deleted_at IS NULL
-                AND m.created_at > COALESCE(mine.last_read_at, 'epoch')) AS unread
+                AND m.created_at > COALESCE(mine.last_read_at, 'epoch')
+                AND m.created_at > COALESCE(mine.cleared_at, 'epoch')) AS unread
       FROM conversations c
       JOIN conversation_members mine
         ON mine.conversation_id = c.id AND mine.account_id = ${me}
@@ -119,10 +131,11 @@ const chatRoutes: FastifyPluginAsync = async (app) => {
       LEFT JOIN LATERAL (
         SELECT body, kind, sender_id, deleted_at FROM messages m
         WHERE m.conversation_id = c.id
+          AND m.created_at > COALESCE(mine.cleared_at, 'epoch')
         ORDER BY m.id DESC LIMIT 1
       ) lm ON true
       WHERE NOT mine.is_archived
-      ORDER BY c.last_message_at DESC
+      ORDER BY mine.is_pinned DESC, c.last_message_at DESC
       LIMIT 50
     `;
     const total = rows.reduce((n, r) => n + Number(r.unread ?? 0), 0);
@@ -136,7 +149,14 @@ const chatRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/chats/:id/messages', { preHandler: [app.requireAuth] }, async (req) => {
     const { id } = IdParam.parse(req.params);
     const me = req.accountId!;
-    await memberOr403(id, me);
+
+    // Membership check doubles as the cleared_at lookup: a member who
+    // deleted the chat sees only what arrived after that moment.
+    const [mine] = await sql<Array<{ cleared_at: string | null }>>`
+      SELECT cleared_at FROM conversation_members
+      WHERE conversation_id = ${id} AND account_id = ${me}
+    `;
+    if (!mine) throw new HttpError(403, 'NOT_A_MEMBER');
 
     const q = z.object({
       after: z.coerce.number().int().optional(),
@@ -158,6 +178,7 @@ const chatRoutes: FastifyPluginAsync = async (app) => {
       LEFT JOIN profiles rp ON rp.account_id = rm.sender_id
       LEFT JOIN message_reactions mr ON mr.message_id = m.id AND mr.account_id = ${me}
       WHERE m.conversation_id = ${id}
+        AND m.created_at > COALESCE(${mine.cleared_at}::timestamptz, 'epoch')
         ${q.after ? sql`AND m.id > ${q.after}` : sql``}
         ${q.before ? sql`AND m.id < ${q.before}` : sql``}
       ORDER BY m.id ${q.before ? sql`DESC` : q.after ? sql`ASC` : sql`DESC`}
@@ -221,6 +242,12 @@ const chatRoutes: FastifyPluginAsync = async (app) => {
         RETURNING id, created_at
       `;
       await tx`UPDATE conversations SET last_message_at = now() WHERE id = ${id}`;
+      // A new message resurfaces the thread for anyone who deleted it —
+      // otherwise messages would land invisibly in an archived chat.
+      await tx`
+        UPDATE conversation_members SET is_archived = false
+        WHERE conversation_id = ${id} AND is_archived
+      `;
 
       // Push to the other participant. Inside the transaction so a
       // failed send cannot exist for a message that never landed.
@@ -243,6 +270,37 @@ const chatRoutes: FastifyPluginAsync = async (app) => {
     try { await redis.del(`typing:${id}:${me}`); } catch { /* fine */ }
     reply.code(201);
     return message;
+  });
+
+  /** Pin toggle: pinned chats sort to the top of the list. Per-member. */
+  app.post('/v1/chats/:id/pin', { preHandler: [app.requireAuth] }, async (req) => {
+    const { id } = IdParam.parse(req.params);
+    const rows = await sql<Array<{ is_pinned: boolean }>>`
+      UPDATE conversation_members SET is_pinned = NOT is_pinned
+      WHERE conversation_id = ${id} AND account_id = ${req.accountId}
+      RETURNING is_pinned
+    `;
+    if (rows.length === 0) throw new HttpError(403, 'NOT_A_MEMBER');
+    return { pinned: rows[0]!.is_pinned };
+  });
+
+  /**
+   * Delete a chat — for me only. History up to now disappears from my
+   * view (cleared_at watermark) and the thread leaves my list
+   * (is_archived) until someone writes again. The other member's copy
+   * is untouched; a shared thread is not mine to erase for them.
+   */
+  app.delete('/v1/chats/:id', { preHandler: [app.requireAuth] }, async (req, reply) => {
+    const { id } = IdParam.parse(req.params);
+    const rows = await sql`
+      UPDATE conversation_members
+      SET is_archived = true, is_pinned = false,
+          cleared_at = now(), last_read_at = now()
+      WHERE conversation_id = ${id} AND account_id = ${req.accountId}
+      RETURNING 1
+    `;
+    if (rows.length === 0) throw new HttpError(403, 'NOT_A_MEMBER');
+    reply.code(204);
   });
 
   app.post('/v1/chats/:id/read', { preHandler: [app.requireAuth] }, async (req) => {

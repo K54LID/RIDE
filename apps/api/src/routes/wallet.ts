@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { sql } from '../lib/db.js';
 import { config } from '../config.js';
 import { HttpError } from '../lib/errors.js';
-import { handleBotCommand } from '../lib/botCommands.js';
+import { processTelegramUpdate, type TelegramUpdate } from '../lib/telegramUpdates.js';
 
 /**
  * Wallet and Telegram Stars top-up.
@@ -84,8 +84,47 @@ const walletRoutes: FastifyPluginAsync = async (app) => {
   });
 
   /**
+   * Custom top-up: the person types exactly how many coins they want.
+   * Priced at 1 Star per coin — the same rate as the smallest pack, so
+   * the fixed packs stay the better deal for bulk. Stars only supports
+   * whole-number amounts, which a 1:1 rate satisfies by construction.
+   */
+  app.post('/v1/wallet/topup-custom', { preHandler: [app.requireAuth] }, async (req) => {
+    const { coins } = z.object({
+      coins: z.coerce.number().int().min(10).max(100000),
+    }).parse(req.body);
+    const stars = coins;
+    const payload = `topup:${randomUUID()}`;
+
+    await sql`
+      INSERT INTO star_purchases
+        (account_id, telegram_charge_id, stars_amount, coins_granted, payload)
+      VALUES (${req.accountId}, ${'pending:' + payload}, ${stars}, ${coins}, ${payload})
+    `;
+
+    const res = await botApi('createInvoiceLink', {
+      title: `${coins} coins`,
+      description: `Add ${coins} coins to your RIDE balance`,
+      payload,
+      currency: 'XTR',
+      prices: [{ label: `${coins} coins`, amount: stars }],
+    });
+
+    return { invoice_url: res.result as string, coins, stars };
+  });
+
+  /**
+   * Health probe for the transport chooser: boot fetches this through
+   * PUBLIC_API_URL to prove the public URL actually routes here before
+   * pointing Telegram's webhook at it.
+   */
+  app.get('/v1/telegram/webhook', async () => ({ ok: true, service: 'ride-api' }));
+
+  /**
    * Telegram webhook. Registered separately from the app's own auth —
-   * requests come from Telegram, not from a user session.
+   * requests come from Telegram, not from a user session. All the real
+   * work lives in processTelegramUpdate, shared with the polling
+   * fallback.
    */
   app.post('/v1/telegram/webhook', async (req, reply) => {
     if (config.TELEGRAM_WEBHOOK_SECRET) {
@@ -95,93 +134,13 @@ const walletRoutes: FastifyPluginAsync = async (app) => {
       }
     }
 
-    const update = req.body as {
-      message?: {
-        chat?: { id: number };
-        from?: { language_code?: string };
-        text?: string;
-        successful_payment?: {
-          invoice_payload: string;
-          telegram_payment_charge_id: string;
-          total_amount: number;
-        };
-      };
-      pre_checkout_query?: {
-        id: string;
-        invoice_payload: string;
-      };
-    };
+    await processTelegramUpdate(
+      req.body as TelegramUpdate,
+      (obj, msg) => req.log.error(obj as object, msg),
+    );
 
-    // Plain chat commands (/start, /help) — the only thing the bot
-    // itself does besides payments and pushes.
-    const msg = update.message;
-    if (msg?.text && msg.chat) {
-      const handled = await handleBotCommand(
-        msg.chat.id, msg.text, msg.from?.language_code ?? null);
-      if (handled) { reply.code(200); return { ok: true }; }
-    }
-
-    /**
-     * Telegram holds the payment sheet open until we answer the
-     * pre-checkout query, and fails the purchase if no answer arrives
-     * within ten seconds. Approve only payloads we actually issued and
-     * that are still pending — anything else gets a refusal the user
-     * can read instead of a silent decline.
-     */
-    const pcq = update.pre_checkout_query;
-    if (pcq) {
-      const known = await sql`
-        SELECT 1 FROM star_purchases
-        WHERE payload = ${pcq.invoice_payload}
-          AND telegram_charge_id LIKE 'pending:%'
-      `;
-      const ok = known.length > 0;
-      try {
-        await botApi('answerPreCheckoutQuery', {
-          pre_checkout_query_id: pcq.id,
-          ok,
-          ...(ok ? {} : { error_message: 'This purchase session has expired. Please start again.' }),
-        });
-      } catch (err) {
-        req.log.error({ err }, 'answerPreCheckoutQuery failed');
-      }
-      reply.code(200);
-      return { ok: true };
-    }
-
-    const payment = update.message?.successful_payment;
-    if (!payment) {
-      // Telegram retries anything non-2xx, so acknowledge updates we
-      // don't handle rather than letting them queue up forever.
-      reply.code(200);
-      return { ok: true };
-    }
-
-    await sql.begin(async (tx) => {
-      const [purchase] = await tx<{ account_id: string; coins_granted: number }[]>`
-        UPDATE star_purchases
-        SET telegram_charge_id = ${payment.telegram_payment_charge_id}
-        WHERE payload = ${payment.invoice_payload}
-          AND telegram_charge_id LIKE 'pending:%'
-        RETURNING account_id, coins_granted::int
-      `;
-      if (!purchase) return; // already processed, or unknown payload
-
-      await tx`
-        INSERT INTO coin_ledger (account_id, delta, reason, ref_type, ref_id, idempotency_key)
-        VALUES (${purchase.account_id}, ${purchase.coins_granted}, 'stars_purchase',
-                'star_purchase', ${payment.invoice_payload},
-                ${'stars:' + payment.telegram_payment_charge_id})
-      `;
-      await tx`
-        INSERT INTO coin_balances (account_id, balance)
-        VALUES (${purchase.account_id}, ${purchase.coins_granted})
-        ON CONFLICT (account_id)
-        DO UPDATE SET balance = coin_balances.balance + ${purchase.coins_granted},
-                      updated_at = now()
-      `;
-    });
-
+    // Telegram retries anything non-2xx, so always acknowledge —
+    // including update types we don't handle.
     reply.code(200);
     return { ok: true };
   });

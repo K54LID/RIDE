@@ -181,7 +181,11 @@ const socialRoutes: FastifyPluginAsync = async (app) => {
     const rows = await sql`
       SELECT c.id, c.body, c.created_at, c.author_id,
              p.display_name AS author_name, p.handle AS author_handle,
-             (p.verification = 'approved') AS author_verified
+             (p.verification = 'approved') AS author_verified,
+             (SELECT ph.media_id FROM profile_photos ph
+              WHERE ph.account_id = c.author_id AND ph.position = 0
+                AND NOT ph.is_private AND ph.media_id IS NOT NULL
+              LIMIT 1) AS author_avatar_media_id
       FROM comments c
       JOIN profiles p ON p.account_id = c.author_id
       WHERE c.post_id = ${id} AND c.deleted_at IS NULL

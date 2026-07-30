@@ -50,6 +50,11 @@ const schema = z.object({
   CORS_ORIGIN: z.string().default('https://ridethatbot.fun'),
   // Used as the deep link in Telegram push notifications.
   MINI_APP_URL: z.string().default('https://ridethatbot.fun'),
+  // Public base URL of this API (e.g. https://api.ridethatbot.fun).
+  // When set, the server registers its Telegram webhook on boot — the
+  // step that, when skipped, makes /start silent and leaves Stars
+  // payments stuck at the pre-checkout screen.
+  PUBLIC_API_URL: z.string().url().optional(),
   // Comma-separated Telegram user IDs promoted to admin on sign-in.
   // Without this nobody can ever become an admin: the only grant
   // endpoint is itself admin-only, so the panel would stay invisible

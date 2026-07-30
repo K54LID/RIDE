@@ -12,6 +12,7 @@ export default function Wallet({ onBack, onBalanceChange }: {
   const [state, setState] = useState<WalletState | null>(null);
   const [failed, setFailed] = useState(false);
   const [busyPack, setBusyPack] = useState<string | null>(null);
+  const [customCoins, setCustomCoins] = useState('');
   const [daily, setDaily] = useState<DailyState | null>(null);
   const [ref, setRef] = useState<ReferralState | null>(null);
 
@@ -33,6 +34,27 @@ export default function Wallet({ onBack, onBalanceChange }: {
    * anything the client can call, the client can forge. On a paid status
    * we just re-read the balance.
    */
+  const openInvoiceUrl = (invoiceUrl: string) => {
+    const openInvoice = (window as unknown as {
+      Telegram?: { WebApp?: { openInvoice?: (url: string, cb: (s: string) => void) => void } };
+    }).Telegram?.WebApp?.openInvoice;
+
+    if (!openInvoice) {
+      // Outside Telegram (dev browser) there is no invoice UI.
+      window.open(invoiceUrl, '_blank');
+      return;
+    }
+    openInvoice(invoiceUrl, (status) => {
+      if (status === 'paid') {
+        tg.notify('success');
+        // The webhook may land a moment after the callback.
+        setTimeout(() => { load(); onBalanceChange(); }, 1200);
+      } else if (status === 'failed') {
+        tg.notify('error');
+      }
+    });
+  };
+
   const buy = async (packId: string) => {
     setBusyPack(packId);
     try {
@@ -40,28 +62,32 @@ export default function Wallet({ onBack, onBalanceChange }: {
         '/v1/wallet/topup',
         { method: 'POST', body: JSON.stringify({ pack_id: packId }) },
       );
-      const openInvoice = (window as unknown as {
-        Telegram?: { WebApp?: { openInvoice?: (url: string, cb: (s: string) => void) => void } };
-      }).Telegram?.WebApp?.openInvoice;
-
-      if (!openInvoice) {
-        // Outside Telegram (dev browser) there is no invoice UI.
-        window.open(invoice_url, '_blank');
-        return;
-      }
-
-      openInvoice(invoice_url, (status) => {
-        if (status === 'paid') {
-          tg.notify('success');
-          // The webhook may land a moment after the callback.
-          setTimeout(() => { load(); onBalanceChange(); }, 1200);
-        } else if (status === 'failed') {
-          tg.notify('error');
-        }
-      });
+      openInvoiceUrl(invoice_url);
     } catch (err) {
       tg.notify('error');
-      if (err instanceof ApiError) setFailed(true);
+      if (err instanceof ApiError && err.code === 'NETWORK') setFailed(true);
+    } finally {
+      setBusyPack(null);
+    }
+  };
+
+  /** Exact amount, typed by the person. 1 Star per coin. */
+  const buyCustom = async () => {
+    const coins = Number.parseInt(customCoins, 10);
+    if (!Number.isFinite(coins) || coins < 10 || coins > 100000) {
+      tg.notify('warning');
+      return;
+    }
+    setBusyPack('custom');
+    try {
+      const { invoice_url } = await apiFetch<{ invoice_url: string }>(
+        '/v1/wallet/topup-custom',
+        { method: 'POST', body: JSON.stringify({ coins }) },
+      );
+      setCustomCoins('');
+      openInvoiceUrl(invoice_url);
+    } catch {
+      tg.notify('error');
     } finally {
       setBusyPack(null);
     }
@@ -151,6 +177,24 @@ export default function Wallet({ onBack, onBalanceChange }: {
               </span>
             </button>
           ))}
+          <div className="eyebrow" style={{ margin: '14px 0 4px' }}>{t('wallet.custom')}</div>
+          <div className="custom-topup">
+            <input
+              type="number" inputMode="numeric" min={10} max={100000}
+              value={customCoins}
+              placeholder={t('wallet.customPlaceholder')}
+              onChange={(e) => setCustomCoins(e.target.value)}
+            />
+            <Button
+              disabled={busyPack !== null
+                || !Number.isFinite(Number.parseInt(customCoins, 10))
+                || Number.parseInt(customCoins, 10) < 10}
+              onClick={buyCustom}
+            >
+              {t('wallet.buy')}
+            </Button>
+          </div>
+          <p className="hint" style={{ marginTop: 6 }}>{t('wallet.customHint')}</p>
           <p className="hint" style={{ marginTop: 6 }}>{t('wallet.withStars')}</p>
 
           <div className="eyebrow" style={{ margin: '26px 0 10px' }}>{t('wallet.history')}</div>

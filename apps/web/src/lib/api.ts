@@ -17,14 +17,17 @@ export class ApiError extends Error {
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${BASE}${path}`, {
-      ...init,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `tma ${tg.initData()}`,
-        ...init.headers,
-      },
-    });
+    // Content-Type is only declared when a body is actually sent.
+    // Bodyless DELETEs and POSTs used to carry the JSON header anyway,
+    // and Fastify (correctly) rejects "application/json with an empty
+    // body" as a 400 — which is why every delete button appeared to
+    // fail and deleted posts "came back" after the error-path refetch.
+    const headers: Record<string, string> = {
+      Authorization: `tma ${tg.initData()}`,
+      ...(init.body != null ? { 'Content-Type': 'application/json' } : {}),
+      ...(init.headers as Record<string, string> | undefined),
+    };
+    res = await fetch(`${BASE}${path}`, { ...init, headers });
   } catch {
     throw new ApiError(0, 'NETWORK', 'No connection');
   }
@@ -138,7 +141,9 @@ export interface OwnedGift {
 export interface NotificationItem {
   id: string; kind: string; payload: Record<string, unknown>;
   read_at: string | null; created_at: string;
+  actor_id: string | null;
   actor_name: string | null; actor_handle: string | null; actor_verified: boolean;
+  post_id: string | null; post_excerpt: string | null; post_media_id: string | null;
 }
 
 export interface DailyState {
@@ -161,7 +166,7 @@ export interface Story {
 }
 
 export interface ChatSummary {
-  id: string; last_message_at: string;
+  id: string; last_message_at: string; pinned: boolean;
   peer_id: string; peer_name: string; peer_handle: string | null;
   peer_verified: boolean; peer_avatar_media_id: string | null;
   peer_online: boolean | null; peer_last_seen: string | null;
@@ -185,6 +190,7 @@ export interface ProfilePhoto {
 export interface Comment {
   id: string; body: string; created_at: string; author_id: string;
   author_name: string; author_handle: string | null; author_verified: boolean;
+  author_avatar_media_id: string | null;
 }
 
 export interface PublicUser {
@@ -198,7 +204,7 @@ export interface PublicUser {
   verified: boolean; vip: boolean; age: number | null;
   online: boolean | null;
   woofs_received: number; followers: number; gifts_received: number;
-  i_follow: boolean; woofed_today: boolean;
+  i_follow: boolean; woofed_today: boolean; i_blocked: boolean;
 }
 
 export interface AlbumGrant {
@@ -207,18 +213,17 @@ export interface AlbumGrant {
   avatar_media_id: string | null;
 }
 
-export interface Standing {
-  court_value: number;
-  tier: string;
-  next_tier: string | null;
-  next_tier_at: number | null;
-  total_players: number;
-  ranks: { court: number; woofs: number; likes: number; gifts: number; followers: number } | null;
-  totals: { woofs: number; likes: number; gifts: number; followers: number };
+export interface RankEntryMini {
+  board: 'court' | 'woofs' | 'likes' | 'gifts' | 'followers';
+  rank: number;
+  score: number;
 }
 
 export interface CourtInfo {
   court_value: number;
   next_cost: number;
-  courter: { account_id: string; display_name: string | null; handle: string | null; at: string } | null;
+  courter: {
+    account_id: string; display_name: string | null; handle: string | null;
+    at: string; expires_at: string | null; avatar_media_id: string | null;
+  } | null;
 }

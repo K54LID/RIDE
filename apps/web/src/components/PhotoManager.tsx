@@ -2,8 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch, type ProfilePhoto } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
-import { useMediaUpload } from '../lib/useMediaUpload';
+import { useMediaUpload, uploadBlob } from '../lib/useMediaUpload';
 import Media from './Media';
+import CropSheet from './CropSheet';
+
+const BASE = import.meta.env.VITE_API_BASE ?? 'https://api.ridethatbot.fun';
 
 /**
  * Profile photo gallery: add, set primary, delete.
@@ -16,6 +19,7 @@ import Media from './Media';
 export default function PhotoManager() {
   const t = useT();
   const [photos, setPhotos] = useState<ProfilePhoto[] | null>(null);
+  const [cropping, setCropping] = useState<{ photo: ProfilePhoto; src: string } | null>(null);
   const media = useMediaUpload(1);
   const input = useRef<HTMLInputElement>(null);
 
@@ -56,6 +60,42 @@ export default function PhotoManager() {
     } catch { tg.notify('error'); load(); }
   };
 
+  /**
+   * Crop the primary photo. The existing bytes come back through the
+   * authenticated media endpoint, get re-framed in the crop editor,
+   * and the result is uploaded as a fresh photo that takes position 0;
+   * the old one is deleted last so a failure never leaves the profile
+   * photo-less.
+   */
+  const openCrop = async (photo: ProfilePhoto) => {
+    tg.tap('light');
+    try {
+      const res = await fetch(`${BASE}/v1/media/${photo.media_id}`, {
+        headers: { Authorization: `tma ${tg.initData()}` },
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const src = URL.createObjectURL(await res.blob());
+      setCropping({ photo, src });
+    } catch { tg.notify('error'); }
+  };
+
+  const saveCrop = async (blob: Blob) => {
+    const old = cropping;
+    if (!old) return;
+    try {
+      const mediaId = await uploadBlob(blob, 'avatar.jpg');
+      const created = await apiFetch<{ id: string }>('/v1/me/photos', {
+        method: 'POST', body: JSON.stringify({ media_id: mediaId }),
+      });
+      await apiFetch(`/v1/me/photos/${created.id}/primary`, { method: 'POST' });
+      await apiFetch(`/v1/me/photos/${old.photo.id}`, { method: 'DELETE' });
+      tg.notify('success');
+      setCropping(null);
+      URL.revokeObjectURL(old.src);
+      load();
+    } catch { tg.notify('error'); }
+  };
+
   const remove = async (id: string) => {
     tg.tap('heavy');
     setPhotos((cur) => cur?.filter((p) => p.id !== id) ?? cur);
@@ -79,6 +119,9 @@ export default function PhotoManager() {
             <Media id={p.media_id} kind="image" thumb />
             {p.position === 0 ? <span className="photo-tag">{t('photos.primary')}</span> : null}
             <div className="photo-tools">
+              {p.position === 0 && !p.is_private ? (
+                <button onClick={() => void openCrop(p)} aria-label={t('photo.adjust')}>✂️</button>
+              ) : null}
               <button onClick={() => togglePrivacy(p)}
                       aria-label={t('album.togglePhoto')}>{p.is_private ? '🔒' : '🌐'}</button>
               {p.position !== 0 && !p.is_private ? (
@@ -100,6 +143,14 @@ export default function PhotoManager() {
 
       {photos !== null && photos.length === 0 && !media.uploading ? (
         <p className="hint" style={{ marginTop: 8 }}>{t('photos.empty')}</p>
+      ) : null}
+
+      {cropping ? (
+        <CropSheet
+          src={cropping.src}
+          onCancel={() => { URL.revokeObjectURL(cropping.src); setCropping(null); }}
+          onSave={saveCrop}
+        />
       ) : null}
     </>
   );

@@ -3,12 +3,14 @@ import { apiFetch, type Comment } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import { Skeleton } from './ui';
+import Avatar from './Avatar';
 import { VerifiedMark } from './VerifiedMark';
 
-export default function CommentSheet({ postId, meId, onCountChange }: {
+export default function CommentSheet({ postId, meId, onCountChange, onAuthor }: {
   postId: string;
   meId: string;
   onCountChange: (delta: number) => void;
+  onAuthor?: (accountId: string) => void;
 }) {
   const t = useT();
   const [comments, setComments] = useState<Comment[] | null>(null);
@@ -59,11 +61,29 @@ export default function CommentSheet({ postId, meId, onCountChange }: {
         <div style={{ maxHeight: '46vh', overflowY: 'auto', marginBottom: 12 }}>
           {comments.map((c) => (
             <div key={c.id} className="comment">
+              {/* Face + name are one tap target into the profile. */}
+              <button
+                className="comment-author-btn"
+                disabled={!onAuthor || c.author_id === meId}
+                onClick={() => { if (onAuthor) { tg.tap('light'); onAuthor(c.author_id); } }}
+              >
+                <Avatar name={c.author_name} mediaId={c.author_avatar_media_id}
+                        size={30} radius={10} />
+              </button>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <span className="comment-author">
-                  {c.author_name}
-                  {c.author_verified ? <VerifiedMark size={12} /> : null}
-                </span>
+                <button
+                  className="comment-author-btn"
+                  disabled={!onAuthor || c.author_id === meId}
+                  onClick={() => { if (onAuthor) { tg.tap('light'); onAuthor(c.author_id); } }}
+                >
+                  <span className="comment-author">
+                    {c.author_name}
+                    {c.author_verified ? <VerifiedMark size={12} /> : null}
+                    {c.author_handle ? (
+                      <span className="comment-handle num">@{c.author_handle}</span>
+                    ) : null}
+                  </span>
+                </button>
                 <span className="comment-body"> {c.body}</span>
               </div>
               {c.author_id === meId ? (

@@ -132,12 +132,13 @@ const albumRoutes: FastifyPluginAsync = async (app) => {
     const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
     const me = req.accountId!;
 
-    const blocked = await sql`
-      SELECT 1 FROM blocks
-      WHERE (blocker_id = ${me} AND blocked_id = ${id})
-         OR (blocker_id = ${id} AND blocked_id = ${me})
+    // Their block hides me from them entirely; my own block still
+    // shows me the profile with an i_blocked flag, because the only
+    // way to change my mind is a working Unblock button somewhere.
+    const theyBlocked = await sql`
+      SELECT 1 FROM blocks WHERE blocker_id = ${id} AND blocked_id = ${me}
     `;
-    if (blocked.length > 0) throw new HttpError(403, 'BLOCKED');
+    if (theyBlocked.length > 0) throw new HttpError(403, 'BLOCKED');
 
     const [user] = await sql`
       SELECT p.account_id, p.display_name, p.handle, p.bio, p.court_value,
@@ -149,9 +150,14 @@ const albumRoutes: FastifyPluginAsync = async (app) => {
              date_part('year', age(p.birth_date))::int AS age,
              CASE WHEN COALESCE(st.show_online, true)
                   THEN (a.last_seen_at > now() - interval '5 minutes') END AS online,
-             (SELECT count(*)::int FROM woofs   WHERE target_id = p.account_id) AS woofs_received,
-             (SELECT count(*)::int FROM follows WHERE followee_id = p.account_id) AS followers,
-             (SELECT count(*)::int FROM gift_transfers WHERE receiver_id = p.account_id) AS gifts_received,
+             (SELECT count(*)::int FROM woofs w WHERE w.target_id = p.account_id
+                AND w.created_at > COALESCE(p.stats_reset_at, 'epoch')) AS woofs_received,
+             (SELECT count(*)::int FROM follows f WHERE f.followee_id = p.account_id
+                AND f.created_at > COALESCE(p.stats_reset_at, 'epoch')) AS followers,
+             (SELECT count(*)::int FROM gift_transfers g WHERE g.receiver_id = p.account_id
+                AND g.created_at > COALESCE(p.stats_reset_at, 'epoch')) AS gifts_received,
+             EXISTS (SELECT 1 FROM blocks b
+                     WHERE b.blocker_id = ${me} AND b.blocked_id = p.account_id) AS i_blocked,
              EXISTS (SELECT 1 FROM follows f
                      WHERE f.follower_id = ${me} AND f.followee_id = p.account_id) AS i_follow,
              EXISTS (SELECT 1 FROM woofs w

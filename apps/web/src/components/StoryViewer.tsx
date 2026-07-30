@@ -18,12 +18,13 @@ const IMAGE_MS = 5000;
  * 9-second clip gets its nine seconds.
  */
 export default function StoryViewer({
-  authors, startIndex, meId, onClose,
+  authors, startIndex, meId, onClose, onOpenUser,
 }: {
   authors: StoryAuthor[];
   startIndex: number;
   meId: string;
   onClose: () => void;
+  onOpenUser?: (accountId: string) => void;
 }) {
   const t = useT();
   const [authorIdx, setAuthorIdx] = useState(startIndex);
@@ -43,6 +44,7 @@ export default function StoryViewer({
   const remaining = useRef(IMAGE_MS);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const lastTouch = useRef(0);
   const holdTimer = useRef<number | null>(null);
   const wasHold = useRef(false);
 
@@ -51,6 +53,13 @@ export default function StoryViewer({
   const isMine = author?.author_id === meId;
 
   useEffect(() => tg.backButton(onClose), [onClose]);
+
+  // The tab bar disappears while a story owns the screen — a nav
+  // floating over full-bleed media reads as a rendering glitch.
+  useEffect(() => {
+    document.body.classList.add('story-open');
+    return () => document.body.classList.remove('story-open');
+  }, []);
 
   // Load the author's stories; jump to their first unseen.
   useEffect(() => {
@@ -128,7 +137,20 @@ export default function StoryViewer({
     }, 220);
   };
 
+  /**
+   * Desktop fallback: Telegram Desktop sends clicks, not touches, and
+   * the viewer was navigable only by keyboard-less prayer there. A
+   * click within 500ms of a touch is the same gesture echoed by the
+   * browser and is ignored.
+   */
+  const onStageClick = (e: React.MouseEvent) => {
+    if (viewersOpen) return;
+    if (Date.now() - lastTouch.current < 500) return;
+    if (e.clientX < window.innerWidth / 3) retreat(); else advance();
+  };
+
   const onTouchEnd = (e: React.TouchEvent) => {
+    lastTouch.current = Date.now();
     if (holdTimer.current) clearTimeout(holdTimer.current);
     const start = touchStart.current;
     touchStart.current = null;
@@ -204,6 +226,7 @@ export default function StoryViewer({
 
   return (
     <div className="story-viewer"
+         onClick={onStageClick}
          onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
          onTouchCancel={() => { if (holdTimer.current) clearTimeout(holdTimer.current); setPaused(false); }}>
       <div className="story-progress">
@@ -218,11 +241,23 @@ export default function StoryViewer({
         ))}
       </div>
 
-      <div className="story-head">
-        <span className="story-name">{author.display_name}</span>
-        <div style={{ display: 'flex', gap: 14 }}>
+      <div className="story-head"
+           onClick={(e) => e.stopPropagation()}
+           onTouchStart={(e) => e.stopPropagation()} onTouchEnd={(e) => e.stopPropagation()}>
+        <button className="story-name-btn" disabled={isMine || !onOpenUser}
+                onClick={() => { if (onOpenUser) { tg.tap('light'); onOpenUser(author.author_id); } }}>
+          <span className="story-name">{author.display_name}</span>
+        </button>
+        <div style={{ display: 'flex', gap: 14 }} onTouchStart={(e) => e.stopPropagation()}>
           {isMine
-            ? <button className="story-tool" onClick={deleteStory}>{t('story.delete')}</button>
+            ? (
+              <button className="story-tool" onClick={deleteStory} aria-label={t('story.delete')}>
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6.5 7l1 13h9l1-13M10 11v6M14 11v6" />
+                </svg>
+              </button>
+            )
             : <button className="story-tool" onClick={report}>{t('story.report')}</button>}
           <button className="story-tool" onClick={onClose} aria-label={t('common.close')}>✕</button>
         </div>
@@ -238,7 +273,8 @@ export default function StoryViewer({
           )}
       </div>
 
-      <div className="story-foot" onTouchStart={(e) => e.stopPropagation()}>
+      <div className="story-foot" onClick={(e) => e.stopPropagation()}
+           onTouchStart={(e) => e.stopPropagation()}>
         {isMine ? (
           <button className="story-viewers" onClick={openViewers}>
             👁 <span className="num">{story?.view_count ?? 0}</span>

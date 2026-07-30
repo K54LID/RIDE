@@ -38,9 +38,14 @@ const storyRoutes: FastifyPluginAsync = async (app) => {
   });
 
   /**
-   * The rail: me first, then people I follow with live stories, unseen
-   * before seen. One aggregate query — the rail renders on every Home
-   * load and cannot afford N+1.
+   * The rail: me first, then every member with live stories, unseen
+   * before seen. Stories are visible app-wide by default — the old
+   * follows gate meant a fresh account saw nobody's stories and
+   * nobody saw theirs. The author's story_visibility setting is the
+   * boundary now: 'everyone'/'members' shows to all members, 'friends'
+   * needs an accepted friendship, 'nobody' keeps them to the author.
+   * One aggregate query — the rail renders on every Home load and
+   * cannot afford N+1.
    */
   app.get('/v1/stories', { preHandler: [app.requireAuth] }, async (req) => {
     const me = req.accountId!;
@@ -57,19 +62,25 @@ const storyRoutes: FastifyPluginAsync = async (app) => {
               LIMIT 1) AS avatar_media_id
       FROM stories s
       JOIN profiles p ON p.account_id = s.author_id
+      LEFT JOIN user_settings st ON st.account_id = s.author_id
       LEFT JOIN story_views v ON v.story_id = s.id AND v.viewer_id = ${me}
       WHERE s.expires_at > now()
         AND (
           s.author_id = ${me}
-          OR EXISTS (SELECT 1 FROM follows f
-                     WHERE f.follower_id = ${me} AND f.followee_id = s.author_id)
+          OR COALESCE(st.story_visibility, 'everyone') IN ('everyone', 'members')
+          OR (COALESCE(st.story_visibility, 'everyone') = 'friends' AND EXISTS (
+                SELECT 1 FROM friendships fr
+                WHERE fr.accepted_at IS NOT NULL
+                  AND ((fr.requester_id = ${me} AND fr.addressee_id = s.author_id)
+                    OR (fr.requester_id = s.author_id AND fr.addressee_id = ${me}))
+             ))
         )
         AND NOT EXISTS (
           SELECT 1 FROM blocks b
           WHERE (b.blocker_id = ${me} AND b.blocked_id = s.author_id)
              OR (b.blocker_id = s.author_id AND b.blocked_id = ${me})
         )
-      GROUP BY s.author_id, p.display_name, p.handle
+      GROUP BY s.author_id, p.display_name, p.handle, st.story_visibility
       ORDER BY (s.author_id = ${me}) DESC,
                (count(*) FILTER (WHERE v.viewer_id IS NULL) > 0) DESC,
                max(s.created_at) DESC
@@ -77,7 +88,12 @@ const storyRoutes: FastifyPluginAsync = async (app) => {
     return { authors: rows };
   });
 
-  /** One author's live stories, oldest first — the viewing order. */
+  /**
+   * One author's live stories, oldest first — the viewing order.
+   * Mirrors the rail's visibility rules; the rail hiding an author is
+   * not protection if this endpoint hands their stories to anyone with
+   * the id.
+   */
   app.get('/v1/stories/author/:id', { preHandler: [app.requireAuth] }, async (req) => {
     const { id } = IdParam.parse(req.params);
     const me = req.accountId!;
@@ -88,8 +104,24 @@ const storyRoutes: FastifyPluginAsync = async (app) => {
              (SELECT count(*)::int FROM story_reactions sr WHERE sr.story_id = s.id) AS reaction_count,
              (SELECT count(*)::int FROM story_replies rp WHERE rp.story_id = s.id) AS reply_count
       FROM stories s
+      LEFT JOIN user_settings st ON st.account_id = s.author_id
       LEFT JOIN story_views v ON v.story_id = s.id AND v.viewer_id = ${me}
       WHERE s.author_id = ${id} AND s.expires_at > now()
+        AND (
+          s.author_id = ${me}
+          OR COALESCE(st.story_visibility, 'everyone') IN ('everyone', 'members')
+          OR (COALESCE(st.story_visibility, 'everyone') = 'friends' AND EXISTS (
+                SELECT 1 FROM friendships fr
+                WHERE fr.accepted_at IS NOT NULL
+                  AND ((fr.requester_id = ${me} AND fr.addressee_id = s.author_id)
+                    OR (fr.requester_id = s.author_id AND fr.addressee_id = ${me}))
+             ))
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM blocks b
+          WHERE (b.blocker_id = ${me} AND b.blocked_id = s.author_id)
+             OR (b.blocker_id = s.author_id AND b.blocked_id = ${me})
+        )
       ORDER BY s.created_at
     `;
     return { stories: rows };

@@ -30,7 +30,7 @@ function Initial({ name, size }: { name: string; size: number }) {
 }
 
 /** Top three get the podium; the rest is a dense list. */
-function Podium({ top }: { top: RankEntry[] }) {
+function Podium({ top, onOpen }: { top: RankEntry[]; onOpen: (id: string) => void }) {
   const order = [top[1], top[0], top[2]];      // silver, gold, bronze
   const heights = [58, 78, 46];
   const medals = ['🥈', '🥇', '🥉'];
@@ -38,7 +38,8 @@ function Podium({ top }: { top: RankEntry[] }) {
     <div className="podium">
       {order.map((e, i) =>
         e ? (
-          <div key={e.account_id} className="podium-col">
+          <button key={e.account_id} className="podium-col"
+                  onClick={() => { tg.tap('light'); onOpen(e.account_id); }}>
             <Initial name={e.display_name} size={i === 1 ? 52 : 42} />
             <div className="podium-name">
               {e.display_name.split(' ')[0]}
@@ -48,14 +49,14 @@ function Podium({ top }: { top: RankEntry[] }) {
             <div className={`podium-block p${i}`} style={{ height: heights[i] }}>
               <span>{medals[i]}</span>
             </div>
-          </div>
+          </button>
         ) : <div key={i} className="podium-col" />,
       )}
     </div>
   );
 }
 
-export default function Ranks() {
+export default function Ranks({ onOpenUser }: { onOpenUser: (accountId: string) => void }) {
   const t = useT();
   const [board, setBoard] = useState<Board>('court');
   const [period, setPeriod] = useState<Period>('all');
@@ -98,11 +99,12 @@ export default function Ranks() {
         <EmptyState title={t('ranks.empty')} body={t('ranks.empty.body')} />
       ) : (
         <>
-          <Podium top={entries.slice(0, 3)} />
+          <Podium top={entries.slice(0, 3)} onOpen={onOpenUser} />
           {entries.length > 3 ? (
             <div className="card compact" style={{ padding: 0, overflow: 'hidden' }}>
               {entries.slice(3).map((e) => (
-                <div key={e.account_id} className="rank">
+                <button key={e.account_id} className="rank rank-btn"
+                        onClick={() => { tg.tap('light'); onOpenUser(e.account_id); }}>
                   <span className="rank-pos num">{e.rank}</span>
                   <Initial name={e.display_name} size={30} />
                   <div style={{ minWidth: 0, flex: 1 }}>
@@ -112,7 +114,7 @@ export default function Ranks() {
                     </div>
                   </div>
                   <span className="rank-score num">{e.score}</span>
-                </div>
+                </button>
               ))}
             </div>
           ) : null}

@@ -2,13 +2,15 @@ import { useEffect, type ReactNode } from 'react';
 import { tg } from '../lib/tg';
 
 /**
- * Bottom sheet. Telegram's own back button closes it, matching what the
- * platform does everywhere else — an in-app close chevron would be a
- * second, competing affordance.
+ * Dialog sheet. Anchored to the top of the visible viewport by default
+ * (so its buttons are always reachable), vertically centred with the
+ * `center` prop for content like the composer. Telegram's own back
+ * button closes it, matching what the platform does everywhere else —
+ * an in-app close chevron would be a second, competing affordance.
  */
 export default function Sheet({
-  open, onClose, children,
-}: { open: boolean; onClose: () => void; children: ReactNode }) {
+  open, onClose, children, center = false,
+}: { open: boolean; onClose: () => void; children: ReactNode; center?: boolean }) {
   useEffect(() => {
     if (!open) return;
     const restore = tg.backButton(onClose);
@@ -26,7 +28,7 @@ export default function Sheet({
   return (
     <>
       <div className="sheet-scrim" onClick={onClose} />
-      <div className="sheet" role="dialog" aria-modal="true">
+      <div className={center ? 'sheet sheet-center' : 'sheet'} role="dialog" aria-modal="true">
         <div className="sheet-grip" />
         {children}
       </div>

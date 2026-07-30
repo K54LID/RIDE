@@ -1,26 +1,31 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiFetch, type PublicUser, type ProfilePhoto, type CourtInfo } from '../lib/api';
+import { apiFetch, type PublicUser, type ProfilePhoto, type CourtInfo, type RankEntryMini } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import Page from '../components/Page';
 import Media from '../components/Media';
+import Avatar from '../components/Avatar';
 import PhotoCarousel from '../components/PhotoCarousel';
 import PersonActions from '../components/PersonActions';
 import { VerifiedMark } from '../components/VerifiedMark';
 import { Button, Skeleton } from '../components/ui';
-import CourtCrest from '../components/CourtCrest';
+import Sheet from '../components/Sheet';
+import RankChips from '../components/RankChips';
 
 interface Payload {
   user: PublicUser;
   gifts: Array<{ slug: string; name: string; asset_key: string; quantity: number }>;
 }
 
-export default function UserProfile({ accountId, balance, onClose, onBalanceChange, onOpenChat }: {
+export default function UserProfile({
+  accountId, balance, onClose, onBalanceChange, onOpenChat, onOpenUser,
+}: {
   accountId: string;
   balance: number;
   onClose: () => void;
   onBalanceChange: () => void;
   onOpenChat: (conversationId: string) => void;
+  onOpenUser: (accountId: string) => void;
 }) {
   const t = useT();
   const [data, setData] = useState<Payload | null>(null);
@@ -28,15 +33,40 @@ export default function UserProfile({ accountId, balance, onClose, onBalanceChan
   const [lockedCount, setLockedCount] = useState(0);
   const [failed, setFailed] = useState(false);
   const [court, setCourt] = useState<CourtInfo | null>(null);
+  const [ranks, setRanks] = useState<RankEntryMini[]>([]);
+  const [blockConfirm, setBlockConfirm] = useState(false);
 
   const load = useCallback(() => {
     apiFetch<Payload>(`/v1/users/${accountId}`).then(setData).catch(() => setFailed(true));
     apiFetch<CourtInfo>(`/v1/users/${accountId}/court`).then(setCourt).catch(() => undefined);
+    apiFetch<{ ranks: RankEntryMini[] }>(`/v1/users/${accountId}/ranks`)
+      .then((r) => setRanks(r.ranks)).catch(() => undefined);
     apiFetch<{ photos: ProfilePhoto[]; locked_count: number }>(`/v1/users/${accountId}/photos`)
       .then((r) => { setPhotos(r.photos); setLockedCount(r.locked_count); })
       .catch(() => undefined);
   }, [accountId]);
   useEffect(load, [load]);
+
+  const block = async () => {
+    setBlockConfirm(false);
+    tg.tap('heavy');
+    try {
+      await apiFetch(`/v1/users/${accountId}/block`, { method: 'POST' });
+      tg.notify('success');
+      load();
+    } catch { tg.notify('error'); }
+  };
+
+  const unblock = async () => {
+    tg.tap('medium');
+    try {
+      await apiFetch('/v1/settings/unblock', {
+        method: 'POST', body: JSON.stringify({ account_id: accountId }),
+      });
+      tg.notify('success');
+      load();
+    } catch { tg.notify('error'); }
+  };
 
   const openChat = async () => {
     tg.tap('light');
@@ -101,10 +131,18 @@ export default function UserProfile({ accountId, balance, onClose, onBalanceChan
         {u.verified ? <VerifiedMark size={15} /> : null}
         {u.vip ? <span className="vip-chip">VIP</span> : null}
         {u.online ? <span className="online-dot" /> : null}
-        {u.age !== null ? <span className="pro-age">{u.age}</span> : null}
       </div>
       {u.bio ? <p className="pro-bio">{u.bio}</p> : null}
 
+      {u.i_blocked ? (
+        <>
+          <p style={{ margin: '18px 0 12px', color: 'var(--muted)', fontSize: '0.9rem' }}>
+            {t('profile.blockedNote')}
+          </p>
+          <Button onClick={unblock}>{t('settings.unblock')}</Button>
+        </>
+      ) : (
+      <>
       <PersonActions
         targetId={u.account_id}
         courtValue={court?.court_value ?? u.court_value}
@@ -116,20 +154,21 @@ export default function UserProfile({ accountId, balance, onClose, onBalanceChan
 
       <Button variant="ghost" onClick={openChat}>{t('chats.title')}</Button>
 
-      <div className="pro-court" style={{ marginTop: 14 }}>
-        <CourtCrest value={u.court_value} size={46} />
-        <div>
-          <div className="eyebrow">{t('profile.courtValue')}</div>
-          <div className="num pro-court-val">{u.court_value}</div>
-        </div>
-      </div>
+      <RankChips ranks={ranks} />
 
-      {/* Who paid for this person's standing. */}
+      {/* Who paid for this person's standing — with their face, and a
+          tap opens their profile. The title lapses 30 days after the
+          court unless someone pays again. */}
       {court?.courter ? (
-        <div className="courted-by">
-          <span style={{ fontSize: '1.2rem' }}>♛</span>
-          <div style={{ minWidth: 0 }}>
-            <div className="courted-by-label">{t('court.courtedBy')}</div>
+        <button className="courted-by"
+                onClick={() => {
+                  tg.tap('light');
+                  onOpenUser(court.courter!.account_id);
+                }}>
+          <Avatar name={court.courter.display_name ?? '?'}
+                  mediaId={court.courter.avatar_media_id} size={38} radius={12} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div className="courted-by-label">♛ {t('court.courtedBy')}</div>
             <div className="courted-by-name">
               {court.courter.display_name}
               {court.courter.handle ? (
@@ -138,8 +177,16 @@ export default function UserProfile({ accountId, balance, onClose, onBalanceChan
                 </span>
               ) : null}
             </div>
+            {court.courter.expires_at ? (
+              <div className="courted-by-days num">
+                {Math.max(0, Math.ceil(
+                  (new Date(court.courter.expires_at).getTime() - Date.now()) / 86400000,
+                ))} {t('court.daysLeft')}
+              </div>
+            ) : null}
           </div>
-        </div>
+          <span style={{ color: 'var(--faint)' }}>›</span>
+        </button>
       ) : null}
 
       {photos.length > 0 || lockedCount > 0 ? (
@@ -174,6 +221,20 @@ export default function UserProfile({ accountId, balance, onClose, onBalanceChan
           </div>
         </>
       ) : null}
+
+      <button className="block-row" onClick={() => { tg.tap('light'); setBlockConfirm(true); }}>
+        {t('profile.block')}
+      </button>
+      </>
+      )}
+
+      <Sheet open={blockConfirm} onClose={() => setBlockConfirm(false)}>
+        <h2 style={{ marginBottom: 8 }}>{t('profile.block')} {u.display_name}?</h2>
+        <p style={{ marginBottom: 16 }}>{t('profile.block.body')}</p>
+        <Button onClick={block}>{t('profile.block')}</Button>
+        <div style={{ height: 10 }} />
+        <Button variant="ghost" onClick={() => setBlockConfirm(false)}>{t('common.cancel')}</Button>
+      </Sheet>
     </Page>
   );
 }

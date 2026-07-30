@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { sql } from '../lib/db.js';
+import { HttpError } from '../lib/errors.js';
 
 /**
  * Leaderboards computed live from source tables.
@@ -38,6 +39,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
         FROM profiles p
         JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
         LEFT JOIN woofs w ON w.target_id = p.account_id
+          AND w.created_at > COALESCE(p.stats_reset_at, 'epoch')
           ${since ? sql`AND w.created_at > now() - ${since}::interval` : sql``}
         WHERE NOT p.ghost_mode
         GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
@@ -53,6 +55,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
         FROM profiles p
         JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
         LEFT JOIN gift_transfers g ON g.receiver_id = p.account_id
+          AND g.created_at > COALESCE(p.stats_reset_at, 'epoch')
           ${since ? sql`AND g.created_at > now() - ${since}::interval` : sql``}
         WHERE NOT p.ghost_mode
         GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
@@ -72,6 +75,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
         JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
         JOIN posts po   ON po.author_id = p.account_id AND po.deleted_at IS NULL
         JOIN post_likes pl ON pl.post_id = po.id
+          AND pl.created_at > COALESCE(p.stats_reset_at, 'epoch')
           ${since ? sql`AND pl.created_at > now() - ${since}::interval` : sql``}
         WHERE NOT p.ghost_mode
         GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
@@ -87,6 +91,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
         FROM profiles p
         JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
         LEFT JOIN follows f ON f.followee_id = p.account_id
+          AND f.created_at > COALESCE(p.stats_reset_at, 'epoch')
           ${since ? sql`AND f.created_at > now() - ${since}::interval` : sql``}
         WHERE NOT p.ghost_mode
         GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
@@ -105,6 +110,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
             FROM profiles p
             JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
             JOIN court_events c ON c.target_id = p.account_id
+              AND c.created_at > COALESCE(p.stats_reset_at, 'epoch')
               AND c.created_at > now() - ${since}::interval
             WHERE NOT p.ghost_mode
             GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
@@ -129,89 +135,99 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
       entries: rows.map((r, i) => ({ rank: i + 1, ...r })),
     };
   });
-};
 
-export default leaderboardRoutes;
+  /**
+   * One person's position on every board, all-time.
+   *
+   * rank = 1 + count of people with a strictly better score. Ties share
+   * a rank, which is what a profile badge should say anyway. Boards
+   * where the score is zero are omitted — "#4192 in gifts" with zero
+   * gifts is noise, not a stat.
+   */
+  app.get('/v1/users/:id/ranks', { preHandler: [app.requireAuth] }, async (req) => {
+    const raw = (req.params as { id: string }).id;
+    const id = raw === 'me'
+      ? req.accountId!
+      : z.object({ id: z.string().uuid() }).parse(req.params).id;
 
-/**
- * A single person's standing across every board, plus the name of the
- * tier their court value falls in. The profile shows "Baron · #14"
- * rather than a bare number, which means nothing on its own.
- */
-export const TIERS: Array<{ min: number; name: string }> = [
-  { min: 0, name: 'Newcomer' },
-  { min: 2, name: 'Noticed' },
-  { min: 4, name: 'Admired' },
-  { min: 8, name: 'Courted' },
-  { min: 16, name: 'Baron' },
-  { min: 64, name: 'Viscount' },
-  { min: 256, name: 'Earl' },
-  { min: 1024, name: 'Marquess' },
-  { min: 4096, name: 'Duke' },
-  { min: 16384, name: 'Sovereign' },
-];
-
-export function tierName(courtValue: number): string {
-  let name = TIERS[0]!.name;
-  for (const t of TIERS) if (courtValue >= t.min) name = t.name;
-  return name;
-}
-
-export const standingRoutes = async (app: import('fastify').FastifyInstance) => {
-  app.get('/v1/standing', { preHandler: [app.requireAuth] }, async (req) => {
-    const me = req.accountId!;
-
-    // One pass per board. Each is a rank over an aggregate, filtered to
-    // this account — cheap at current scale and always consistent with
-    // what the leaderboard screen shows.
     const [row] = await sql<Array<{
-      court_value: number; court_rank: number | null; woof_rank: number | null;
-      like_rank: number | null; gift_rank: number | null; follower_rank: number | null;
-      woofs: number; likes: number; gifts: number; followers: number; total_players: number;
+      court_score: number; court_rank: number;
+      woofs_score: number; woofs_rank: number;
+      likes_score: number; likes_rank: number;
+      gifts_score: number; gifts_rank: number;
+      followers_score: number; followers_rank: number;
     }>>`
-      WITH base AS (
-        SELECT p.account_id, p.court_value::int AS court_value,
-               (SELECT count(*) FROM woofs w WHERE w.target_id = p.account_id)::int AS woofs,
-               (SELECT count(*) FROM post_likes pl
-                  JOIN posts po ON po.id = pl.post_id
-                 WHERE po.author_id = p.account_id AND po.deleted_at IS NULL)::int AS likes,
-               (SELECT count(*) FROM gift_transfers g WHERE g.receiver_id = p.account_id)::int AS gifts,
-               (SELECT count(*) FROM follows f WHERE f.followee_id = p.account_id)::int AS followers
+      WITH target AS (
+        SELECT p.account_id, p.court_value,
+               COALESCE(p.stats_reset_at, 'epoch') AS reset_at
         FROM profiles p
         JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
-        WHERE NOT p.ghost_mode
-      ), ranked AS (
-        SELECT account_id, court_value, woofs, likes, gifts, followers,
-               rank() OVER (ORDER BY court_value DESC) AS court_rank,
-               rank() OVER (ORDER BY woofs DESC)       AS woof_rank,
-               rank() OVER (ORDER BY likes DESC)       AS like_rank,
-               rank() OVER (ORDER BY gifts DESC)       AS gift_rank,
-               rank() OVER (ORDER BY followers DESC)   AS follower_rank,
-               count(*) OVER ()                        AS total_players
-        FROM base
+        WHERE p.account_id = ${id}
+      ),
+      scores AS (
+        SELECT
+          t.court_value::int AS court_score,
+          (SELECT count(*)::int FROM woofs w
+           WHERE w.target_id = t.account_id AND w.created_at > t.reset_at) AS woofs_score,
+          (SELECT count(*)::int FROM post_likes pl
+           JOIN posts po ON po.id = pl.post_id AND po.deleted_at IS NULL
+           WHERE po.author_id = t.account_id AND pl.created_at > t.reset_at) AS likes_score,
+          (SELECT count(*)::int FROM gift_transfers g
+           WHERE g.receiver_id = t.account_id AND g.created_at > t.reset_at) AS gifts_score,
+          (SELECT count(*)::int FROM follows f
+           WHERE f.followee_id = t.account_id AND f.created_at > t.reset_at) AS followers_score
+        FROM target t
       )
-      SELECT * FROM ranked WHERE account_id = ${me}
+      SELECT s.court_score, s.woofs_score, s.likes_score, s.gifts_score, s.followers_score,
+        (SELECT 1 + count(*)::int FROM profiles p2
+         JOIN accounts a2 ON a2.id = p2.account_id AND a2.status = 'active'
+         WHERE NOT p2.ghost_mode AND p2.court_value > s.court_score) AS court_rank,
+        (SELECT 1 + count(*)::int FROM (
+           SELECT w.target_id FROM woofs w
+           JOIN profiles p2 ON p2.account_id = w.target_id
+           WHERE w.created_at > COALESCE(p2.stats_reset_at, 'epoch')
+           GROUP BY w.target_id
+           HAVING count(*) > s.woofs_score
+         ) x) AS woofs_rank,
+        (SELECT 1 + count(*)::int FROM (
+           SELECT po.author_id FROM post_likes pl
+           JOIN posts po ON po.id = pl.post_id AND po.deleted_at IS NULL
+           JOIN profiles p2 ON p2.account_id = po.author_id
+           WHERE pl.created_at > COALESCE(p2.stats_reset_at, 'epoch')
+           GROUP BY po.author_id
+           HAVING count(*) > s.likes_score
+         ) x) AS likes_rank,
+        (SELECT 1 + count(*)::int FROM (
+           SELECT g.receiver_id FROM gift_transfers g
+           JOIN profiles p2 ON p2.account_id = g.receiver_id
+           WHERE g.created_at > COALESCE(p2.stats_reset_at, 'epoch')
+           GROUP BY g.receiver_id
+           HAVING count(*) > s.gifts_score
+         ) x) AS gifts_rank,
+        (SELECT 1 + count(*)::int FROM (
+           SELECT f.followee_id FROM follows f
+           JOIN profiles p2 ON p2.account_id = f.followee_id
+           WHERE f.created_at > COALESCE(p2.stats_reset_at, 'epoch')
+           GROUP BY f.followee_id
+           HAVING count(*) > s.followers_score
+         ) x) AS followers_rank
+      FROM scores s
     `;
+    if (!row) throw new HttpError(404, 'USER_NOT_FOUND');
 
-    if (!row) return { tier: tierName(0), court_value: 0, ranks: null };
-
+    const boards = [
+      { board: 'court', rank: row.court_rank, score: row.court_score, nonzero: row.court_score > 1 },
+      { board: 'woofs', rank: row.woofs_rank, score: row.woofs_score, nonzero: row.woofs_score > 0 },
+      { board: 'likes', rank: row.likes_rank, score: row.likes_score, nonzero: row.likes_score > 0 },
+      { board: 'gifts', rank: row.gifts_rank, score: row.gifts_score, nonzero: row.gifts_score > 0 },
+      { board: 'followers', rank: row.followers_rank, score: row.followers_score, nonzero: row.followers_score > 0 },
+    ];
     return {
-      court_value: row.court_value,
-      tier: tierName(row.court_value),
-      next_tier: TIERS.find((t) => t.min > row.court_value)?.name ?? null,
-      next_tier_at: TIERS.find((t) => t.min > row.court_value)?.min ?? null,
-      total_players: Number(row.total_players),
-      ranks: {
-        court: Number(row.court_rank),
-        woofs: Number(row.woof_rank),
-        likes: Number(row.like_rank),
-        gifts: Number(row.gift_rank),
-        followers: Number(row.follower_rank),
-      },
-      totals: {
-        woofs: row.woofs, likes: row.likes,
-        gifts: row.gifts, followers: row.followers,
-      },
+      ranks: boards
+        .filter((b) => b.nonzero)
+        .map(({ board, rank, score }) => ({ board, rank, score })),
     };
   });
 };
+
+export default leaderboardRoutes;

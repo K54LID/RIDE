@@ -106,3 +106,26 @@ export function useMediaUpload(max = 10) {
     uploading: items.some((i) => i.mediaId === null && i.error === null),
   };
 }
+
+/**
+ * One-shot blob upload outside the hook — for programmatic images like
+ * the cropped avatar, where there's no <input type=file> in sight.
+ */
+export function uploadBlob(blob: Blob, filename = 'photo.jpg'): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const form = new FormData();
+    form.append('file', blob, filename);
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${BASE}/v1/media`);
+    xhr.setRequestHeader('Authorization', `tma ${tg.initData()}`);
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve((JSON.parse(xhr.responseText) as { id: string }).id);
+      } else {
+        reject(new Error('Upload failed'));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Upload failed'));
+    xhr.send(form);
+  });
+}

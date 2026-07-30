@@ -21,8 +21,8 @@ import socialRoutes from './routes/social.js';
 import economyRoutes from './routes/economy.js';
 import notificationRoutes from './routes/notifications.js';
 import albumRoutes from './routes/albums.js';
-import { standingRoutes } from './routes/leaderboard.js';
 import { startNotificationWorker } from './lib/telegramNotify.js';
+import { startTelegramTransport } from './lib/telegramUpdates.js';
 import storyRoutes from './routes/stories.js';
 import chatRoutes from './routes/chat.js';
 import { profilePhotoRoutes } from './routes/profile.js';
@@ -33,6 +33,32 @@ const app = Fastify({
     redact: ['req.headers.authorization', 'req.headers.cookie'],
   },
   trustProxy: true, // behind Traefik
+});
+
+/**
+ * JSON parser that tolerates an empty body.
+ *
+ * Fastify's default parser throws FST_ERR_CTP_EMPTY_JSON_BODY when a
+ * request declares application/json but carries no bytes. Older builds
+ * of the web client attached that header to every request — including
+ * bodyless DELETEs and POSTs — so each delete came back as a 400 and
+ * the UI's error-path refetch made "deleted" content reappear. Treating
+ * an empty body as "no body" keeps those cached clients working.
+ * secure-json-parse mirrors the default parser's prototype-poisoning
+ * protection.
+ */
+const sjson = (await import('secure-json-parse')).default;
+app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
+  if (typeof body !== 'string' || body.trim() === '') {
+    done(null, undefined);
+    return;
+  }
+  try {
+    done(null, sjson.parse(body, { protoAction: 'remove', constructorAction: 'remove' }));
+  } catch (err) {
+    (err as { statusCode?: number }).statusCode = 400;
+    done(err as Error, undefined);
+  }
 });
 
 function clientStatusOf(err: unknown): number | null {
@@ -89,7 +115,6 @@ await app.register(socialRoutes);
 await app.register(economyRoutes);
 await app.register(notificationRoutes);
 await app.register(albumRoutes);
-await app.register(standingRoutes);
 await app.register(storyRoutes);
 await app.register(chatRoutes);
 await app.register(profilePhotoRoutes);
@@ -113,3 +138,8 @@ await app.listen({ port: config.PORT, host: '0.0.0.0' });
 // Outbound Telegram pushes are delivered by a background worker; see
 // lib/telegramNotify.ts for why this is an outbox rather than an inline send.
 startNotificationWorker(app.log.info.bind(app.log));
+
+// Bot transport: webhook when PUBLIC_API_URL provably routes here,
+// getUpdates polling otherwise — so /start works even with no or a
+// wrong PUBLIC_API_URL.
+startTelegramTransport((msg) => app.log.info({ scope: 'telegram' }, msg));

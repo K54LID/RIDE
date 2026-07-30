@@ -66,9 +66,13 @@ const postRoutes: FastifyPluginAsync = async (app) => {
   });
 
   /**
-   * Feed: own posts plus public posts from people followed. Keyset
-   * pagination on created_at — OFFSET degrades badly once a feed grows,
-   * and this is the query that will be hit most often in the app.
+   * Feed: a global timeline. Public posts are visible to every member
+   * — previously they only surfaced for the author's followers, so a
+   * fresh account (nobody following anybody) saw only its own posts.
+   * The compose visibility options still hold: 'followers' posts need a
+   * follow, 'friends' posts an accepted friendship, 'private' stays
+   * with the author. Keyset pagination on created_at — OFFSET degrades
+   * badly once a feed grows, and this is the hottest query in the app.
    */
   app.get('/v1/feed', { preHandler: [app.requireAuth] }, async (req) => {
     const before = (req.query as { before?: string }).before;
@@ -94,9 +98,16 @@ const postRoutes: FastifyPluginAsync = async (app) => {
       WHERE p.deleted_at IS NULL
         AND (
           p.author_id = ${req.accountId}
-          OR (p.visibility = 'public' AND EXISTS (
+          OR p.visibility = 'public'
+          OR (p.visibility = 'followers' AND EXISTS (
                 SELECT 1 FROM follows f
                 WHERE f.follower_id = ${req.accountId} AND f.followee_id = p.author_id
+             ))
+          OR (p.visibility = 'friends' AND EXISTS (
+                SELECT 1 FROM friendships fr
+                WHERE fr.accepted_at IS NOT NULL
+                  AND ((fr.requester_id = ${req.accountId} AND fr.addressee_id = p.author_id)
+                    OR (fr.requester_id = p.author_id AND fr.addressee_id = ${req.accountId}))
              ))
         )
         AND NOT EXISTS (
@@ -129,6 +140,63 @@ const postRoutes: FastifyPluginAsync = async (app) => {
     return {
       posts: rows.map((r) => ({ ...r, media: byPost.get(r.id as string) ?? [] })),
       next_cursor: rows.length === 20 ? rows[rows.length - 1]!.created_at : null,
+    };
+  });
+
+  /**
+   * One post by id — the landing target when a notification is tapped.
+   * Same visibility and block rules as the feed; a link is not a
+   * bypass.
+   */
+  app.get('/v1/posts/:id', { preHandler: [app.requireAuth] }, async (req) => {
+    const parsedId = z.string().uuid().safeParse((req.params as { id: string }).id);
+    if (!parsedId.success) throw new HttpError(404, 'POST_NOT_FOUND');
+    const id = parsedId.data;
+    const rows = await sql`
+      SELECT p.id, p.author_id, p.body, p.kind::text AS kind, p.place_name,
+             p.like_count, p.comment_count, p.created_at,
+             pr.display_name AS author_name,
+             pr.handle       AS author_handle,
+             pr.court_value  AS author_court_value,
+             (pr.verification = 'approved') AS author_verified,
+             EXISTS (SELECT 1 FROM post_likes pl
+                     WHERE pl.post_id = p.id AND pl.account_id = ${req.accountId}) AS liked,
+             EXISTS (SELECT 1 FROM saved_posts sp
+                     WHERE sp.post_id = p.id AND sp.account_id = ${req.accountId}) AS saved
+      FROM posts p
+      JOIN profiles pr ON pr.account_id = p.author_id
+      WHERE p.id = ${id} AND p.deleted_at IS NULL
+        AND (
+          p.author_id = ${req.accountId}
+          OR p.visibility = 'public'
+          OR (p.visibility = 'followers' AND EXISTS (
+                SELECT 1 FROM follows f
+                WHERE f.follower_id = ${req.accountId} AND f.followee_id = p.author_id
+             ))
+          OR (p.visibility = 'friends' AND EXISTS (
+                SELECT 1 FROM friendships fr
+                WHERE fr.accepted_at IS NOT NULL
+                  AND ((fr.requester_id = ${req.accountId} AND fr.addressee_id = p.author_id)
+                    OR (fr.requester_id = p.author_id AND fr.addressee_id = ${req.accountId}))
+             ))
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM blocks b
+          WHERE (b.blocker_id = ${req.accountId} AND b.blocked_id = p.author_id)
+             OR (b.blocker_id = p.author_id AND b.blocked_id = ${req.accountId})
+        )
+    `;
+    if (rows.length === 0) throw new HttpError(404, 'POST_NOT_FOUND');
+
+    const media = await sql<Array<{ media_id: string; kind: string }>>`
+      SELECT media_id, kind::text AS kind FROM post_media
+      WHERE post_id = ${id} AND media_id IS NOT NULL ORDER BY position
+    `;
+    return {
+      post: {
+        ...rows[0],
+        media: media.map((m) => ({ id: m.media_id, kind: m.kind, url: `/v1/media/${m.media_id}` })),
+      },
     };
   });
 

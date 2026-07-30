@@ -154,6 +154,35 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
     return { ok: true };
   });
 
+  /**
+   * Reset a person's rank statistics.
+   *
+   * Non-destructive: nothing is deleted — a stats_reset_at watermark
+   * makes every rank and counter query ignore earlier events, and the
+   * court value returns to its starting 1. Other people's woofs,
+   * likes, gifts and follows stay in history; they just stop counting
+   * toward this profile's boards.
+   */
+  app.post('/v1/admin/users/:id/reset-stats', { preHandler: [app.requireAuth, staffOnly] }, async (req) => {
+    await requirePermission(req, 'manage_coins');
+    const { id } = req.params as { id: string };
+    const { reason } = z.object({ reason: z.string().trim().max(300).optional() }).parse(req.body ?? {});
+
+    await sql.begin(async (tx) => {
+      const rows = await tx`
+        UPDATE profiles SET stats_reset_at = now(), court_value = 1, updated_at = now()
+        WHERE account_id = ${id}
+        RETURNING account_id
+      `;
+      if (rows.length === 0) throw new HttpError(404, 'USER_NOT_FOUND');
+      await tx`
+        INSERT INTO moderation_actions (actor_id, target_id, action, reason)
+        VALUES (${req.accountId}, ${id}, 'reset_stats', ${reason ?? null})
+      `;
+    });
+    return { ok: true };
+  });
+
   app.post('/v1/admin/users/:id/credit', { preHandler: [app.requireAuth, staffOnly] }, async (req) => {
     await requirePermission(req, 'manage_coins');
     const { id } = req.params as { id: string };

@@ -49,15 +49,21 @@ export default function BottomNav({
   return (
     <nav className="nav nav-7">
       {LEFT.map(item)}
+      {/* Same icon-above-label column as every other tab, so the plus
+          sits on the icon line instead of floating above the bar. Only
+          the little gradient pill marks it as the create action. */}
       <button
         className="nav-create"
         aria-label={t('nav.create')}
         onClick={() => { tg.tap('medium'); onGo('create'); }}
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
+        <span className="nav-plus" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </span>
+        {t('nav.create')}
       </button>
       {RIGHT.map(item)}
     </nav>

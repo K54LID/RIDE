@@ -18,29 +18,35 @@ function timeAgo(iso: string): string {
   return `${Math.floor(mins / 1440)}d`;
 }
 
-export function PostCard({ post, meId, onLike, onComment, onMenu }: {
+export function PostCard({ post, meId, onLike, onComment, onMenu, onAuthor }: {
   post: Post;
   meId: string;
   onLike: (id: string) => void;
   onComment: (p: Post) => void;
   onMenu: (p: Post) => void;
+  onAuthor?: (accountId: string) => void;
 }) {
   return (
     <article className="post">
       <div className="post-head">
-        <div className="person-avatar" style={{ width: 36, height: 36, borderRadius: 11, fontSize: '0.9rem' }}>
-          {post.author_name.trim().charAt(0).toUpperCase() || '?'}
-        </div>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div className="person-name" style={{ fontSize: '0.94rem' }}>
-            {post.author_name}
-            {post.author_verified ? <VerifiedMark size={14} /> : null}
+        {/* The whole author block is the tap target — a 36px avatar
+            alone is a miss on a phone. */}
+        <button className="post-author" disabled={!onAuthor}
+                onClick={() => { if (onAuthor) { tg.tap('light'); onAuthor(post.author_id); } }}>
+          <div className="person-avatar" style={{ width: 36, height: 36, borderRadius: 11, fontSize: '0.9rem' }}>
+            {post.author_name.trim().charAt(0).toUpperCase() || '?'}
           </div>
-          <div className="person-sub">
-            {post.place_name ? `${post.place_name} · ` : ''}{timeAgo(post.created_at)}
-            {post.edited ? ' · ✎' : ''}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div className="person-name" style={{ fontSize: '0.94rem' }}>
+              {post.author_name}
+              {post.author_verified ? <VerifiedMark size={14} /> : null}
+            </div>
+            <div className="person-sub">
+              {post.place_name ? `${post.place_name} · ` : ''}{timeAgo(post.created_at)}
+              {post.edited ? ' · ✎' : ''}
+            </div>
           </div>
-        </div>
+        </button>
         <button className="post-more" aria-label="⋯"
                 onClick={() => { tg.tap('light'); onMenu(post); }}>⋯</button>
       </div>
@@ -82,11 +88,12 @@ export function PostCard({ post, meId, onLike, onComment, onMenu }: {
  * comments, and a per-post menu (edit/delete for yours, save/share/
  * report for everyone's).
  */
-export default function Home({ meId, meName, onCompose, onAlerts }: {
+export default function Home({ meId, meName, onCompose, onAlerts, onOpenUser }: {
   meId: string;
   meName: string;
   onCompose: () => void;
   onAlerts: () => void;
+  onOpenUser: (accountId: string) => void;
 }) {
   const t = useT();
   const [posts, setPosts] = useState<Post[] | null>(null);
@@ -267,7 +274,8 @@ export default function Home({ meId, meName, onCompose, onAlerts }: {
         <>
           {posts.map((p) => (
             <PostCard key={p.id} post={p} meId={meId}
-                      onLike={like} onComment={setCommentPost} onMenu={setMenuPost} />
+                      onLike={like} onComment={setCommentPost} onMenu={setMenuPost}
+                      onAuthor={p.author_id === meId ? undefined : onOpenUser} />
           ))}
           <div ref={sentinel} />
           {loadingMore ? <Skeleton h={96} /> : null}
@@ -276,12 +284,14 @@ export default function Home({ meId, meName, onCompose, onAlerts }: {
 
       {viewerAt !== null ? (
         <StoryViewer authors={authors} startIndex={viewerAt} meId={meId}
-                     onClose={() => { setViewerAt(null); loadStories(); }} />
+                     onClose={() => { setViewerAt(null); loadStories(); }}
+                     onOpenUser={(id) => { setViewerAt(null); loadStories(); onOpenUser(id); }} />
       ) : null}
 
       <Sheet open={commentPost !== null} onClose={() => setCommentPost(null)}>
         {commentPost ? (
           <CommentSheet postId={commentPost.id} meId={meId}
+                        onAuthor={(id) => { setCommentPost(null); onOpenUser(id); }}
                         onCountChange={(d) => setPosts((cur) =>
                           cur?.map((x) => x.id === commentPost.id
                             ? { ...x, comment_count: Math.max(0, x.comment_count + d) } : x) ?? cur)} />

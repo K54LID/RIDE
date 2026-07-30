@@ -22,6 +22,7 @@ import SettingsScreen from './screens/Settings';
 import Admin from './screens/Admin';
 import Saved from './screens/Saved';
 import UserProfile from './screens/UserProfile';
+import PostView from './screens/PostView';
 
 type Phase = 'loading' | 'onboarding' | 'ready' | 'error';
 
@@ -32,6 +33,7 @@ export default function App() {
   const [{ route, chatId }, go, openChat] = useRoute();
   const [feedKey, setFeedKey] = useState(0);
   const [viewingUser, setViewingUser] = useState<string | null>(null);
+  const [viewingPost, setViewingPost] = useState<string | null>(null);
 
   const load = useCallback(() => {
     apiFetch<Me>('/v1/me')
@@ -83,7 +85,19 @@ export default function App() {
       balance={me?.coin_balance ?? 0}
       onClose={() => setViewingUser(null)}
       onBalanceChange={load}
-      onOpenChat={(id) => { setViewingUser(null); openChat(id); }}
+      onOpenChat={(id) => { setViewingUser(null); setViewingPost(null); openChat(id); }}
+      onOpenUser={setViewingUser}
+    />
+  ) : null;
+
+  // A post overlay sits beneath the profile overlay in the DOM, so
+  // tapping a name inside the post stacks the person on top of it.
+  const postOverlay = viewingPost ? (
+    <PostView
+      postId={viewingPost}
+      meId={meId}
+      onClose={() => setViewingPost(null)}
+      onOpenUser={setViewingUser}
     />
   ) : null;
 
@@ -92,13 +106,33 @@ export default function App() {
       <>
         <ChatThread conversationId={chatId} meId={meId}
                     onBack={() => go('chats')} onOpenUser={setViewingUser} />
+        {postOverlay}
         {userOverlay}
       </>
     );
   }
 
-  if (route === 'alerts') return <Alerts onBack={() => go('home')} />;
-  if (route === 'saved') return <Saved meId={meId} onBack={() => go('you')} />;
+  if (route === 'alerts') {
+    return (
+      <>
+        <Alerts onBack={() => go('home')}
+                onOpenUser={setViewingUser}
+                onOpenPost={setViewingPost}
+                onOpenChat={openChat} />
+        {postOverlay}
+        {userOverlay}
+      </>
+    );
+  }
+  if (route === 'saved') {
+    return (
+      <>
+        <Saved meId={meId} onBack={() => go('you')} onOpenUser={setViewingUser} />
+        {postOverlay}
+        {userOverlay}
+      </>
+    );
+  }
   if (route === 'wallet') return <Wallet onBack={() => go('you')} onBalanceChange={load} />;
   if (route === 'settings') {
     return <SettingsScreen onBack={() => go('you')} onAdmin={() => go('admin')} />;
@@ -115,12 +149,13 @@ export default function App() {
     <>
       {tab === 'home' && (
         <Home key={feedKey} meId={meId} meName={meName}
-              onCompose={() => go('create')} onAlerts={() => go('alerts')} />
+              onCompose={() => go('create')} onAlerts={() => go('alerts')}
+              onOpenUser={setViewingUser} />
       )}
       {tab === 'achievements' && <Achievements />}
-      {tab === 'chats' && <Chats meId={meId} onOpen={openChat} />}
+      {tab === 'chats' && <Chats meId={meId} onOpen={openChat} onOpenUser={setViewingUser} />}
       {tab === 'discover' && <Discover onOpenUser={setViewingUser} />}
-      {tab === 'ranks' && <Ranks />}
+      {tab === 'ranks' && <Ranks onOpenUser={setViewingUser} />}
       {tab === 'you' && me && (
         <Profile me={me} onEdit={() => go('edit')} onWallet={() => go('wallet')}
                  onSettings={() => go('settings')} onSaved={() => go('saved')} />
@@ -128,9 +163,10 @@ export default function App() {
 
       <BottomNav route={route} onGo={go} />
 
+      {postOverlay}
       {userOverlay}
 
-      <Sheet open={route === 'create'} onClose={() => go('home')}>
+      <Sheet center open={route === 'create'} onClose={() => go('home')}>
         <Compose
           onCancel={() => go('home')}
           onPosted={() => { setFeedKey((k) => k + 1); go('home'); }}

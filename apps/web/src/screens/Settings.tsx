@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useI18n, LOCALES, type Locale } from '../i18n';
 import { Button, Skeleton } from '../components/ui';
+import Sheet from '../components/Sheet';
 import { useMediaUpload } from '../lib/useMediaUpload';
 
 type Vis = 'everyone' | 'members' | 'friends' | 'nobody';
@@ -255,37 +256,35 @@ export default function Settings({ onBack, onAdmin }: {
         </div>
       </div>
 
-      {verifySent ? (
-        <div className="card" style={{ marginTop: 16, borderColor: 'var(--verify)' }}>
-          <h2 style={{ marginBottom: 8 }}>{t('verify.sentTitle')}</h2>
-          <p style={{ marginBottom: 16 }}>{t('verify.sentBody')}</p>
-          <Button variant="ghost" onClick={() => setVerifySent(false)}>{t('common.done')}</Button>
-        </div>
-      ) : null}
+      {/* Overlays, not page-bottom cards. The old cards appended below
+          the delete-account group, off-screen from the button the
+          person just pressed — tapping "Request" appeared to do
+          nothing. A sheet rises over the current view instead. */}
+      <Sheet open={verifySent} onClose={() => setVerifySent(false)}>
+        <h2 style={{ marginBottom: 8 }}>{t('verify.sentTitle')}</h2>
+        <p style={{ marginBottom: 16 }}>{t('verify.sentBody')}</p>
+        <Button variant="ghost" onClick={() => setVerifySent(false)}>{t('common.done')}</Button>
+      </Sheet>
 
-      {verifyIntro ? (
-        <div className="card" style={{ marginTop: 16, borderColor: 'var(--verify)' }}>
-          <h2 style={{ marginBottom: 8 }}>{t('verify.title')}</h2>
-          <p style={{ marginBottom: 6 }}>{t('verify.step1')}</p>
-          <p style={{ marginBottom: 6 }}>{t('verify.step2')}</p>
-          <p style={{ marginBottom: 16 }}>{t('verify.step3')}</p>
-          <Button onClick={() => { setVerifyIntro(false); selfieInput.current?.click(); }}>
-            {t('verify.takeSelfie')}
-          </Button>
-          <div style={{ height: 10 }} />
-          <Button variant="ghost" onClick={() => setVerifyIntro(false)}>{t('common.cancel')}</Button>
-        </div>
-      ) : null}
+      <Sheet open={verifyIntro} onClose={() => setVerifyIntro(false)}>
+        <h2 style={{ marginBottom: 8 }}>{t('verify.title')}</h2>
+        <p style={{ marginBottom: 6 }}>{t('verify.step1')}</p>
+        <p style={{ marginBottom: 6 }}>{t('verify.step2')}</p>
+        <p style={{ marginBottom: 16 }}>{t('verify.step3')}</p>
+        <Button onClick={() => { setVerifyIntro(false); selfieInput.current?.click(); }}>
+          {t('verify.takeSelfie')}
+        </Button>
+        <div style={{ height: 10 }} />
+        <Button variant="ghost" onClick={() => setVerifyIntro(false)}>{t('common.cancel')}</Button>
+      </Sheet>
 
-      {confirmDelete ? (
-        <div className="card" style={{ marginTop: 16, borderColor: 'var(--pulse)' }}>
-          <h2 style={{ marginBottom: 8 }}>{t('settings.deleteConfirm')}</h2>
-          <p style={{ marginBottom: 16 }}>{t('settings.deleteConfirm.body')}</p>
-          <Button onClick={deleteAccount}>{t('settings.deleteAccount')}</Button>
-          <div style={{ height: 10 }} />
-          <Button variant="ghost" onClick={() => setConfirmDelete(false)}>{t('common.cancel')}</Button>
-        </div>
-      ) : null}
+      <Sheet open={confirmDelete} onClose={() => setConfirmDelete(false)}>
+        <h2 style={{ marginBottom: 8 }}>{t('settings.deleteConfirm')}</h2>
+        <p style={{ marginBottom: 16 }}>{t('settings.deleteConfirm.body')}</p>
+        <Button onClick={deleteAccount}>{t('settings.deleteAccount')}</Button>
+        <div style={{ height: 10 }} />
+        <Button variant="ghost" onClick={() => setConfirmDelete(false)}>{t('common.cancel')}</Button>
+      </Sheet>
     </div>
   );
 }

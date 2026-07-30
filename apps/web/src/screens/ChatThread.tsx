@@ -88,18 +88,33 @@ export default function ChatThread({ conversationId, meId, onBack, onOpenUser }:
       .catch(() => setMessages([]));
   }, [conversationId]);
 
-  // Delta poll.
+  /**
+   * Poll refetches the whole latest window, not just messages after a
+   * cursor. The cursor version was cheaper but blind to everything
+   * that happens to EXISTING messages — reactions, edits, deletes only
+   * appeared after leaving and reopening the chat. Fifty rows every
+   * 2.5s is nothing at this scale, and the thread is now simply always
+   * current.
+   */
   const tick = useCallback(() => {
     apiFetch<{ messages: ChatMessage[]; peer_last_read_at: string | null; peer_typing: boolean }>(
-      `/v1/chats/${conversationId}/messages?after=${lastId.current}`)
+      `/v1/chats/${conversationId}/messages`)
       .then((r) => {
         setPeerRead(r.peer_last_read_at);
         setPeerTyping(r.peer_typing);
-        if (r.messages.length === 0) return;
-        lastId.current = r.messages[r.messages.length - 1]!.id;
-        setMessages((cur) => [...(cur ?? []), ...r.messages]);
-        scrollDown();
-        void apiFetch(`/v1/chats/${conversationId}/read`, { method: 'POST' }).catch(() => undefined);
+        const newest = r.messages.length ? r.messages[r.messages.length - 1]!.id : 0;
+        const grew = newest > lastId.current;
+        lastId.current = newest;
+        // Server truth for everything real; optimistic bubbles
+        // (negative ids) ride along until their real row arrives.
+        setMessages((cur) => {
+          const pending = (cur ?? []).filter((m) => m.id < 0);
+          return [...r.messages, ...pending];
+        });
+        if (grew) {
+          scrollDown();
+          void apiFetch(`/v1/chats/${conversationId}/read`, { method: 'POST' }).catch(() => undefined);
+        }
       })
       .catch(() => undefined);
   }, [conversationId]);

@@ -7,7 +7,9 @@ import Sheet from '../components/Sheet';
 import CommentSheet from '../components/CommentSheet';
 import { PostCard } from './Home';
 
-export default function Saved({ meId, onBack }: { meId: string; onBack: () => void }) {
+export default function Saved({ meId, onBack, onOpenUser }: {
+  meId: string; onBack: () => void; onOpenUser: (accountId: string) => void;
+}) {
   const t = useT();
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [commentPost, setCommentPost] = useState<Post | null>(null);
@@ -47,7 +49,18 @@ export default function Saved({ meId, onBack }: { meId: string; onBack: () => vo
 
   return (
     <div className="screen">
-      <div className="head"><h1>{t('saved.title')}</h1></div>
+      <div className="head">
+        {/* Telegram's own back button also works, but it isn't visible
+            in every client — an on-screen arrow leaves no doubt. */}
+        <button className="icon-btn sm" aria-label={t('common.back')}
+                onClick={() => { tg.tap('light'); onBack(); }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
+        </button>
+        <h1 style={{ flex: 1 }}>{t('saved.title')}</h1>
+      </div>
 
       {posts === null ? (
         <><Skeleton h={96} mb={12} /><Skeleton h={96} /></>
@@ -56,7 +69,8 @@ export default function Saved({ meId, onBack }: { meId: string; onBack: () => vo
       ) : (
         posts.map((p) => (
           <PostCard key={p.id} post={p} meId={meId}
-                    onLike={like} onComment={setCommentPost} onMenu={setMenuPost} />
+                    onLike={like} onComment={setCommentPost} onMenu={setMenuPost}
+                    onAuthor={p.author_id === meId ? undefined : onOpenUser} />
         ))
       )}
 
@@ -65,6 +79,7 @@ export default function Saved({ meId, onBack }: { meId: string; onBack: () => vo
           <CommentSheet
             postId={commentPost.id}
             meId={meId}
+            onAuthor={(id) => { setCommentPost(null); onOpenUser(id); }}
             onCountChange={(d) => setPosts((cur) => cur?.map((x) =>
               x.id === commentPost.id
                 ? { ...x, comment_count: Math.max(0, x.comment_count + d) } : x) ?? cur)}

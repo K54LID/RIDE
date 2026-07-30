@@ -187,22 +187,18 @@ p { margin: 0; color: var(--muted); }
 
 
 /* ---- centre create button ---- */
-.nav-create {
-  position: relative;
-  align-self: center;
-  justify-self: center;
-  width: 52px;
-  height: 52px;
-  margin-top: -20px;
-  border-radius: 18px;
-  display: grid;
-  place-items: center;
+/* Structurally identical to the other tabs (icon slot + label), so all
+   seven sit on the same two lines. The gradient pill fills the icon
+   slot — same height as the sibling icons, so the lines stay level. */
+.nav-create { color: var(--faint); }
+.nav-plus {
+  width: 30px; height: 20px; border-radius: 7px;
+  display: grid; place-items: center;
   color: #fff;
-  background: linear-gradient(140deg, var(--pulse), var(--violet));
-  box-shadow: 0 8px 22px rgba(255, 61, 129, 0.36);
-  transition: transform 0.16s var(--ease);
+  background: linear-gradient(135deg, var(--pulse), var(--violet));
+  box-shadow: 0 2px 10px rgba(255, 61, 129, 0.4);
 }
-.nav-create:active { transform: scale(0.92); }
+.nav-create:active .nav-plus { transform: scale(0.92); }
 
 /* ---- coming soon ---- */
 .soon { text-align: center; padding: 44px 16px; }
@@ -264,7 +260,11 @@ p { margin: 0; color: var(--muted); }
   margin-bottom: 18px;
   overflow-x: auto;
   scrollbar-width: none;
+  justify-content: center;
 }
+/* Tabs share the row evenly and centre their labels, so five panes
+   (admin) or three (elsewhere) both read as one balanced control. */
+.seg button { flex: 1 0 auto; text-align: center; }
 .seg::-webkit-scrollbar { display: none; }
 .seg button {
   flex: 1 0 auto;
@@ -288,15 +288,25 @@ p { margin: 0; color: var(--muted); }
 @keyframes fade { from { opacity: 0; } }
 .sheet {
   position: fixed; z-index: 101;
-  left: 0; right: 0; bottom: 0;
-  max-height: 88vh; overflow-y: auto;
+  /* Anchored to the TOP of the visible viewport, not the bottom.
+     On several Telegram clients the webview's layout viewport runs
+     taller than what is actually visible, so a bottom-anchored sheet
+     rendered its buttons below the fold — "the delete menu appears way
+     down". Top anchoring puts the actions where the person is looking,
+     and the keyboard can no longer cover an input inside it. */
+  top: calc(14px + env(safe-area-inset-top));
+  left: 12px; right: 12px; bottom: auto;
+  width: min(calc(100% - 24px), 496px);
+  margin-inline: auto;
+  max-height: calc(var(--tg-viewport-stable-height, 100dvh) - 90px);
+  overflow-y: auto;
   background: var(--surface);
-  border-top: 1px solid var(--hairline);
-  border-radius: var(--r-lg) var(--r-lg) 0 0;
-  padding: 10px var(--pad) calc(24px + env(safe-area-inset-bottom));
-  animation: slideUp 0.28s var(--ease);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: 10px var(--pad) 20px;
+  animation: sheetDrop 0.24s var(--ease);
 }
-@keyframes slideUp { from { transform: translateY(100%); } }
+@keyframes sheetDrop { from { transform: translateY(-14px); opacity: 0; } }
 .sheet-grip {
   width: 38px; height: 4px; border-radius: 2px;
   background: var(--hairline);
@@ -395,7 +405,6 @@ p { margin: 0; color: var(--muted); }
 /* Seven slots: labels shrink, the centre action keeps its size. */
 .nav-7 { grid-template-columns: repeat(7, 1fr); }
 .nav-7 button { font-size: 0.55rem; }
-.nav-7 .nav-create { width: 48px; height: 48px; margin-top: -18px; }
 
 /* ---- achievements ---- */
 .ach {
@@ -676,10 +685,17 @@ p { margin: 0; color: var(--muted); }
 /* ---- story viewer ---- */
 .story-viewer {
   position: fixed; inset: 0; z-index: 200;
+  /* Own the full viewport. In the Telegram webview 100dvh tracks the
+     real visible height; inset alone left a strip when the viewport
+     resized around the keyboard/chrome. */
+  height: var(--tg-viewport-stable-height, 100dvh);
   background: #000; display: flex; flex-direction: column;
   animation: fade 0.18s var(--ease);
 }
-.story-progress { display: flex; gap: 3px; padding: 10px 10px 6px; flex: none; }
+.story-progress {
+  display: flex; gap: 3px; flex: none;
+  padding: calc(10px + env(safe-area-inset-top)) 10px 6px;
+}
 .story-bar { flex: 1; height: 2.5px; border-radius: 2px; background: rgba(255,255,255,0.28); overflow: hidden; }
 .story-bar span { display: block; height: 100%; width: 0; background: #fff; border-radius: 2px; }
 .story-bar span.full { width: 100%; }
@@ -692,12 +708,17 @@ p { margin: 0; color: var(--muted); }
 .story-name { color: #fff; font-weight: 700; font-size: 0.95rem; }
 .story-tool { background: none; border: 0; color: rgba(255,255,255,0.85); font-size: 0.85rem; }
 .story-stage {
-  position: relative; flex: 1; display: grid; place-items: center;
+  position: relative; flex: 1; min-height: 0;
   overflow: hidden;
 }
+/* cover, not contain: the media fills the screen like every story
+   product people know. Edges of an off-ratio photo crop rather than
+   leaving black bars around a small centred image. */
 .story-stage img, .story-stage video {
-  max-width: 100%; max-height: 100%; object-fit: contain;
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
 }
+.story-stage .skel { position: absolute; inset: 0; aspect-ratio: auto; }
 .story-foot {
   display: flex; gap: 9px; align-items: center; flex: none;
   padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
@@ -720,6 +741,9 @@ p { margin: 0; color: var(--muted); }
   color: #fff; padding: 9px 16px; font: inherit; font-size: 0.85rem;
 }
 
+/* The tab bar has no business floating over a story. */
+body.story-open .nav { display: none; }
+
 /* ---- chat list ---- */
 .chat-row {
   display: flex; gap: 12px; align-items: center; width: 100%;
@@ -732,6 +756,20 @@ p { margin: 0; color: var(--muted); }
   width: 12px; height: 12px; border-radius: 50%;
   background: #37D27A; border: 2px solid var(--surface);
 }
+.chat-pin { font-size: 0.72rem; margin-inline-end: 4px; }
+.chat-acts {
+  flex: none; display: flex; flex-direction: column; gap: 6px;
+  margin-inline-start: 2px;
+}
+.chat-act {
+  display: grid; place-items: center;
+  width: 28px; height: 28px; border-radius: var(--r-sm);
+  background: var(--raised); border: 1px solid var(--hairline);
+  color: var(--muted);
+}
+.chat-act[aria-pressed="true"] { color: var(--court-lit); border-color: rgba(201,162,39,0.5); }
+.chat-act.danger:active, .chat-act:active { color: var(--ink); }
+.chat-act.danger { color: var(--pulse-dim); }
 .chat-main { flex: 1; min-width: 0; }
 .chat-preview {
   font-size: 0.82rem; color: var(--muted);
@@ -894,13 +932,6 @@ h2 { font-size: 1.02rem; }
   font-family: var(--font-display); font-size: 1.9rem; font-weight: 700;
   color: var(--muted);
 }
-.pro-avatar-edit {
-  position: absolute; bottom: 0; inset-inline-end: 0;
-  width: 24px; height: 24px; border-radius: 50%;
-  background: var(--pulse); color: #fff;
-  display: grid; place-items: center; font-size: 0.7rem;
-  border: 2px solid var(--void);
-}
 .pro-counts { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); }
 .pro-counts div { text-align: center; }
 .pro-counts b { display: block; font-size: 1.12rem; font-weight: 700; }
@@ -1005,15 +1036,18 @@ h2 { font-size: 1.02rem; }
 }
 
 /* ---- action tiles, centred ---- */
+/* Compact: a full square per action pushed the profile's actual
+   content below the fold. Glyph beside nothing but its label, less
+   padding, no forced aspect ratio. */
 .act {
-  aspect-ratio: 1;
   justify-content: center;
-  gap: 6px;
-  padding: 6px 4px;
+  gap: 3px;
+  padding: 8px 4px;
   text-align: center;
+  font-size: 0.62rem;
 }
-.act-label { display: block; line-height: 1.2; }
-.act-glyph { font-size: 1.25rem; }
+.act-label { display: block; line-height: 1.15; }
+.act-glyph { font-size: 1rem; }
 
 /* ---- chat header ---- */
 .chat-head {
@@ -1099,36 +1133,54 @@ h2 { font-size: 1.02rem; }
   color: var(--court-lit); font-weight: 700; font-size: 0.85rem;
 }
 
-/* ---- photo carousel ---- */
-.carousel {
-  position: relative; margin-top: 12px;
-  border-radius: var(--r-md); overflow: hidden;
-  background: var(--raised); border: 1px solid var(--hairline);
+/* ---- profile photo strip ---- */
+/* Small square thumbnails, horizontally scrollable — the previous
+   carousel gave one viewport-wide square per photo and buried the rest
+   of the profile beneath it. */
+.pstrip {
+  display: flex; gap: 8px; margin-top: 12px;
+  overflow-x: auto; scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  padding-bottom: 2px;
 }
-.carousel-track {
-  display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
-  scrollbar-width: none; aspect-ratio: 1;
+.pstrip::-webkit-scrollbar { display: none; }
+.pstrip-cell {
+  position: relative; flex: 0 0 auto;
+  width: 108px; height: 108px; scroll-snap-align: start;
+  padding: 0; border: 1px solid var(--hairline); border-radius: var(--r-md);
+  background: var(--raised); overflow: hidden;
+  color: var(--ink); font: inherit;
 }
-.carousel-track::-webkit-scrollbar { display: none; }
-.carousel-slide {
-  flex: 0 0 100%; scroll-snap-align: center;
-  position: relative; display: grid; place-items: center;
-}
-.carousel-slide img { width: 100%; height: 100%; object-fit: cover; }
-.carousel-slide .skel { width: 100%; height: 100%; }
-.carousel-dots {
-  position: absolute; bottom: 8px; left: 0; right: 0;
-  display: flex; justify-content: center; gap: 5px;
-}
-.carousel-dots span {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: rgba(255,255,255,0.45); transition: all 0.2s var(--ease);
-}
-.carousel-dots span.on { background: #fff; width: 16px; border-radius: 3px; }
-.carousel-lock {
-  position: absolute; top: 8px; inset-inline-end: 8px;
+.pstrip-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pstrip-cell .skel { width: 100%; height: 100%; aspect-ratio: auto; }
+.pstrip-lock {
+  position: absolute; top: 5px; inset-inline-end: 5px;
   background: rgba(6,3,14,0.78); color: var(--court-lit);
-  padding: 4px 9px; border-radius: var(--r-pill); font-size: 0.7rem;
+  padding: 2px 7px; border-radius: var(--r-pill); font-size: 0.65rem;
+}
+.pstrip-cell.locked {
+  display: grid; place-content: center; gap: 2px;
+  color: var(--court-lit); font-size: 0.95rem; text-align: center;
+}
+
+/* Tap a thumbnail → the photo alone, full screen. */
+.lightbox {
+  position: fixed; inset: 0; z-index: 210;
+  height: var(--tg-viewport-stable-height, 100dvh);
+  background: rgba(4, 2, 10, 0.96);
+  display: grid; place-items: center;
+  animation: fade 0.16s var(--ease);
+}
+.lightbox img {
+  max-width: 100%; max-height: 100%; object-fit: contain;
+}
+.lightbox .skel { width: 70%; aspect-ratio: 1; }
+.lightbox-close {
+  position: absolute; z-index: 1;
+  top: calc(10px + env(safe-area-inset-top)); inset-inline-end: 12px;
+  width: 36px; height: 36px; padding: 0; margin: 0;
+  border: 0; border-radius: 50%;
+  background: rgba(255,255,255,0.14); color: #fff; font-size: 1rem;
 }
 
 /* ---- courted-by strip ---- */
@@ -1150,3 +1202,138 @@ h2 { font-size: 1.02rem; }
   padding: 0; margin: -1px; overflow: hidden;
   clip: rect(0,0,0,0); white-space: nowrap; border: 0;
 }
+
+/* ---- clickable notification rows ---- */
+.notif-btn {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  padding: 12px 14px; border: 0; border-bottom: 1px solid var(--hairline);
+  background: none; color: var(--ink); font: inherit; text-align: start;
+}
+.notif-btn:last-child { border-bottom: 0; }
+.notif-btn[data-unread="true"] { background: rgba(124, 77, 255, 0.08); }
+.notif-btn:disabled { opacity: 1; }
+.notif-thumb {
+  flex: none; width: 40px; height: 40px; border-radius: var(--r-sm);
+  overflow: hidden; background: var(--raised); border: 1px solid var(--hairline);
+}
+.notif-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.notif-excerpt {
+  display: block; margin-top: 2px;
+  font-size: 0.78rem; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ---- courted-by strip is a link now ---- */
+button.courted-by { width: 100%; color: var(--ink); font: inherit; text-align: start; cursor: pointer; }
+.courted-by-days { font-size: 0.7rem; color: var(--muted); }
+
+/* ---- tappable author block on posts ---- */
+.post-author {
+  display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
+  padding: 0; border: 0; background: none; color: var(--ink);
+  font: inherit; text-align: start;
+}
+
+/* ---- custom coin amount row ---- */
+.custom-topup { display: flex; gap: 8px; margin-top: 8px; }
+.custom-topup input {
+  flex: 1; min-width: 0;
+  background: var(--raised); color: var(--ink);
+  border: 1px solid var(--hairline); border-radius: var(--r-sm);
+  padding: 11px 13px; font: inherit;
+}
+.custom-topup .btn { width: auto; padding: 11px 18px; margin: 0; flex: none; }
+
+/* ---- admin per-user amount ---- */
+.admin-amount {
+  width: 92px; padding: 7px 10px;
+  background: var(--raised); color: var(--ink);
+  border: 1px solid var(--hairline); border-radius: var(--r-pill);
+  font: inherit; font-size: 0.82rem;
+}
+
+/* story author name is a link to their profile */
+.story-name-btn { background: none; border: 0; padding: 0; text-align: start; }
+.story-name-btn:disabled { opacity: 1; }
+
+.comment-author-btn { background: none; border: 0; padding: 0; font: inherit; color: inherit; }
+.comment-author-btn:disabled { opacity: 1; }
+.rank-btn { border: 0; background: none; color: var(--ink); font: inherit; width: 100%; text-align: start; }
+button.podium-col { border: 0; background: none; color: var(--ink); font: inherit; }
+
+/* ---- centred sheet (composer) ---- */
+.sheet-center {
+  top: 50%;
+  transform: translateY(-50%);
+  animation: sheetPop 0.22s var(--ease);
+}
+@keyframes sheetPop { from { opacity: 0; transform: translateY(-50%) scale(0.97); } }
+
+/* ---- rank chips on profiles ---- */
+.rank-chips {
+  display: flex; flex-wrap: wrap; gap: 7px;
+  margin-top: 12px;
+}
+.rank-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 11px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  font-size: 0.8rem;
+}
+.rank-chip.top {
+  border-color: rgba(201, 162, 39, 0.55);
+  color: var(--court-lit);
+  background: rgba(201, 162, 39, 0.08);
+}
+
+/* ---- comment rows with avatars ---- */
+.comment-handle { margin-inline-start: 5px; color: var(--muted); font-weight: 400; font-size: 0.76rem; }
+.comment .comment-author-btn { flex: none; }
+
+/* ---- block row on profiles ---- */
+.block-row {
+  width: 100%; margin-top: 22px; padding: 12px;
+  background: none; border: 1px solid var(--hairline); border-radius: var(--r-md);
+  color: var(--pulse); font: inherit; font-size: 0.88rem;
+}
+
+/* ---- crop editor ---- */
+.crop-overlay {
+  position: fixed; inset: 0; z-index: 220;
+  height: var(--tg-viewport-stable-height, 100dvh);
+  background: var(--void);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: var(--pad);
+  animation: fade 0.16s var(--ease);
+}
+.crop-view {
+  position: relative;
+  width: min(78vw, 320px); aspect-ratio: 1;
+  overflow: hidden; border-radius: var(--r-md);
+  background: #000;
+  touch-action: none;   /* the drag IS the gesture; don't scroll */
+  cursor: grab;
+}
+.crop-view:active { cursor: grabbing; }
+.crop-view img {
+  position: absolute; top: 50%; left: 50%;
+  user-select: none; -webkit-user-drag: none;
+}
+.crop-mask {
+  position: absolute; inset: 0; pointer-events: none;
+  /* darken everything outside the avatar circle */
+  background: radial-gradient(circle closest-side, transparent 99%, rgba(4,2,10,0.72) 100%);
+  border-radius: inherit;
+}
+.crop-zoom {
+  width: min(78vw, 320px);
+  display: flex; flex-direction: column; gap: 6px;
+  margin: 18px 0 22px;
+}
+.crop-zoom input[type='range'] { width: 100%; accent-color: var(--pulse); }
+.crop-overlay .btn { width: min(78vw, 320px); }
+
+/* ---- admin selfie lightbox reuses .lightbox ---- */
+.admin-selfie { cursor: zoom-in; }

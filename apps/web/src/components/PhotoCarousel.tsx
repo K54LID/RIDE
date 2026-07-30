@@ -1,55 +1,65 @@
-import { useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ProfilePhoto } from '../lib/api';
 import Media from './Media';
+import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 
 /**
- * Swipeable photo carousel.
+ * Profile photo strip.
  *
- * Native scroll-snap rather than a JS slider: it inherits momentum,
- * rubber-banding and accessibility from the platform, and can't fight
- * Telegram's own horizontal gestures the way a drag handler would. The
- * dots track scroll position instead of driving it.
+ * Small square thumbnails in a horizontal scroll row, not full-width
+ * slides — a profile is a page to skim, and a viewport-sized square per
+ * photo pushed everything else below the fold. Native overflow scroll
+ * with snap keeps momentum and accessibility from the platform and
+ * doesn't fight Telegram's own horizontal gestures.
+ *
+ * Tapping a thumbnail opens it full-screen; tap again (or the ✕, or
+ * Telegram's back button) to close.
  */
 export default function PhotoCarousel({ photos, lockedCount = 0 }: {
   photos: ProfilePhoto[];
   lockedCount?: number;
 }) {
   const t = useT();
-  const [index, setIndex] = useState(0);
-  const track = useRef<HTMLDivElement | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
-  if (photos.length === 0) return null;
+  // Telegram's back button closes the lightbox, same as every other
+  // overlay in the app.
+  useEffect(() => {
+    if (!openId) return;
+    return tg.backButton(() => setOpenId(null));
+  }, [openId]);
 
-  const onScroll = () => {
-    const el = track.current;
-    if (!el) return;
-    const i = Math.round(el.scrollLeft / el.clientWidth);
-    if (i !== index) setIndex(i);
-  };
+  if (photos.length === 0 && lockedCount === 0) return null;
+
+  const open = photos.find((p) => p.id === openId) ?? null;
 
   return (
-    <div className="carousel">
-      <div className="carousel-track" ref={track} onScroll={onScroll}>
+    <>
+      <div className="pstrip" role="list" aria-label={t('profile.photos')}>
         {photos.map((p) => (
-          <div key={p.id} className="carousel-slide">
-            <Media id={p.media_id} kind="image" />
-            {p.is_private ? <span className="carousel-lock">🔒</span> : null}
-          </div>
+          <button key={p.id} className="pstrip-cell" role="listitem"
+                  onClick={() => { tg.tap('light'); setOpenId(p.id); }}>
+            <Media id={p.media_id} kind="image" thumb />
+            {p.is_private ? <span className="pstrip-lock">🔒</span> : null}
+          </button>
         ))}
+        {lockedCount > 0 ? (
+          <div className="pstrip-cell locked" aria-hidden="true">
+            <span>🔒</span>
+            <span className="num">{lockedCount}</span>
+          </div>
+        ) : null}
       </div>
 
-      {photos.length > 1 ? (
-        <div className="carousel-dots">
-          {photos.map((p, i) => <span key={p.id} className={i === index ? 'on' : ''} />)}
+      {open ? (
+        <div className="lightbox" role="dialog" aria-modal="true"
+             onClick={() => setOpenId(null)}>
+          <button className="lightbox-close" aria-label={t('common.close')}
+                  onClick={() => setOpenId(null)}>✕</button>
+          <Media key={open.id} id={open.media_id} kind="image" />
         </div>
       ) : null}
-
-      {lockedCount > 0 ? (
-        <span className="carousel-lock">🔒 {lockedCount}</span>
-      ) : null}
-
-      <span className="sr-only">{t('profile.photos')}</span>
-    </div>
+    </>
   );
 }
