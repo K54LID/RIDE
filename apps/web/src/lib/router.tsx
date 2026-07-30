@@ -1,34 +1,42 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 /**
- * Hash routing, ~30 lines instead of a dependency.
+ * Hash routing, ~40 lines instead of a dependency.
  *
- * Hash rather than history API on purpose: Telegram's webview handles
- * back/forward inconsistently across platforms, and hash changes never
- * hit the server — so a deep link can't 404 against nginx.
+ * Hash rather than the history API on purpose: Telegram's webview
+ * handles back/forward inconsistently across platforms, and hash changes
+ * never reach the server, so a deep link can't 404 against nginx.
  */
-export type Tab = 'home' | 'discover' | 'map' | 'messages' | 'alerts' | 'profile';
 
-const TABS: Tab[] = ['home', 'discover', 'map', 'messages', 'alerts', 'profile'];
+/** Tabs in the bottom bar, left to right. `create` opens a sheet. */
+export type Tab = 'you' | 'chats' | 'create' | 'discover' | 'ranks' | 'home';
 
-function read(): Tab {
+/** Routes reachable but not in the bar. */
+export type Route = Tab | 'alerts' | 'wallet' | 'edit';
+
+const ROUTES: Route[] = [
+  'you', 'chats', 'create', 'discover', 'ranks', 'home',
+  'alerts', 'wallet', 'edit',
+];
+
+function read(): Route {
   const raw = window.location.hash.replace(/^#\/?/, '');
-  return (TABS as string[]).includes(raw) ? (raw as Tab) : 'home';
+  return (ROUTES as string[]).includes(raw) ? (raw as Route) : 'home';
 }
 
-export function useRoute(): [Tab, (t: Tab) => void] {
-  const [tab, setTab] = useState<Tab>(read);
+export function useRoute(): [Route, (r: Route) => void] {
+  const [route, setRoute] = useState<Route>(read);
 
   useEffect(() => {
-    const onHash = () => setTab(read());
+    const onHash = () => setRoute(read());
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
-  const go = (t: Tab) => {
-    window.location.hash = `/${t}`;
-    setTab(t);
-  };
+  const go = useCallback((r: Route) => {
+    window.location.hash = `/${r}`;
+    setRoute(r);
+  }, []);
 
-  return [tab, go];
+  return [route, go];
 }

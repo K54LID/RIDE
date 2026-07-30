@@ -65,3 +65,56 @@ export interface Me {
   following: number;
   gifts_received: number;
 }
+
+export interface Post {
+  id: string;
+  body: string | null;
+  kind: string;
+  place_name: string | null;
+  like_count: number;
+  comment_count: number;
+  created_at: string;
+  author_name: string;
+  author_handle: string | null;
+  author_court_value: number;
+  author_verified: boolean;
+  liked: boolean;
+  media: unknown[];
+}
+
+export interface Person {
+  account_id: string;
+  display_name: string;
+  handle: string | null;
+  bio: string | null;
+  age: number | null;
+  gender: string | null;
+  court_value: number;
+  verified: boolean;
+  online: boolean;
+  interests: string[] | null;
+  distance: string | null;
+}
+
+export interface RankEntry {
+  rank: number;
+  account_id: string;
+  display_name: string;
+  handle: string | null;
+  court_value: number;
+  verified: boolean;
+  score: number;
+}
+
+export interface CoinPack {
+  id: string;
+  stars: number;
+  coins: number;
+  label: string;
+}
+
+export interface WalletState {
+  balance: number;
+  packs: CoinPack[];
+  history: Array<{ delta: number; reason: string; created_at: string }>;
+}

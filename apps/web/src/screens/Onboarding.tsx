@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { apiFetch, ApiError } from '../lib/api';
 import { tg } from '../lib/tg';
 import { Button, ChipGroup, ChipPick, Field } from '../components/ui';
+import { useT } from '../i18n';
 
 /**
  * Four steps, one theme each. Splitting it up matters more than it
@@ -22,6 +23,7 @@ const LANGUAGES = ['English', 'Русский', 'Türkçe', 'Español', 'Deutsch
 const STEPS = 4;
 
 export default function Onboarding({ onDone }: { onDone: () => void }) {
+  const t = useT();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -184,7 +186,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
           </div>
           {error ? <p className="error">{error}</p> : null}
           <Button onClick={submit} disabled={busy}>
-            {busy ? 'Creating your profile…' : 'Enter RIDE'}
+            {busy ? t('common.loading') : 'Enter RIDE'}
           </Button>
         </>
       )}

@@ -9,6 +9,10 @@ import { runMigrations } from './lib/migrate.js';
 import authPlugin from './auth/plugin.js';
 import onboardingRoutes from './routes/onboarding.js';
 import profileRoutes from './routes/profile.js';
+import postRoutes from './routes/posts.js';
+import discoverRoutes from './routes/discover.js';
+import leaderboardRoutes from './routes/leaderboard.js';
+import walletRoutes from './routes/wallet.js';
 
 const app = Fastify({
   logger: {
@@ -60,6 +64,10 @@ await app.register(rateLimit, { max: 120, timeWindow: '1 minute' });
 await app.register(authPlugin);
 await app.register(onboardingRoutes);
 await app.register(profileRoutes);
+await app.register(postRoutes);
+await app.register(discoverRoutes);
+await app.register(leaderboardRoutes);
+await app.register(walletRoutes);
 
 app.get('/health', async () => {
   await sql`SELECT 1`;

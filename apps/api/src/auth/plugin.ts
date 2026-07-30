@@ -40,10 +40,17 @@ async function resolveAccount(
   const row = rows[0];
   if (!row) return null;
 
+  // Fire-and-forget: presence must never add latency to the request
+  // path, and a lost update just means a slightly stale "last active".
   void sql`
     UPDATE telegram_identities
     SET is_premium = ${isPremium}, language_code = ${lang}
     WHERE telegram_id = ${telegramId}
+  `.catch(() => undefined);
+
+  void sql`
+    UPDATE accounts SET last_seen_at = now()
+    WHERE id = ${row.account_id} AND last_seen_at < now() - interval '60 seconds'
   `.catch(() => undefined);
 
   return row;
