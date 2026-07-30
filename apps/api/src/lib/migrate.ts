@@ -29,8 +29,12 @@ import type { Sql } from 'postgres';
 const LOCK_KEY = 4823741;
 
 function migrationsDir(): string {
-  // Resolved relative to the compiled file so it works both in the
-  // container (dist/lib/ -> /app/db/migrations) and via tsx in dev.
+  // An explicit override wins, so a non-standard image layout (Nixpacks,
+  // a different WORKDIR) can be corrected without a code change.
+  if (process.env.MIGRATIONS_DIR) return process.env.MIGRATIONS_DIR;
+
+  // Otherwise resolve relative to the compiled file so it works both in
+  // the container (dist/lib/ -> /app/db/migrations) and via tsx in dev.
   const here = dirname(fileURLToPath(import.meta.url));
   return join(here, '..', '..', 'db', 'migrations');
 }
@@ -50,11 +54,16 @@ export async function runMigrations(
 ): Promise<void> {
   const dir = migrationsDir();
 
+  log(`Reading migrations from ${dir}`);
+
   let files: string[];
   try {
     files = (await readdir(dir)).filter((f) => f.endsWith('.sql')).sort();
   } catch {
-    throw new Error(`Migrations directory not found at ${dir}`);
+    throw new Error(
+      `Migrations directory not found at ${dir}. ` +
+        `If the image layout differs, set MIGRATIONS_DIR to the absolute path.`,
+    );
   }
 
   if (files.length === 0) {

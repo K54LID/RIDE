@@ -1,0 +1,12 @@
+# Explicit and minimal. Note what is NOT here: db/ must reach the image,
+# since the migration runner reads .sql files from disk at boot.
+node_modules
+**/node_modules
+dist
+**/dist
+.git
+.github
+*.log
+.env
+.env.*
+!.env.example
