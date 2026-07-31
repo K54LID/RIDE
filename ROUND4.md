@@ -667,3 +667,73 @@ English and a shorter shared version for the other nine locales.
 
 Typecheck, hook guard, production build, jsdom smoke test — mounts and
 renders.
+
+---
+
+# Round 12
+
+## Filters panel drifting — same bug as the sheets, different component
+
+`Page` was still rendered inline. `position: fixed` only means
+"relative to the viewport" when no ancestor establishes a containing
+block, and `transform`, `filter`, `backdrop-filter` and `contain` all
+create one — the screens here animate in with a transform. So a Page
+was being positioned against its screen and moved with the content
+behind it.
+
+Portalled to `document.body`, same as `Sheet` in round 10. Fixes
+Filters, the gift catalogue, blocked users, the follow list and
+profiles.
+
+## Global shows everyone
+
+It was restricted to online-only in random order, so at a quiet hour it
+looked like the app was empty. It now shows everyone with location
+ignored, ordered online-first and then most recently seen, so the
+people worth messaging are still at the top. Other filters still apply.
+
+## Story viewers trapped you
+
+Two problems, one symptom. The panel had no close control — only the
+scrim — and `onTouchEnd` had no `viewersOpen` guard while the click
+path did. So on a phone the tap that dismissed the panel *also* read as
+"next story" underneath, and checking who watched yours dropped you
+into someone else's.
+
+Both touch handlers now bail while the panel is open, and the panel has
+an explicit ✕ in a proper sheet header.
+
+## Private album tile is a photo cell
+
+It was 92×118 next to 108×108 photos. Both now use one `--pcell` token,
+so it is exactly the same square as the photos it sits beside — same
+size, same radius, same row.
+
+## Block moved under Chat
+
+The button existed but sat at the very bottom of the profile, past the
+photos, standings and details — far enough down that it read as absent.
+It is now directly under Chat, where someone deciding they have had
+enough of a person is already looking, styled as a full-width action
+rather than a link at the foot of the page.
+
+## Saving
+
+Settings already patched on every toggle, and Edit profile autosaves
+since round 10. The one stale thing was Discover's filters: they apply
+live as you change them, but the button said "Apply", implying nothing
+had happened yet. Relabelled "Done" — back does the same thing.
+
+## Video previews
+
+The poster-on-tap work shipped in round 11; if previews are still
+missing, that build had not been deployed yet. Two things worth knowing:
+
+- Videos uploaded before round 11 may have no stored thumbnail,
+  depending on what Telegram returned at the time. Those now show a
+  deliberate placeholder with the play button rather than a blank
+  rectangle. They play fine; only the preview image is missing, and
+  re-uploading is the only way to get one.
+- The API 404s a thumb request for a posterless video on purpose. The
+  alternative — falling back to the full file, which is correct for
+  images — would stream the whole clip to everyone who scrolled past.

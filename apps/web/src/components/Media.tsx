@@ -93,7 +93,12 @@ export default function Media({ id, kind, alt = '', thumb = false }: {
               aria-label={alt || 'Play video'}>
         {posterUrl
           ? <img src={posterUrl} alt={alt} loading="lazy" />
-          : <div className="skel" style={{ aspectRatio: '4/3' }} />}
+          : (
+            /* No stored poster — the API 404s that case rather than
+               streaming the whole clip to build one. A deliberate
+               placeholder beats a blank rectangle. */
+            <div className="video-blank" style={{ aspectRatio: '4/3' }} />
+          )}
         <span className={`video-play ${loadingVideo ? 'loading' : ''}`} aria-hidden="true">
           {loadingVideo ? (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"

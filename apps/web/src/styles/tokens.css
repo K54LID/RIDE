@@ -26,6 +26,9 @@
 
   --pad: 20px;
   --nav-h: 64px;
+  /* Profile photo cell. Shared so the private-album tile is exactly the
+     same square as the photos it sits beside. */
+  --pcell: 108px;
 
   --font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
   --font-body: 'Manrope', -apple-system, system-ui, sans-serif;

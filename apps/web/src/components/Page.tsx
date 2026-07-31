@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { tg } from '../lib/tg';
 
 /**
@@ -24,7 +25,16 @@ export default function Page({
     return () => { restore(); document.body.style.overflow = prev; };
   }, [onClose]);
 
-  return (
+  /**
+   * Portalled to document.body, for the same reason Sheet is: `position:
+   * fixed` only means "relative to the viewport" when no ancestor
+   * establishes a containing block, and `transform`, `filter`,
+   * `backdrop-filter` and `contain` all create one. Screens here animate
+   * in with a transform, so a Page rendered inline was being positioned
+   * against that screen instead — which is why the Filters panel drifted
+   * with the content behind it rather than staying put.
+   */
+  return createPortal(
     <div className="page">
       <header className="page-head">
         <button className="page-back" aria-label="Back"
@@ -38,6 +48,7 @@ export default function Page({
         <div className="page-action">{action}</div>
       </header>
       <div className="page-body">{children}</div>
-    </div>
+    </div>,
+    document.body,
   );
 }

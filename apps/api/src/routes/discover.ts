@@ -87,9 +87,13 @@ const discoverRoutes: FastifyPluginAsync = async (app) => {
       ? new Date(Date.UTC(today.getUTCFullYear() - f.age_min, today.getUTCMonth(), today.getUTCDate()))
       : null;
 
-    // Global ignores location entirely and shows random online people —
-    // it replaces the map view, which never worked, without pretending
-    // to place anyone on a map. It still respects the other filters.
+    /**
+     * Global ignores location entirely and shows *everyone*, ordered so
+     * the people worth messaging come first: online now, then most
+     * recently seen. Restricting it to online-only made it look empty
+     * at quiet hours and hid the whole rest of the app. Other filters
+     * still apply.
+     */
     const isGlobal = f.sort === 'global';
 
     const rows = await sql`
@@ -125,13 +129,14 @@ const discoverRoutes: FastifyPluginAsync = async (app) => {
         ${languages ? sql`AND p.languages && ${languages}` : sql``}
         ${interests ? sql`AND p.interests && ${interests}` : sql``}
         ${f.verified_only ? sql`AND p.verification = 'approved'` : sql``}
-        ${isGlobal || f.online_only ? sql`AND a.last_seen_at > now() - interval '5 minutes'` : sql``}
+        ${f.online_only ? sql`AND a.last_seen_at > now() - interval '5 minutes'` : sql``}
         ${!isGlobal && f.nearby_only
           ? sql`AND ul.cell IS NOT NULL AND ml.cell IS NOT NULL` : sql``}
         ${!isGlobal && f.max_km ? sql`AND ul.cell IS NOT NULL AND ml.cell IS NOT NULL
                          AND ST_DWithin(ml.cell, ul.cell, ${f.max_km * 1000})` : sql``}
       ORDER BY
-        ${isGlobal ? sql`random()` : sql``}
+        ${isGlobal ? sql`(a.last_seen_at > now() - interval '5 minutes') DESC,
+                         a.last_seen_at DESC NULLS LAST` : sql``}
         ${f.sort === 'court' ? sql`p.court_value DESC` : sql``}
         ${f.sort === 'new' ? sql`a.created_at DESC` : sql``}
         ${f.sort === 'nearby' ? sql`distance_m ASC NULLS LAST` : sql``}

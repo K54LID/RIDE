@@ -269,7 +269,7 @@ export default function Discover({ onOpenUser }: {
         </div>
 
           <div style={{ height: 12 }} />
-          <Button onClick={() => setFiltersOpen(false)}>{t('common.apply')}</Button>
+          <Button onClick={() => setFiltersOpen(false)}>{t('common.done')}</Button>
         </Page>
       ) : null}
     </div>

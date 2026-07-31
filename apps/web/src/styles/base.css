@@ -1179,6 +1179,24 @@ h2 { font-size: 1.02rem; }
 .rank-how:active { background: var(--surface); }
 .rank-how-body { margin-bottom: 12px; font-size: 0.84rem; line-height: 1.5; }
 
+.video-blank {
+  width: 100%;
+  background: linear-gradient(140deg, var(--raised), var(--hairline));
+}
+
+/* Sheet header with an explicit close, for panels you read rather than
+   just tap once — dismissing by scrim alone is not discoverable. */
+.sheet-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px;
+}
+.sheet-close {
+  flex: none; width: 30px; height: 30px; border: 0; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--raised); color: var(--muted); font-size: 0.85rem;
+}
+.sheet-close:active { background: var(--surface); }
+
 /* Video poster + play button. The video bytes are not fetched until
    this is tapped, so the poster is all a scrolling feed ever loads. */
 .video-poster {
@@ -1236,11 +1254,15 @@ h2 { font-size: 1.02rem; }
    further down the page that reads as unrelated. */
 .photo-strip { display: flex; align-items: flex-start; gap: 8px; }
 .photo-strip > .photos { flex: 1; min-width: 0; }
+/* Exactly a photo cell: same square, same radius, same size. It sits in
+   the same row, so anything else reads as a different kind of thing. */
 .album-tile {
-  flex: none; width: 92px; height: 118px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  border: 1px dashed var(--court); border-radius: var(--r-md);
-  background: rgba(201, 162, 39, 0.07);
+  flex: none;
+  width: var(--pcell); height: var(--pcell);
+  aspect-ratio: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  border: 1px solid var(--court); border-radius: var(--r-md);
+  background: rgba(201, 162, 39, 0.08);
   color: var(--court-lit); font: inherit;
 }
 .album-tile:active { background: rgba(201, 162, 39, 0.15); }
@@ -1386,7 +1408,7 @@ h2 { font-size: 1.02rem; }
 .pstrip::-webkit-scrollbar { display: none; }
 .pstrip-cell {
   position: relative; flex: 0 0 auto;
-  width: 108px; height: 108px; scroll-snap-align: start;
+  width: var(--pcell); height: var(--pcell); scroll-snap-align: start;
   padding: 0; border: 1px solid var(--hairline); border-radius: var(--r-md);
   background: var(--raised); overflow: hidden;
   color: var(--ink); font: inherit;
@@ -1529,10 +1551,13 @@ button.podium-col { border: 0; background: none; color: var(--ink); font: inheri
 .comment .comment-author-btn { flex: none; }
 
 /* ---- block row on profiles ---- */
+/* Sits directly under Chat as a full-width action, so it reads as a
+   deliberate choice rather than a link hidden at the foot of the page. */
 .block-row {
-  width: 100%; margin-top: 22px; padding: 12px;
-  background: none; border: 1px solid var(--hairline); border-radius: var(--r-md);
-  color: var(--pulse); font: inherit; font-size: 0.88rem;
+  width: 100%; margin-top: 8px; padding: 11px;
+  background: none; border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  color: var(--muted); font: inherit; font-size: 0.85rem;
 }
 
 /* ---- crop editor ---- */

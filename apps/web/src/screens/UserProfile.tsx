@@ -165,6 +165,10 @@ export default function UserProfile({
 
       <Button variant="ghost" onClick={openChat}>{t('chats.title')}</Button>
 
+      <button className="block-row" onClick={() => { tg.tap('light'); setBlockConfirm(true); }}>
+        {t('profile.block')}
+      </button>
+
       {/* Who paid for this person's standing — with their face, and a
           tap opens their profile. The title lapses 30 days after the
           court unless someone pays again. */}
@@ -231,9 +235,6 @@ export default function UserProfile({
         </>
       ) : null}
 
-      <button className="block-row" onClick={() => { tg.tap('light'); setBlockConfirm(true); }}>
-        {t('profile.block')}
-      </button>
       </>
       )}
 

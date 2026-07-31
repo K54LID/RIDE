@@ -118,6 +118,7 @@ export default function StoryViewer({
   }, [paused, story]);
 
   const onTouchStart = (e: React.TouchEvent) => {
+    if (viewersOpen) return;
     const tch = e.touches[0]!;
     touchStart.current = { x: tch.clientX, y: tch.clientY };
     wasHold.current = false;
@@ -141,6 +142,11 @@ export default function StoryViewer({
 
   const onTouchEnd = (e: React.TouchEvent) => {
     lastTouch.current = Date.now();
+    // Only the click path guarded against this, so on a phone a tap
+    // while the viewers panel was open still advanced the story
+    // underneath — you opened "who watched" and landed in someone
+    // else's story.
+    if (viewersOpen) return;
     if (holdTimer.current) clearTimeout(holdTimer.current);
     const start = touchStart.current;
     touchStart.current = null;
@@ -295,7 +301,14 @@ export default function StoryViewer({
       </div>
 
       <Sheet center open={viewersOpen} onClose={() => setViewersOpen(false)}>
-        <h2 style={{ marginBottom: 12 }}>{t('story.viewers')}</h2>
+        {/* An explicit way out. Tapping the scrim closed this but the
+            same tap read as "next story" underneath, so checking who
+            watched yours dumped you into someone else's. */}
+        <div className="sheet-head">
+          <h2 style={{ margin: 0 }}>{t('story.viewers')}</h2>
+          <button className="sheet-close" aria-label={t('common.close')}
+                  onClick={() => { tg.tap('light'); setViewersOpen(false); }}>✕</button>
+        </div>
         {!viewers ? <div className="skel" style={{ height: 60 }} /> : (
           <>
             {viewers.replies.length > 0 ? (
