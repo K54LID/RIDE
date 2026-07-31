@@ -377,3 +377,71 @@ Run migrations in order. **012 makes `handle` NOT NULL** — take a
 backup first. The backfill is written to be safe on re-run, but the
 `ALTER COLUMN ... SET NOT NULL` is not something to discover a problem
 with on a live database.
+
+---
+
+# Round 8 — hotfix: blank Mini App
+
+## What broke
+
+Rules of Hooks violation in `App.tsx`, introduced by me in round 7.
+
+`const [followList, setFollowList] = useState(...)` was declared beside
+the JSX it feeds — which sits **below three conditional early returns**
+(`loading`, `error`, `onboarding`).
+
+React counts hooks per render. On the first render `phase` is
+`'loading'`, the component returns early, and that hook is never
+reached. When `/v1/me` resolves and `phase` flips to `'ready'`, the
+component runs past the returns and calls a tenth hook where there were
+nine. React sees the count change, throws, and with no error boundary
+above it unmounts the whole tree — leaving the page rendering nothing
+but its background colour. Exactly the reported symptom.
+
+Fixed by moving the declaration up with the other hooks, above every
+conditional return.
+
+## Why the build didn't catch it
+
+TypeScript cannot see this. The code is perfectly well-typed; the bug
+is in *when* a call happens, not in any type. Both `tsc --noEmit` and
+`vite build` passed on the broken code, which is why I shipped it with
+a clean build and said so.
+
+There is no linter in this repo — no ESLint, so no
+`eslint-plugin-react-hooks`, which is the tool that exists precisely
+for this.
+
+`scripts/check-hooks.mjs` is a dependency-free stand-in, wired into
+`npm run typecheck` and `npm run build` for the web app (so CI covers
+it too, unchanged). It fails the build when a hook appears after a
+conditional early return. Verified both ways: it passes on the fixed
+tree, and re-introducing the original bug makes it exit non-zero with
+the file, line, and the return that shadowed it.
+
+The proper fix is still ESLint with `eslint-plugin-react-hooks`. That
+means new devDependencies and a regenerated lockfile, which is not
+something to do inside a hotfix.
+
+## Migrations were not the cause — verified against a real database
+
+Because the symptoms looked like a dead API, I tested the migration
+chain rather than assuming. Postgres 16 + PostGIS, all 13 migrations
+applied in order on an empty database, then `012` re-run against seeded
+profiles chosen to break it:
+
+| case | result |
+|---|---|
+| two accounts, same display name, both handle-less | `khalid`, `user_22222222` |
+| display name whose slug is already taken | `user_33333333` |
+| unslugifiable name (`!!`) | `user_55555555` |
+| non-Latin name (strips to empty) | `user_66666666` |
+
+`handle` ends `is_nullable = NO`, the unique index is rebuilt without
+its old partial predicate, and a subsequent `INSERT ... handle NULL` is
+correctly rejected. `013` applies on the seeded database too.
+
+So the API was up throughout — which is itself the proof that the blank
+screen was client-side: had the API been down, `phase` would have gone
+to `'error'` and shown the offline card, and the bad hook would never
+have been reached.

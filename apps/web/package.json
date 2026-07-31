@@ -4,9 +4,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run check:hooks && tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "npm run check:hooks && tsc --noEmit",
+    "check:hooks": "node ../../scripts/check-hooks.mjs"
   },
   "dependencies": {
     "react": "^19.0.0",

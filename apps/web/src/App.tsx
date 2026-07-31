@@ -35,6 +35,17 @@ export default function App() {
   const [feedKey, setFeedKey] = useState(0);
   const [viewingUser, setViewingUser] = useState<string | null>(null);
   const [viewingPost, setViewingPost] = useState<string | null>(null);
+  /**
+   * Must be declared here with the other hooks, NOT further down beside
+   * the overlay it feeds. Everything below is preceded by three
+   * conditional early returns (loading / error / onboarding), so a hook
+   * declared there is skipped on the first render and called on the
+   * second — React counts hooks per render, sees the count change when
+   * phase flips loading → ready, and tears the whole tree down. That is
+   * a blank screen showing nothing but the background colour.
+   */
+  const [followList, setFollowList] = useState<
+    { accountId: string; mode: 'followers' | 'following' } | null>(null);
 
   const load = useCallback(() => {
     apiFetch<Me>('/v1/me')
@@ -77,8 +88,6 @@ export default function App() {
   const meId = me?.account_id ?? '';
   const meName = me?.display_name ?? '';
   const meAvatar = me?.avatar_media_id ?? null;
-  const [followList, setFollowList] = useState<
-    { accountId: string; mode: 'followers' | 'following' } | null>(null);
 
   // A chat thread owns the whole screen — the bar would fight the composer.
   // A person's profile overlays whatever is beneath it, so it works
