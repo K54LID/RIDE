@@ -244,3 +244,51 @@ still has no UI calling it.
 - `getMe` is called lazily on the first `/v1/me` after a restart. If the
   bot token is wrong, share links silently fall back to `MINI_APP_URL`
   rather than erroring — check a share link after deploying.
+
+---
+
+## Verification pass (separate session, same day)
+
+ROUND5 shipped with the note that **the Vite production build could not
+be run** in the sandbox that wrote it. That is the exact failure mode
+that silently broke two earlier deploys — a build error means Coolify
+publishes nothing and keeps serving the old image, which looks
+identical to a deploy that changed nothing. So it was run here.
+
+All green, on this tree, unmodified:
+
+| check | result |
+|---|---|
+| `npm ci` from the committed lockfile | clean |
+| hook-order guard | passed |
+| `tsc --noEmit`, both workspaces | no errors |
+| `vite build` | 76 modules, 488 kB / 140 kB gzip |
+| jsdom smoke test against that `dist` | mounts and renders |
+| `apps/web/Dockerfile` replayed line for line | build succeeds |
+| `apps/api` build + migrations bundled into image | present |
+| all 14 migrations on Postgres 16 + PostGIS | apply in order |
+
+**Migration 014 was re-tested the way it actually runs.** `psql -f` is
+autocommit, but `migrate.ts` wraps each file in one transaction, and
+`ALTER TYPE ... ADD VALUE` is precisely the statement that behaves
+differently there. Re-run inside an explicit `BEGIN`/`COMMIT` against a
+database already migrated through 013: `CREATE TABLE`, `CREATE INDEX`,
+`ALTER TYPE`, `COMMIT` — and `court_payout` is present in `pg_enum`
+afterwards. The reasoning in the migration header holds.
+
+Every item on the list was spot-checked in source, not assumed from the
+changelog. All twenty present.
+
+### Two notes, neither blocking
+
+- `RankChips.tsx` and `CourtCrest.tsx` are back in the tree. Both were
+  deleted earlier — the rank-chip strip because it duplicated the
+  written standings, the court-value panel because it was asked to go.
+  **Neither is imported by anything**; `RankStandings` is still what
+  both profiles render. They are orphan files, so nothing regressed, but
+  they will confuse the next person to read the directory.
+- `GET /v1/handles/available` is unauthenticated in the usual sense —
+  correctly, since a person onboarding has no account yet — but it does
+  call `app.verifyTma(req)`, so it is gated behind a valid Telegram
+  signature rather than open to the internet. That is the right call:
+  without it the endpoint would let anyone enumerate which handles exist.
