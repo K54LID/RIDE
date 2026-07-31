@@ -94,6 +94,7 @@ export default function PostView({ postId, meId, onClose, onOpenUser }: {
           onLike={like}
           onComment={() => setCommentsOpen(true)}
           onMenu={() => setMenuOpen(true)}
+          onSave={toggleSave}
           onAuthor={post.author_id === meId ? undefined : onOpenUser}
         />
       )}

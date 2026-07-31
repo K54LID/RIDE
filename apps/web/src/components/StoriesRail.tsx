@@ -12,11 +12,15 @@ import Avatar from './Avatar';
  * carry state: gradient for unseen, hairline for seen.
  */
 export default function StoriesRail({
-  authors, meId, meName, onOpen, onPosted,
+  authors, meId, meName, meAvatar, onOpen, onPosted,
 }: {
   authors: StoryAuthor[];
   meId: string;
   meName: string;
+  /** Your own primary photo. The "Your story" tile used to pass no
+   *  media at all, so your own face was an initial letter on your own
+   *  feed until you happened to post a story. */
+  meAvatar: string | null;
   onOpen: (index: number) => void;
   onPosted: () => void;
 }) {
@@ -48,7 +52,7 @@ export default function StoriesRail({
       {mine === -1 ? (
         <button className="rail-item" onClick={pick}>
           <span className="rail-ring add">
-            <Avatar name={meName} size={56} radius={28} />
+            <Avatar name={meName} mediaId={meAvatar} size={56} radius={28} />
             <span className="rail-plus">+</span>
           </span>
           <span className="rail-name">{t('story.your')}</span>
@@ -56,7 +60,7 @@ export default function StoriesRail({
       ) : (
         <button className="rail-item" onClick={() => onOpen(mine)}>
           <span className={`rail-ring ${authors[mine]!.unseen_count > 0 ? 'unseen' : 'seen'}`}>
-            <Avatar name={meName} mediaId={authors[mine]!.avatar_media_id} size={56} radius={28} />
+            <Avatar name={meName} mediaId={authors[mine]!.avatar_media_id ?? meAvatar} size={56} radius={28} />
             <span className="rail-plus" onClick={(e) => { e.stopPropagation(); pick(); }}>+</span>
           </span>
           <span className="rail-name">{t('story.your')}</span>

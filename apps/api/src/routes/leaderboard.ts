@@ -31,10 +31,19 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
 
     let rows;
 
+    // Reused in every board query below: each person's own public
+    // primary photo, or null to fall back to the initial-letter avatar.
+    const avatarSelect = sql`
+      (SELECT ph.media_id FROM profile_photos ph
+       WHERE ph.account_id = p.account_id AND ph.position = 0
+         AND NOT ph.is_private AND ph.media_id IS NOT NULL
+       LIMIT 1) AS avatar_media_id
+    `;
+
     if (board === 'woofs') {
       rows = await sql`
         SELECT p.account_id, p.display_name, p.handle, p.court_value,
-               (p.verification = 'approved') AS verified,
+               (p.verification = 'approved') AS verified, ${avatarSelect},
                count(w.id)::int AS score
         FROM profiles p
         JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
@@ -50,7 +59,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
     } else if (board === 'gifts') {
       rows = await sql`
         SELECT p.account_id, p.display_name, p.handle, p.court_value,
-               (p.verification = 'approved') AS verified,
+               (p.verification = 'approved') AS verified, ${avatarSelect},
                count(g.id)::int AS score
         FROM profiles p
         JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
@@ -69,7 +78,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
       // keeps the period filter meaningful — like_count has no date.
       rows = await sql`
         SELECT p.account_id, p.display_name, p.handle, p.court_value,
-               (p.verification = 'approved') AS verified,
+               (p.verification = 'approved') AS verified, ${avatarSelect},
                count(pl.post_id)::int AS score
         FROM profiles p
         JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
@@ -86,7 +95,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
     } else if (board === 'followers') {
       rows = await sql`
         SELECT p.account_id, p.display_name, p.handle, p.court_value,
-               (p.verification = 'approved') AS verified,
+               (p.verification = 'approved') AS verified, ${avatarSelect},
                count(f.follower_id)::int AS score
         FROM profiles p
         JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
@@ -105,7 +114,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
       rows = since
         ? await sql`
             SELECT p.account_id, p.display_name, p.handle, p.court_value,
-                   (p.verification = 'approved') AS verified,
+                   (p.verification = 'approved') AS verified, ${avatarSelect},
                    COALESCE(sum(c.value_after - c.value_before), 0)::int AS score
             FROM profiles p
             JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
@@ -119,7 +128,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
           `
         : await sql`
             SELECT p.account_id, p.display_name, p.handle, p.court_value,
-                   (p.verification = 'approved') AS verified,
+                   (p.verification = 'approved') AS verified, ${avatarSelect},
                    p.court_value::int AS score
             FROM profiles p
             JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
@@ -223,9 +232,11 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
       { board: 'followers', rank: row.followers_rank, score: row.followers_score, nonzero: row.followers_score > 0 },
     ];
     return {
-      ranks: boards
-        .filter((b) => b.nonzero)
-        .map(({ board, rank, score }) => ({ board, rank, score })),
+      // RankChips (the profile badges) still only wants boards worth
+      // bragging about, so it filters this itself. The profile's
+      // written "your standing" list wants every board spelled out,
+      // nonzero or not, so nothing is filtered out here anymore.
+      ranks: boards.map(({ board, rank, score }) => ({ board, rank, score })),
     };
   });
 };

@@ -4,6 +4,7 @@ import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import { Button, EmptyState, Skeleton } from '../components/ui';
 import { VerifiedMark } from '../components/VerifiedMark';
+import Avatar from '../components/Avatar';
 
 type Board = 'court' | 'woofs' | 'likes' | 'gifts' | 'followers';
 type Period = 'day' | 'week' | 'month' | 'all';
@@ -21,14 +22,6 @@ const PERIODS: Array<[Period, 'ranks.day' | 'ranks.week' | 'ranks.month' | 'rank
   ['month', 'ranks.month'], ['all', 'ranks.all'],
 ];
 
-function Initial({ name, size }: { name: string; size: number }) {
-  return (
-    <div className="rank-av" style={{ width: size, height: size, fontSize: size * 0.4 }}>
-      {name.trim().charAt(0).toUpperCase() || '?'}
-    </div>
-  );
-}
-
 /** Top three get the podium; the rest is a dense list. */
 function Podium({ top, onOpen }: { top: RankEntry[]; onOpen: (id: string) => void }) {
   const order = [top[1], top[0], top[2]];      // silver, gold, bronze
@@ -40,7 +33,8 @@ function Podium({ top, onOpen }: { top: RankEntry[]; onOpen: (id: string) => voi
         e ? (
           <button key={e.account_id} className="podium-col"
                   onClick={() => { tg.tap('light'); onOpen(e.account_id); }}>
-            <Initial name={e.display_name} size={i === 1 ? 52 : 42} />
+            <Avatar name={e.display_name} mediaId={e.avatar_media_id}
+                    size={i === 1 ? 52 : 42} radius={i === 1 ? 26 : 21} />
             <div className="podium-name">
               {e.display_name.split(' ')[0]}
               {e.verified ? <VerifiedMark size={11} /> : null}
@@ -58,8 +52,11 @@ function Podium({ top, onOpen }: { top: RankEntry[]; onOpen: (id: string) => voi
 
 export default function Ranks({ onOpenUser }: { onOpenUser: (accountId: string) => void }) {
   const t = useT();
+  // Court value for today is the statistic people open this screen to
+  // see — who is climbing right now, not the all-time standing that
+  // barely moves day to day.
   const [board, setBoard] = useState<Board>('court');
-  const [period, setPeriod] = useState<Period>('all');
+  const [period, setPeriod] = useState<Period>('day');
   const [entries, setEntries] = useState<RankEntry[] | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -106,7 +103,7 @@ export default function Ranks({ onOpenUser }: { onOpenUser: (accountId: string) 
                 <button key={e.account_id} className="rank rank-btn"
                         onClick={() => { tg.tap('light'); onOpenUser(e.account_id); }}>
                   <span className="rank-pos num">{e.rank}</span>
-                  <Initial name={e.display_name} size={30} />
+                  <Avatar name={e.display_name} mediaId={e.avatar_media_id} size={30} radius={15} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div className="person-name" style={{ fontSize: '0.88rem' }}>
                       {e.display_name}

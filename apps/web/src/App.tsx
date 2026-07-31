@@ -75,6 +75,7 @@ export default function App() {
 
   const meId = me?.account_id ?? '';
   const meName = me?.display_name ?? '';
+  const meAvatar = me?.avatar_media_id ?? null;
 
   // A chat thread owns the whole screen — the bar would fight the composer.
   // A person's profile overlays whatever is beneath it, so it works
@@ -148,7 +149,7 @@ export default function App() {
   return (
     <>
       {tab === 'home' && (
-        <Home key={feedKey} meId={meId} meName={meName}
+        <Home key={feedKey} meId={meId} meName={meName} meAvatar={meAvatar}
               onCompose={() => go('create')} onAlerts={() => go('alerts')}
               onOpenUser={setViewingUser} />
       )}

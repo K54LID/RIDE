@@ -342,6 +342,46 @@ p { margin: 0; color: var(--muted); }
   background: #37D27A; flex: none;
 }
 
+/* ---- discover photo grid ---- */
+.tile-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px;
+}
+.tile-btn { all: unset; display: block; }
+.tile {
+  position: relative; aspect-ratio: 3/4; border-radius: var(--r-md);
+  overflow: hidden; background: var(--raised);
+  border: 1px solid var(--hairline);
+}
+.tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tile .skel { width: 100%; height: 100%; }
+.tile-fallback {
+  width: 100%; height: 100%; display: grid; place-items: center;
+  font-family: var(--font-display); font-size: 2.4rem; font-weight: 700;
+  background: linear-gradient(140deg, var(--raised), var(--hairline));
+  color: var(--muted);
+}
+.tile-online {
+  position: absolute; top: 8px; inset-inline-end: 8px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #37D27A; border: 2px solid rgba(6,3,14,0.6);
+}
+.tile-info {
+  position: absolute; inset-inline: 0; bottom: 0;
+  display: flex; align-items: center; gap: 4px;
+  padding: 20px 9px 8px;
+  background: linear-gradient(180deg, transparent, rgba(6,3,14,0.86));
+}
+.tile-name {
+  min-width: 0; flex: 1; color: #fff; font-weight: 700; font-size: 0.86rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tile-age { font-weight: 500; opacity: 0.85; }
+.tile-distance {
+  position: absolute; top: 8px; inset-inline-start: 8px;
+  font-size: 0.62rem; color: #fff; background: rgba(6,3,14,0.6);
+  padding: 3px 7px; border-radius: var(--r-pill);
+}
+
 /* ---- feed post ---- */
 .post {
   background: var(--surface);
@@ -661,9 +701,18 @@ p { margin: 0; color: var(--muted); }
 
 /* ---- post extras ---- */
 .post-more {
-  background: none; border: 0; padding: 0 4px;
-  color: var(--faint); font-size: 1.2rem; line-height: 1; flex: none;
+  width: 30px; height: 30px; flex: none;
+  display: grid; place-items: center;
+  background: none; border: 0; border-radius: var(--r-md);
+  color: var(--faint); font-size: 1.2rem; line-height: 1;
+  transition: background 0.15s var(--ease);
 }
+.post-more:active { background: var(--raised); }
+
+/* Save/bookmark sits with like + comment in the post's action row,
+   instead of being buried one tap deeper in the ⋯ menu. */
+.post-actions .save { margin-inline-start: auto; }
+.post-actions .save[aria-pressed='true'] { color: var(--court-lit); }
 
 /* ---- comments ---- */
 .comment { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; }
@@ -1011,23 +1060,30 @@ h2 { font-size: 1.02rem; }
 }
 @keyframes pageIn { from { opacity: 0; transform: translateX(14px); } }
 .page-head {
-  display: flex; align-items: center; gap: 10px; flex: none;
+  /* Three columns so the title can be truly centred regardless of how
+     wide the back button vs. the action button are — a plain flex row
+     with title at flex:1 left-aligns the text inside whatever space is
+     left, which visibly drifts off-centre (most noticeable on the
+     Filters page, where "Clear" is wider than the back arrow). */
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 10px; flex: none;
   padding: calc(10px + env(safe-area-inset-top)) var(--pad) 10px;
   border-bottom: 1px solid var(--hairline);
   background: var(--void);
 }
 .page-back {
-  width: 34px; height: 34px; flex: none;
+  width: 34px; height: 34px; flex: none; justify-self: start;
   display: grid; place-items: center;
   background: none; border: 0; color: var(--ink);
   border-radius: var(--r-md);
 }
 .page-back:active { background: var(--raised); }
 .page-title {
-  flex: 1; min-width: 0; font-weight: 700; font-size: 0.98rem;
+  min-width: 0; max-width: 62vw; font-weight: 700; font-size: 0.98rem;
+  text-align: center;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.page-action { flex: none; }
+.page-action { flex: none; justify-self: end; }
 .page-balance { color: var(--court-lit); font-weight: 700; }
 .page-clear { background: none; border: 0; color: var(--pulse); font: inherit; font-size: 0.85rem; }
 .page-body {
@@ -1041,13 +1097,60 @@ h2 { font-size: 1.02rem; }
    padding, no forced aspect ratio. */
 .act {
   justify-content: center;
-  gap: 3px;
-  padding: 8px 4px;
+  gap: 2px;
+  padding: 6px 3px;
   text-align: center;
-  font-size: 0.62rem;
+  font-size: 0.58rem;
 }
-.act-label { display: block; line-height: 1.15; }
-.act-glyph { font-size: 1rem; }
+.act-label { display: block; line-height: 1.1; }
+.act-glyph { font-size: 0.9rem; }
+
+/* Inline, dismissible confirmation — used when an action completes
+   somewhere the person can't see (the bot chat), so the screen has to
+   say what happened rather than just changing silently. */
+.notice {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 12px; margin-bottom: 12px;
+  background: rgba(124, 77, 255, 0.10);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+}
+.notice-glyph { flex: none; font-size: 1rem; line-height: 1; }
+.notice-text { flex: 1; min-width: 0; font-size: 0.82rem; color: var(--muted); }
+.notice-close {
+  flex: none; width: 26px; height: 26px; border: 0; border-radius: 50%;
+  display: grid; place-items: center;
+  background: none; color: var(--faint); font-size: 0.8rem;
+}
+.notice-close:active { background: var(--raised); }
+
+/* Gifts is a real tab in the counts row now, so it needs to look and
+   press like one while matching its two plain siblings exactly. */
+.pro-count-btn {
+  background: none; border: 0; padding: 0; font: inherit; color: inherit;
+  display: flex; flex-direction: column; align-items: center;
+  transition: opacity 0.15s var(--ease);
+}
+.pro-count-btn:disabled { opacity: 1; }
+.pro-count-btn:not(:disabled):active { opacity: 0.6; }
+
+/* ---- profile rank standings ---- */
+.standings { padding: 4px 12px; }
+.standing-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--hairline);
+  font-size: 0.87rem;
+}
+.standing-row:last-child { border-bottom: 0; }
+.standing-glyph { flex: none; width: 20px; text-align: center; font-size: 0.95rem; }
+.standing-label { flex: 1; min-width: 0; color: var(--muted); }
+.standing-score { font-weight: 700; }
+.standing-rank {
+  flex: none; min-width: 44px; text-align: end;
+  color: var(--muted); font-weight: 700;
+}
+.standing-rank.top { color: var(--court-lit); }
 
 /* ---- chat header ---- */
 .chat-head {
@@ -1096,8 +1199,13 @@ h2 { font-size: 1.02rem; }
   grid-column: 4;
   grid-row: 1;
   justify-self: center;
+  /* The create tab used to carry `margin-top: -18px`, which lifted the
+     + clear out of the bar while its six siblings sat on the icon line
+     below — that is the "+ went up" misalignment. It is a tab like any
+     other now: same align-self, same padding-top, no offset. Only the
+     gradient pill distinguishes it. */
   align-self: start;
-  margin-top: -18px;
+  padding-top: 8px;
 }
 .nav-7 > button:not(.nav-create) { align-self: start; padding-top: 8px; }
 

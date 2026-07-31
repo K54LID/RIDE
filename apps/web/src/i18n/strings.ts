@@ -28,6 +28,13 @@ export type Locale = keyof typeof LOCALES;
 export const RTL: ReadonlySet<Locale> = new Set<Locale>(['ar']);
 
 const en = {
+  'discover.locationSent': 'Open your chat with the bot and tap “📍 Share my location”, then come back here.',
+  'discover.updateLocation': 'Update my location',
+  'discover.locationFailed': 'Could not reach the bot chat. Open @Ridethatbot and send /start first.',
+  'discover.global': 'Global',
+  'profile.standing': 'Your standing',
+  'profile.privateAlbum': 'Private album',
+  'album.ownerHint': 'Only people you unlock in chat can see these.',
   'profile.block': 'Block',
   'profile.block.body': 'They won’t be able to see your profile, posts or stories, or message you. You can unblock any time from their profile or Settings.',
   'profile.blockedNote': 'You blocked this person. They can’t see you or message you.',
@@ -340,6 +347,13 @@ const en = {
 export type T = Record<keyof typeof en, string>;
 
 const tr: T = {
+  'discover.locationSent': 'Bot ile sohbetini aç, “📍 Konumumu paylaş”a dokun ve buraya geri dön.',
+  'discover.updateLocation': 'Konumumu güncelle',
+  'discover.locationFailed': 'Bot sohbetine ulaşılamadı. Önce @Ridethatbot açıp /start gönder.',
+  'discover.global': 'Küresel',
+  'profile.standing': 'Sıralaman',
+  'profile.privateAlbum': 'Özel albüm',
+  'album.ownerHint': 'Bunları yalnızca sohbette kilidini açtığın kişiler görebilir.',
   'profile.block': 'Engelle',
   'profile.block.body': 'Profilini, gönderilerini ve hikâyelerini göremez, sana mesaj atamaz. İstediğin zaman profilinden veya Ayarlar’dan engeli kaldırabilirsin.',
   'profile.blockedNote': 'Bu kişiyi engelledin. Seni göremez ve sana mesaj atamaz.',
@@ -530,6 +544,13 @@ const tr: T = {
 };
 
 const ru: T = {
+  'discover.locationSent': 'Откройте чат с ботом, нажмите «📍 Поделиться геопозицией» и вернитесь сюда.',
+  'discover.updateLocation': 'Обновить геопозицию',
+  'discover.locationFailed': 'Не удалось написать в чат бота. Откройте @Ridethatbot и отправьте /start.',
+  'discover.global': 'Глобально',
+  'profile.standing': 'Ваши позиции',
+  'profile.privateAlbum': 'Приватный альбом',
+  'album.ownerHint': 'Их видят только те, кому вы открыли доступ в чате.',
   'profile.block': 'Заблокировать',
   'profile.block.body': 'Этот человек не сможет видеть ваш профиль, посты и истории или писать вам. Разблокировать можно в любой момент из его профиля или настроек.',
   'profile.blockedNote': 'Вы заблокировали этого человека. Он не видит вас и не может вам писать.',
@@ -720,6 +741,13 @@ const ru: T = {
 };
 
 const ar: T = {
+  'discover.locationSent': 'افتح محادثتك مع البوت واضغط «📍 مشاركة موقعي»، ثم عد إلى هنا.',
+  'discover.updateLocation': 'تحديث موقعي',
+  'discover.locationFailed': 'تعذّر الوصول إلى محادثة البوت. افتح @Ridethatbot وأرسل /start أولاً.',
+  'discover.global': 'عالمي',
+  'profile.standing': 'ترتيبك',
+  'profile.privateAlbum': 'ألبوم خاص',
+  'album.ownerHint': 'يراها فقط من فتحت لهم القفل في المحادثة.',
   'profile.block': 'حظر',
   'profile.block.body': 'لن يتمكن من رؤية ملفك أو منشوراتك أو قصصك أو مراسلتك. يمكنك رفع الحظر في أي وقت من ملفه أو من الإعدادات.',
   'profile.blockedNote': 'لقد حظرت هذا الشخص. لا يمكنه رؤيتك أو مراسلتك.',
@@ -910,6 +938,13 @@ const ar: T = {
 };
 
 const az: T = {
+  'discover.locationSent': 'Botla söhbətini aç, “📍 Məkanımı paylaş” düyməsinə toxun və bura qayıt.',
+  'discover.updateLocation': 'Məkanımı yenilə',
+  'discover.locationFailed': 'Bot söhbətinə çatmaq olmadı. Əvvəlcə @Ridethatbot açıb /start göndər.',
+  'discover.global': 'Qlobal',
+  'profile.standing': 'Mövqeyin',
+  'profile.privateAlbum': 'Şəxsi albom',
+  'album.ownerHint': 'Bunları yalnız söhbətdə kilidini açdığın şəxslər görə bilər.',
   'profile.block': 'Blokla',
   'profile.block.body': 'Profilini, paylaşımlarını və hekayələrini görə bilməyəcək, sənə mesaj yaza bilməyəcək. İstənilən vaxt profilindən və ya Parametrlərdən bloku götürə bilərsən.',
   'profile.blockedNote': 'Bu şəxsi blokladın. Səni görə bilmir və sənə yaza bilmir.',
@@ -1100,6 +1135,13 @@ const az: T = {
 };
 
 const es: T = {
+  'discover.locationSent': 'Abre tu chat con el bot y toca «📍 Compartir mi ubicación», luego vuelve aquí.',
+  'discover.updateLocation': 'Actualizar mi ubicación',
+  'discover.locationFailed': 'No se pudo abrir el chat del bot. Abre @Ridethatbot y envía /start.',
+  'discover.global': 'Global',
+  'profile.standing': 'Tu posición',
+  'profile.privateAlbum': 'Álbum privado',
+  'album.ownerHint': 'Solo las personas a las que desbloqueas en el chat pueden verlas.',
   'profile.block': 'Bloquear',
   'profile.block.body': 'No podrá ver tu perfil, publicaciones ni historias, ni escribirte. Puedes desbloquear cuando quieras desde su perfil o Ajustes.',
   'profile.blockedNote': 'Bloqueaste a esta persona. No puede verte ni escribirte.',
@@ -1290,6 +1332,13 @@ const es: T = {
 };
 
 const de: T = {
+  'discover.locationSent': 'Öffne deinen Chat mit dem Bot, tippe auf „📍 Standort teilen“ und komm zurück.',
+  'discover.updateLocation': 'Standort aktualisieren',
+  'discover.locationFailed': 'Bot-Chat nicht erreichbar. Öffne @Ridethatbot und sende zuerst /start.',
+  'discover.global': 'Global',
+  'profile.standing': 'Deine Platzierung',
+  'profile.privateAlbum': 'Privates Album',
+  'album.ownerHint': 'Nur Leute, die du im Chat freischaltest, sehen diese.',
   'profile.block': 'Blockieren',
   'profile.block.body': 'Die Person kann dein Profil, deine Beiträge und Stories nicht mehr sehen und dir nicht schreiben. Entblocken geht jederzeit über ihr Profil oder die Einstellungen.',
   'profile.blockedNote': 'Du hast diese Person blockiert. Sie sieht dich nicht und kann dir nicht schreiben.',
@@ -1480,6 +1529,13 @@ const de: T = {
 };
 
 const fr: T = {
+  'discover.locationSent': 'Ouvre ta discussion avec le bot, touche « 📍 Partager ma position », puis reviens ici.',
+  'discover.updateLocation': 'Mettre à jour ma position',
+  'discover.locationFailed': 'Impossible de joindre le chat du bot. Ouvre @Ridethatbot et envoie /start.',
+  'discover.global': 'Global',
+  'profile.standing': 'Ton classement',
+  'profile.privateAlbum': 'Album privé',
+  'album.ownerHint': 'Seules les personnes que tu débloques en discussion peuvent les voir.',
   'profile.block': 'Bloquer',
   'profile.block.body': 'Cette personne ne pourra plus voir ton profil, tes publications ou tes stories, ni t’écrire. Tu peux la débloquer à tout moment depuis son profil ou les réglages.',
   'profile.blockedNote': 'Tu as bloqué cette personne. Elle ne te voit pas et ne peut pas t’écrire.',
@@ -1670,6 +1726,13 @@ const fr: T = {
 };
 
 const it: T = {
+  'discover.locationSent': 'Apri la chat con il bot, tocca «📍 Condividi la mia posizione», poi torna qui.',
+  'discover.updateLocation': 'Aggiorna la mia posizione',
+  'discover.locationFailed': 'Chat del bot non raggiungibile. Apri @Ridethatbot e invia /start.',
+  'discover.global': 'Globale',
+  'profile.standing': 'La tua posizione',
+  'profile.privateAlbum': 'Album privato',
+  'album.ownerHint': 'Solo chi sblocchi in chat può vederle.',
   'profile.block': 'Blocca',
   'profile.block.body': 'Non potrà vedere il tuo profilo, i tuoi post o le tue storie, né scriverti. Puoi sbloccare in qualsiasi momento dal suo profilo o dalle impostazioni.',
   'profile.blockedNote': 'Hai bloccato questa persona. Non può vederti né scriverti.',
@@ -1860,6 +1923,13 @@ const it: T = {
 };
 
 const pt: T = {
+  'discover.locationSent': 'Abra seu chat com o bot e toque em “📍 Compartilhar minha localização”, depois volte aqui.',
+  'discover.updateLocation': 'Atualizar minha localização',
+  'discover.locationFailed': 'Não foi possível abrir o chat do bot. Abra @Ridethatbot e envie /start.',
+  'discover.global': 'Global',
+  'profile.standing': 'Sua posição',
+  'profile.privateAlbum': 'Álbum privado',
+  'album.ownerHint': 'Só quem você desbloqueia no chat pode ver.',
   'profile.block': 'Bloquear',
   'profile.block.body': 'A pessoa não poderá ver seu perfil, publicações ou stories, nem enviar mensagens. Você pode desbloquear a qualquer momento pelo perfil dela ou pelas Configurações.',
   'profile.blockedNote': 'Você bloqueou esta pessoa. Ela não vê você nem pode enviar mensagens.',

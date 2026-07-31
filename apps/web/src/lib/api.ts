@@ -68,6 +68,7 @@ export interface Me {
   followers: number;
   following: number;
   gifts_received: number;
+  avatar_media_id: string | null;
 }
 
 export interface Post {
@@ -83,6 +84,7 @@ export interface Post {
   author_handle: string | null;
   author_court_value: number;
   author_verified: boolean;
+  author_avatar_media_id: string | null;
   liked: boolean;
   saved: boolean;
   edited?: boolean;
@@ -101,6 +103,7 @@ export interface Person {
   online: boolean;
   interests: string[] | null;
   distance: string | null;
+  avatar_media_id: string | null;
 }
 
 export interface RankEntry {
@@ -111,6 +114,7 @@ export interface RankEntry {
   court_value: number;
   verified: boolean;
   score: number;
+  avatar_media_id: string | null;
 }
 
 export interface CoinPack {

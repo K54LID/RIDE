@@ -17,7 +17,14 @@ const selectMe = (accountId: string) => sql`
          (SELECT count(*)::int FROM follows f WHERE f.followee_id = p.account_id) AS followers,
          (SELECT count(*)::int FROM follows f WHERE f.follower_id = p.account_id) AS following,
          (SELECT COALESCE(sum(g.quantity), 0)::int
-            FROM gift_collections g WHERE g.account_id = p.account_id) AS gifts_received
+            FROM gift_collections g WHERE g.account_id = p.account_id) AS gifts_received,
+         -- The stories rail's "Your story" tile had no avatar to show
+         -- until you had actually posted a story, so it fell back to an
+         -- initial letter on your own feed.
+         (SELECT ph.media_id FROM profile_photos ph
+          WHERE ph.account_id = p.account_id AND ph.position = 0
+            AND NOT ph.is_private AND ph.media_id IS NOT NULL
+          LIMIT 1) AS avatar_media_id
   FROM profiles p
   LEFT JOIN coin_balances b ON b.account_id = p.account_id
   WHERE p.account_id = ${accountId}

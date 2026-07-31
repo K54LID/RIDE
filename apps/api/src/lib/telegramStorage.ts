@@ -71,12 +71,22 @@ export async function uploadToTelegram(
   if (kind === 'image') {
     const sizes = json.result.photo ?? [];
     if (sizes.length === 0) throw new Error('Telegram returned no photo sizes');
-    // Telegram returns ascending sizes; largest last, smallest is the thumb.
+    // Telegram returns ascending sizes — typically 90, 320, 800, 1280.
     const largest = sizes[sizes.length - 1]!;
-    const smallest = sizes[0]!;
+    /**
+     * The thumb used to be sizes[0], i.e. the ~90px preview. Every
+     * avatar, every discover tile and every photo-strip cell asks for
+     * ?thumb=1, so a 90px image was being upscaled into a 56–64px slot
+     * on a 3x display — which is exactly why photos looked soft
+     * everywhere. Pick the smallest size that is still big enough to
+     * render sharp (>= 640px on its long edge), and fall back to the
+     * largest available rather than to the tiny one.
+     */
+    const MIN_THUMB_EDGE = 640;
+    const thumb = sizes.find((s) => Math.max(s.width, s.height) >= MIN_THUMB_EDGE) ?? largest;
     return {
       fileId: largest.file_id,
-      thumbId: sizes.length > 1 ? smallest.file_id : null,
+      thumbId: thumb.file_id === largest.file_id ? null : thumb.file_id,
       width: largest.width,
       height: largest.height,
       durationMs: null,

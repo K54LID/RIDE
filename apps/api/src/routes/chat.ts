@@ -135,6 +135,14 @@ const chatRoutes: FastifyPluginAsync = async (app) => {
         ORDER BY m.id DESC LIMIT 1
       ) lm ON true
       WHERE NOT mine.is_archived
+        -- A blocked person's thread should not sit in your list waiting
+        -- to be tapped. Symmetric: if either of you blocked the other,
+        -- the conversation disappears for both.
+        AND NOT EXISTS (
+          SELECT 1 FROM blocks b
+          WHERE (b.blocker_id = ${me} AND b.blocked_id = peer.account_id)
+             OR (b.blocker_id = peer.account_id AND b.blocked_id = ${me})
+        )
       ORDER BY mine.is_pinned DESC, c.last_message_at DESC
       LIMIT 50
     `;
@@ -209,6 +217,22 @@ const chatRoutes: FastifyPluginAsync = async (app) => {
     const { id } = IdParam.parse(req.params);
     const me = req.accountId!;
     await memberOr403(id, me);
+
+    /**
+     * Blocking only stopped people at /v1/chats/open. Any conversation
+     * that already existed when the block landed stayed fully usable in
+     * both directions — which is what "blocking doesn't work" looked
+     * like from the outside. Membership is not consent: re-check the
+     * block on every send.
+     */
+    const blocked = await sql`
+      SELECT 1 FROM conversation_members cm
+      JOIN blocks b
+        ON (b.blocker_id = ${me} AND b.blocked_id = cm.account_id)
+        OR (b.blocker_id = cm.account_id AND b.blocked_id = ${me})
+      WHERE cm.conversation_id = ${id} AND cm.account_id <> ${me}
+    `;
+    if (blocked.length > 0) throw new HttpError(403, 'BLOCKED');
 
     const b = z.object({
       body: z.string().trim().max(4000).optional(),

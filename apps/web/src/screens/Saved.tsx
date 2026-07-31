@@ -70,6 +70,7 @@ export default function Saved({ meId, onBack, onOpenUser }: {
         posts.map((p) => (
           <PostCard key={p.id} post={p} meId={meId}
                     onLike={like} onComment={setCommentPost} onMenu={setMenuPost}
+                    onSave={unsave}
                     onAuthor={p.author_id === meId ? undefined : onOpenUser} />
         ))
       )}

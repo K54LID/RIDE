@@ -4,6 +4,7 @@ import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import { Button, EmptyState, Skeleton } from '../components/ui';
 import { VerifiedMark } from '../components/VerifiedMark';
+import Avatar from '../components/Avatar';
 import Media from '../components/Media';
 import Sheet from '../components/Sheet';
 import CommentSheet from '../components/CommentSheet';
@@ -18,12 +19,13 @@ function timeAgo(iso: string): string {
   return `${Math.floor(mins / 1440)}d`;
 }
 
-export function PostCard({ post, meId, onLike, onComment, onMenu, onAuthor }: {
+export function PostCard({ post, meId, onLike, onComment, onMenu, onSave, onAuthor }: {
   post: Post;
   meId: string;
   onLike: (id: string) => void;
   onComment: (p: Post) => void;
   onMenu: (p: Post) => void;
+  onSave: (p: Post) => void;
   onAuthor?: (accountId: string) => void;
 }) {
   return (
@@ -33,9 +35,7 @@ export function PostCard({ post, meId, onLike, onComment, onMenu, onAuthor }: {
             alone is a miss on a phone. */}
         <button className="post-author" disabled={!onAuthor}
                 onClick={() => { if (onAuthor) { tg.tap('light'); onAuthor(post.author_id); } }}>
-          <div className="person-avatar" style={{ width: 36, height: 36, borderRadius: 11, fontSize: '0.9rem' }}>
-            {post.author_name.trim().charAt(0).toUpperCase() || '?'}
-          </div>
+          <Avatar name={post.author_name} mediaId={post.author_avatar_media_id} size={36} radius={11} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <div className="person-name" style={{ fontSize: '0.94rem' }}>
               {post.author_name}
@@ -78,6 +78,16 @@ export function PostCard({ post, meId, onLike, onComment, onMenu, onAuthor }: {
           </svg>
           {post.comment_count > 0 ? <span className="num">{post.comment_count}</span> : null}
         </button>
+        {/* Save is now a direct action on the post — it used to be one
+            tap deeper, in the ⋯ menu, which is not where people looked
+            for it. */}
+        <button className="save" aria-pressed={post.saved} onClick={() => onSave(post)}>
+          <svg width="17" height="17" viewBox="0 0 24 24"
+               fill={post.saved ? 'currentColor' : 'none'}
+               stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+            <path d="M6 4h12v16l-6-4.2L6 20V4z" />
+          </svg>
+        </button>
       </div>
     </article>
   );
@@ -88,9 +98,10 @@ export function PostCard({ post, meId, onLike, onComment, onMenu, onAuthor }: {
  * comments, and a per-post menu (edit/delete for yours, save/share/
  * report for everyone's).
  */
-export default function Home({ meId, meName, onCompose, onAlerts, onOpenUser }: {
+export default function Home({ meId, meName, meAvatar, onCompose, onAlerts, onOpenUser }: {
   meId: string;
   meName: string;
+  meAvatar: string | null;
   onCompose: () => void;
   onAlerts: () => void;
   onOpenUser: (accountId: string) => void;
@@ -259,7 +270,7 @@ export default function Home({ meId, meName, onCompose, onAlerts, onOpenUser }: 
         </div>
       </div>
 
-      <StoriesRail authors={authors} meId={meId} meName={meName}
+      <StoriesRail authors={authors} meId={meId} meName={meName} meAvatar={meAvatar}
                    onOpen={(i) => setViewerAt(i)} onPosted={loadStories} />
 
       {failed ? (
@@ -275,6 +286,7 @@ export default function Home({ meId, meName, onCompose, onAlerts, onOpenUser }: 
           {posts.map((p) => (
             <PostCard key={p.id} post={p} meId={meId}
                       onLike={like} onComment={setCommentPost} onMenu={setMenuPost}
+                      onSave={toggleSave}
                       onAuthor={p.author_id === meId ? undefined : onOpenUser} />
           ))}
           <div ref={sentinel} />

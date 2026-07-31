@@ -5,9 +5,11 @@ import { useT } from '../i18n';
 import PhotoManager from '../components/PhotoManager';
 import PhotoCarousel from '../components/PhotoCarousel';
 import RankChips from '../components/RankChips';
+import RankStandings from '../components/RankStandings';
 import Media from '../components/Media';
 import { VerifiedMark } from '../components/VerifiedMark';
 import { Button } from '../components/ui';
+import Sheet from '../components/Sheet';
 
 function ageFrom(birth: string): number | null {
   const b = new Date(`${birth}T00:00:00Z`);
@@ -43,6 +45,7 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved }: {
   const [ranks, setRanks] = useState<RankEntryMini[]>([]);
   const [photos, setPhotos] = useState<ProfilePhoto[]>([]);
   const [editingPhotos, setEditingPhotos] = useState(false);
+  const [giftsOpen, setGiftsOpen] = useState(false);
 
   useEffect(() => {
     apiFetch<{ collection: OwnedGift[] }>('/v1/users/me/gifts')
@@ -110,10 +113,16 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved }: {
             : <span className="pro-initial">{me.display_name.trim().charAt(0).toUpperCase() || '?'}</span>}
         </button>
 
+        {/* Gifts is a tab here now, not a loose showcase further down
+            the page — it sits with the other two counts and opens the
+            collection. */}
         <div className="pro-counts">
           <div><b className="num">{me.followers}</b><span>{t('profile.followers')}</span></div>
           <div><b className="num">{me.woofs_received}</b><span>{t('profile.woofs')}</span></div>
-          <div><b className="num">{me.gifts_received}</b><span>{t('profile.gifts')}</span></div>
+          <button className="pro-count-btn" disabled={gifts.length === 0}
+                  onClick={() => { tg.tap('light'); setGiftsOpen(true); }}>
+            <b className="num">{me.gifts_received}</b><span>{t('profile.gifts')}</span>
+          </button>
         </div>
       </div>
 
@@ -134,26 +143,26 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved }: {
           <div className="eyebrow tight">{t('profile.photos')}</div>
           <PhotoManager />
         </>
-      ) : photos.length > 0 ? (
-        <PhotoCarousel photos={photos} />
-      ) : null}
-
-      {gifts.length > 0 ? (
+      ) : (
         <>
-          <div className="eyebrow tight">{t('profile.gifts')}</div>
-          <div className="showcase">
-            {gifts.map((g) => (
-              <div key={g.slug} className="showcase-item" title={g.name}>
-                <span className="showcase-glyph">{g.asset_key}</span>
-                {g.quantity > 1 ? <span className="showcase-count num">{g.quantity}</span> : null}
-              </div>
-            ))}
-          </div>
+          {photos.some((p) => !p.is_private) ? (
+            <PhotoCarousel photos={photos.filter((p) => !p.is_private)} />
+          ) : null}
+          {photos.some((p) => p.is_private) ? (
+            <>
+              <div className="eyebrow tight">🔒 {t('profile.privateAlbum')}</div>
+              <PhotoCarousel photos={photos.filter((p) => p.is_private)} />
+              <p className="hint">{t('album.ownerHint')}</p>
+            </>
+          ) : null}
         </>
-      ) : null}
+      )}
 
       {shown.length > 0 ? (
         <>
+          <div className="eyebrow tight">{t('profile.standing')}</div>
+          <RankStandings ranks={ranks} />
+
           <div className="eyebrow tight">{t('profile.details')}</div>
           <div className="card compact">
             {shown.map(([k, v]) => (
@@ -163,7 +172,24 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved }: {
             ))}
           </div>
         </>
-      ) : null}
+      ) : (
+        <>
+          <div className="eyebrow tight">{t('profile.standing')}</div>
+          <RankStandings ranks={ranks} />
+        </>
+      )}
+
+      <Sheet open={giftsOpen} onClose={() => setGiftsOpen(false)}>
+        <h2 style={{ marginBottom: 12 }}>{t('profile.gifts')}</h2>
+        <div className="showcase">
+          {gifts.map((g) => (
+            <div key={g.slug} className="showcase-item" title={g.name}>
+              <span className="showcase-glyph">{g.asset_key}</span>
+              {g.quantity > 1 ? <span className="showcase-count num">{g.quantity}</span> : null}
+            </div>
+          ))}
+        </div>
+      </Sheet>
     </div>
   );
 }
