@@ -61,7 +61,9 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
     return a;
   }, [birthDate]);
 
-  const handleValid = handle === '' || /^[a-zA-Z0-9_]{3,24}$/.test(handle);
+  // Required: the handle is how this person is addressed everywhere
+  // except their own profile header and the Discover grid.
+  const handleValid = /^[a-zA-Z0-9_]{3,24}$/.test(handle);
   const step0Valid = displayName.trim().length > 0 && age !== null && age >= 18 && handleValid;
 
   const submit = async () => {
@@ -72,7 +74,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
         method: 'POST',
         body: JSON.stringify({
           display_name: displayName.trim(),
-          handle: handle || undefined,
+          handle,
           birth_date: birthDate,
           bio: bio.trim() || undefined,
           gender: gender ?? undefined,
@@ -122,12 +124,12 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
       {step === 0 && (
         <>
           <h1>Who are you here as?</h1>
-          <p style={{ marginBottom: 26 }}>Your name and handle are how people find you. Neither is your Telegram username.</p>
+          <p style={{ marginBottom: 26 }}>Your handle is how people see you across RIDE. Your name shows on your profile and in Discover. Neither is your Telegram username.</p>
           <Field label="Display name">
             <input value={displayName} maxLength={50} placeholder="What people call you"
                    onChange={(e) => setDisplayName(e.target.value)} />
           </Field>
-          <Field label="Handle" hint={handleValid ? '3–24 letters, numbers or underscores. Optional.' : 'Letters, numbers and underscores only, 3–24 characters.'}>
+          <Field label="Handle" hint={handleValid ? '3–24 letters, numbers or underscores.' : 'Required. Letters, numbers and underscores only, 3–24 characters.'}>
             <input value={handle} maxLength={24} placeholder="ride_handle"
                    autoCapitalize="none" autoCorrect="off"
                    onChange={(e) => setHandle(e.target.value.replace(/\s/g, ''))} />

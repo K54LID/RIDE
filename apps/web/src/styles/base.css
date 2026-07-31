@@ -286,19 +286,25 @@ p { margin: 0; color: var(--muted); }
   animation: fade 0.2s var(--ease);
 }
 @keyframes fade { from { opacity: 0; } }
-.sheet {
+.sheet-wrap {
+  /* A fixed box the exact size of what the person can actually see.
+     Everything inside is laid out against this, so no sheet can render
+     below the fold regardless of how tall the webview thinks it is. */
   position: fixed; z-index: 101;
-  /* Anchored to the TOP of the visible viewport, not the bottom.
-     On several Telegram clients the webview's layout viewport runs
-     taller than what is actually visible, so a bottom-anchored sheet
-     rendered its buttons below the fold — "the delete menu appears way
-     down". Top anchoring puts the actions where the person is looking,
-     and the keyboard can no longer cover an input inside it. */
-  top: calc(14px + env(safe-area-inset-top));
-  left: 12px; right: 12px; bottom: auto;
-  width: min(calc(100% - 24px), 496px);
-  margin-inline: auto;
-  max-height: calc(var(--tg-viewport-stable-height, 100dvh) - 90px);
+  left: 0; right: 0;
+  top: env(safe-area-inset-top);
+  height: calc(var(--tg-viewport-stable-height, 100dvh) - env(safe-area-inset-top));
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 14px 12px calc(14px + env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+.sheet-wrap.center { align-items: center; }
+.sheet {
+  pointer-events: auto;
+  width: min(100%, 496px);
+  max-height: 100%;
   overflow-y: auto;
   background: var(--surface);
   border: 1px solid var(--hairline);
@@ -748,7 +754,10 @@ p { margin: 0; color: var(--muted); }
 .story-bar { flex: 1; height: 2.5px; border-radius: 2px; background: rgba(255,255,255,0.28); overflow: hidden; }
 .story-bar span { display: block; height: 100%; width: 0; background: #fff; border-radius: 2px; }
 .story-bar span.full { width: 100%; }
-.story-bar span.live { animation: storyFill linear forwards; }
+/* Marks which story you're on. There is no timed fill any more —
+   stories wait for a tap — so this is a static state, not an
+   animation. */
+.story-bar span.current { width: 100%; opacity: 0.55; }
 @keyframes storyFill { from { width: 0; } to { width: 100%; } }
 .story-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -1134,6 +1143,38 @@ h2 { font-size: 1.02rem; }
 .pro-count-btn:disabled { opacity: 1; }
 .pro-count-btn:not(:disabled):active { opacity: 0.6; }
 
+/* Story-reply marker inside a chat bubble. */
+.bubble-story {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 6px; padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+.bubble-story-thumb {
+  width: 30px; height: 40px; flex: none; border-radius: 6px;
+  overflow: hidden; background: var(--raised);
+}
+.bubble-story-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bubble-story-thumb .skel { width: 100%; height: 100%; }
+.bubble-story-label { font-size: 0.74rem; opacity: 0.75; }
+
+/* ---- followers / following list ---- */
+.follow-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.follow-row:last-child { border-bottom: 0; }
+.follow-id {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 11px;
+  background: none; border: 0; padding: 0; color: inherit; font: inherit;
+  text-align: start;
+}
+.follow-id:active { opacity: 0.6; }
+
+/* Story header: the author's face beside their handle. */
+.story-name-btn { display: flex; align-items: center; gap: 8px; }
+
 /* ---- profile rank standings ---- */
 .standings { padding: 4px 12px; }
 .standing-row {
@@ -1369,13 +1410,9 @@ button.courted-by { width: 100%; color: var(--ink); font: inherit; text-align: s
 .rank-btn { border: 0; background: none; color: var(--ink); font: inherit; width: 100%; text-align: start; }
 button.podium-col { border: 0; background: none; color: var(--ink); font: inherit; }
 
-/* ---- centred sheet (composer) ---- */
-.sheet-center {
-  top: 50%;
-  transform: translateY(-50%);
-  animation: sheetPop 0.22s var(--ease);
-}
-@keyframes sheetPop { from { opacity: 0; transform: translateY(-50%) scale(0.97); } }
+/* ---- centred sheet (composer, verification, message actions) ---- */
+.sheet-wrap.center .sheet { animation: sheetPop 0.22s var(--ease); }
+@keyframes sheetPop { from { opacity: 0; transform: scale(0.97); } }
 
 /* ---- rank chips on profiles ---- */
 .rank-chips {

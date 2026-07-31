@@ -87,16 +87,16 @@ export default function Chats({ meId, onOpen, onOpenUser }: {
           <button key={c.id} className="chat-row"
                   onClick={() => { tg.tap('light'); onOpen(c.id); }}>
             {/* Avatar → profile; the rest of the row → the chat. */}
-            <span role="button" aria-label={c.peer_name}
+            <span role="button" aria-label={`@${c.peer_handle}`}
                   style={{ position: 'relative', flex: 'none' }}
                   onClick={(e) => { e.stopPropagation(); tg.tap('light'); onOpenUser(c.peer_id); }}>
-              <Avatar name={c.peer_name} mediaId={c.peer_avatar_media_id} size={48} />
+              <Avatar name={c.peer_handle} mediaId={c.peer_avatar_media_id} size={48} />
               {c.peer_online ? <span className="chat-online" /> : null}
             </span>
             <div className="chat-main">
-              <div className="person-name">
+              <div className="person-name num">
                 {c.pinned ? <span className="chat-pin" aria-label={t('chat.pin')}>📌</span> : null}
-                {c.peer_name}
+                @{c.peer_handle}
                 {c.peer_verified ? <VerifiedMark size={14} /> : null}
               </div>
               <div className="chat-preview">{preview(c)}</div>

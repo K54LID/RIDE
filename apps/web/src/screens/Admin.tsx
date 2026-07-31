@@ -25,7 +25,15 @@ interface VerificationReq {
   selfie_media_id: string | null;
 }
 
-type Pane = 'overview' | 'users' | 'verify' | 'storage' | 'log';
+interface AdminReport {
+  id: string; subject_type: string; subject_id: string;
+  reason: string; details: string | null; created_at: string;
+  reporter_name: string | null; reporter_handle: string | null;
+  post_excerpt: string | null; post_deleted: boolean | null;
+  target: { account_id: string; display_name: string; handle: string | null; status: string } | null;
+}
+
+type Pane = 'overview' | 'users' | 'reports' | 'verify' | 'storage' | 'log';
 
 export default function Admin({ onBack }: { onBack: () => void }) {
   const t = useT();
@@ -33,6 +41,7 @@ export default function Admin({ onBack }: { onBack: () => void }) {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [verifs, setVerifs] = useState<VerificationReq[] | null>(null);
+  const [reports, setReports] = useState<AdminReport[] | null>(null);
   const [log, setLog] = useState<Array<Record<string, unknown>> | null>(null);
   const [q, setQ] = useState('');
   const [amounts, setAmounts] = useState<Record<string, string>>({});
@@ -58,6 +67,10 @@ export default function Admin({ onBack }: { onBack: () => void }) {
       apiFetch<{ users: AdminUser[] }>(`/v1/admin/users${q ? `?q=${encodeURIComponent(q)}` : ''}`)
         .then((r) => setUsers(r.users)).catch(() => undefined);
     }
+    if (pane === 'reports') {
+      apiFetch<{ reports: AdminReport[] }>('/v1/admin/reports')
+        .then((r) => setReports(r.reports)).catch(() => setReports([]));
+    }
     if (pane === 'verify') {
       apiFetch<{ requests: VerificationReq[] }>('/v1/admin/verifications')
         .then((r) => setVerifs(r.requests)).catch(() => undefined);
@@ -78,6 +91,10 @@ export default function Admin({ onBack }: { onBack: () => void }) {
       if (pane === 'users') {
         apiFetch<{ users: AdminUser[] }>('/v1/admin/users').then((r) => setUsers(r.users));
       }
+      if (pane === 'reports') {
+        apiFetch<{ reports: AdminReport[] }>('/v1/admin/reports')
+          .then((r) => setReports(r.reports)).catch(() => setReports([]));
+      }
       if (pane === 'verify') {
         apiFetch<{ requests: VerificationReq[] }>('/v1/admin/verifications')
           .then((r) => setVerifs(r.requests));
@@ -88,6 +105,44 @@ export default function Admin({ onBack }: { onBack: () => void }) {
         alert(err.message);
       }
     }
+  };
+
+  const refreshReports = () => {
+    apiFetch<{ reports: AdminReport[] }>('/v1/admin/reports')
+      .then((r) => setReports(r.reports)).catch(() => setReports([]));
+  };
+
+  const resolveReport = async (id: string, action: 'actioned' | 'dismissed') => {
+    tg.tap('light');
+    try {
+      await apiFetch(`/v1/admin/reports/${id}/resolve`, {
+        method: 'POST', body: JSON.stringify({ action }),
+      });
+      tg.notify('success');
+    } catch { tg.notify('error'); }
+    refreshReports();
+    load();
+  };
+
+  /**
+   * Act on what was reported, then close the report in one gesture.
+   * Splitting them meant a moderator could delete the post and leave
+   * the report open, so the same thing got handled twice.
+   */
+  const moderate = async (path: string, method: 'POST' | 'DELETE', reportId: string) => {
+    tg.tap('heavy');
+    try {
+      await apiFetch(path, { method });
+      await apiFetch(`/v1/admin/reports/${reportId}/resolve`, {
+        method: 'POST', body: JSON.stringify({ action: 'actioned' }),
+      });
+      tg.notify('success');
+    } catch (err) {
+      tg.notify('error');
+      if (err instanceof ApiError && err.code === 'MISSING_PERMISSION') alert(err.message);
+    }
+    refreshReports();
+    load();
   };
 
   if (denied) {
@@ -104,7 +159,7 @@ export default function Admin({ onBack }: { onBack: () => void }) {
       <div className="head"><h1>{t('admin.title')}</h1></div>
 
       <div className="seg">
-        {(['overview', 'users', 'verify', 'storage', 'log'] as Pane[]).map((p) => (
+        {(['overview', 'users', 'reports', 'verify', 'storage', 'log'] as Pane[]).map((p) => (
           <button key={p} aria-pressed={pane === p} onClick={() => { tg.select(); setPane(p); }}>
             {t(`admin.${p}` as 'admin.overview')}
           </button>
@@ -263,6 +318,61 @@ export default function Admin({ onBack }: { onBack: () => void }) {
             </div>
           ))}
         </>
+      )}
+
+      {pane === 'reports' && (
+        reports === null ? <Skeleton h={90} /> :
+        reports.length === 0 ? <EmptyState title={t('admin.noReports')} body="" /> : (
+          <>
+            {reports.map((r) => (
+              <div key={r.id} className="card compact" style={{ marginBottom: 10 }}>
+                <div className="person-sub num" style={{ marginBottom: 4 }}>
+                  {r.subject_type} · {r.reason}
+                </div>
+
+                {r.target ? (
+                  <div className="person-name" style={{ fontSize: '0.95rem' }}>
+                    {r.target.handle ? `@${r.target.handle}` : r.target.display_name}
+                    {r.target.status !== 'active'
+                      ? <span className="person-sub"> · {r.target.status}</span> : null}
+                  </div>
+                ) : (
+                  <div className="person-sub">{t('admin.reportTargetGone')}</div>
+                )}
+
+                {r.post_excerpt ? (
+                  <p className="person-sub" style={{ marginTop: 6, whiteSpace: 'pre-wrap' }}>
+                    {r.post_excerpt.slice(0, 220)}
+                  </p>
+                ) : null}
+                {r.details ? <p className="hint" style={{ marginTop: 4 }}>{r.details}</p> : null}
+
+                <div className="person-sub" style={{ marginTop: 6 }}>
+                  {t('admin.reportedBy')}{' '}
+                  {r.reporter_handle ? `@${r.reporter_handle}` : r.reporter_name ?? '—'}
+                </div>
+
+                <div className="chips" style={{ marginTop: 10 }}>
+                  {r.subject_type === 'post' && !r.post_deleted ? (
+                    <button className="chip" onClick={() => moderate(
+                      `/v1/admin/posts/${r.subject_id}`, 'DELETE', r.id)}>
+                      {t('admin.deletePost')}
+                    </button>
+                  ) : null}
+                  {r.target && r.target.status === 'active' ? (
+                    <button className="chip" onClick={() => moderate(
+                      `/v1/admin/users/${r.target!.account_id}/ban`, 'POST', r.id)}>
+                      {t('admin.ban')}
+                    </button>
+                  ) : null}
+                  <button className="chip" onClick={() => resolveReport(r.id, 'dismissed')}>
+                    {t('admin.dismiss')}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </>
+        )
       )}
 
       {pane === 'verify' && (

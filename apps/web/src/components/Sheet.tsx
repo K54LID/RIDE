@@ -25,12 +25,24 @@ export default function Sheet({
 
   if (!open) return null;
 
+  /**
+   * The panel lives inside a fixed flex wrapper sized to Telegram's
+   * stable viewport, rather than positioning itself with top/transform.
+   * `top: 50%` resolves against the *layout* viewport, which on several
+   * Telegram clients is taller than what's actually on screen — so a
+   * "centred" sheet sat low, and a menu opened from near the bottom of
+   * a chat could put its buttons off the fold entirely. Centring with
+   * flexbox inside a correctly-sized box can't drift.
+   */
   return (
     <>
       <div className="sheet-scrim" onClick={onClose} />
-      <div className={center ? 'sheet sheet-center' : 'sheet'} role="dialog" aria-modal="true">
-        <div className="sheet-grip" />
-        {children}
+      <div className={`sheet-wrap ${center ? 'center' : ''}`}>
+        <div className="sheet" role="dialog" aria-modal="true"
+             onClick={(e) => e.stopPropagation()}>
+          <div className="sheet-grip" />
+          {children}
+        </div>
       </div>
     </>
   );

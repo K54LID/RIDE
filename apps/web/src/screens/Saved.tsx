@@ -90,7 +90,7 @@ export default function Saved({ meId, onBack, onOpenUser }: {
 
       {/* The ⋯ opens a menu here too. Previously it silently unsaved,
           which is a destructive action behind an ambiguous affordance. */}
-      <Sheet open={menuPost !== null} onClose={() => setMenuPost(null)}>
+      <Sheet center open={menuPost !== null} onClose={() => setMenuPost(null)}>
         {menuPost ? (
           <div className="set-list">
             <button className="set-row" onClick={() => share(menuPost)}>

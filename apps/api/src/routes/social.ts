@@ -158,6 +158,90 @@ const socialRoutes: FastifyPluginAsync = async (app) => {
     return { ok: true };
   });
 
+  /**
+   * Who follows this person, and who they follow.
+   *
+   * Each row carries `i_follow` so the list can offer Follow / Following
+   * inline — without it the client would need a second request per row
+   * just to label a button. Blocked people are omitted in both
+   * directions, same as everywhere else.
+   */
+  const FollowListQuery = z.object({
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+    offset: z.coerce.number().int().min(0).max(5000).default(0),
+  });
+
+  const followList = async (
+    direction: 'followers' | 'following',
+    targetId: string,
+    me: string,
+    limit: number,
+    offset: number,
+  ) => {
+    const rows = direction === 'followers'
+      ? await sql`
+          SELECT p.account_id, p.display_name, p.handle,
+                 (p.verification = 'approved') AS verified,
+                 (SELECT ph.media_id FROM profile_photos ph
+                  WHERE ph.account_id = p.account_id AND ph.position = 0
+                    AND NOT ph.is_private AND ph.media_id IS NOT NULL
+                  LIMIT 1) AS avatar_media_id,
+                 EXISTS (SELECT 1 FROM follows f2
+                         WHERE f2.follower_id = ${me}
+                           AND f2.followee_id = p.account_id) AS i_follow
+          FROM follows f
+          JOIN profiles p ON p.account_id = f.follower_id
+          JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
+          WHERE f.followee_id = ${targetId}
+            AND NOT p.ghost_mode
+            AND NOT EXISTS (
+              SELECT 1 FROM blocks b
+              WHERE (b.blocker_id = ${me} AND b.blocked_id = p.account_id)
+                 OR (b.blocker_id = p.account_id AND b.blocked_id = ${me})
+            )
+          ORDER BY f.created_at DESC
+          LIMIT ${limit} OFFSET ${offset}
+        `
+      : await sql`
+          SELECT p.account_id, p.display_name, p.handle,
+                 (p.verification = 'approved') AS verified,
+                 (SELECT ph.media_id FROM profile_photos ph
+                  WHERE ph.account_id = p.account_id AND ph.position = 0
+                    AND NOT ph.is_private AND ph.media_id IS NOT NULL
+                  LIMIT 1) AS avatar_media_id,
+                 EXISTS (SELECT 1 FROM follows f2
+                         WHERE f2.follower_id = ${me}
+                           AND f2.followee_id = p.account_id) AS i_follow
+          FROM follows f
+          JOIN profiles p ON p.account_id = f.followee_id
+          JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
+          WHERE f.follower_id = ${targetId}
+            AND NOT p.ghost_mode
+            AND NOT EXISTS (
+              SELECT 1 FROM blocks b
+              WHERE (b.blocker_id = ${me} AND b.blocked_id = p.account_id)
+                 OR (b.blocker_id = p.account_id AND b.blocked_id = ${me})
+            )
+          ORDER BY f.created_at DESC
+          LIMIT ${limit} OFFSET ${offset}
+        `;
+    return { people: rows, has_more: rows.length === limit };
+  };
+
+  app.get('/v1/users/:id/followers', { preHandler: [app.requireAuth] }, async (req) => {
+    const raw = (req.params as { id: string }).id;
+    const id = raw === 'me' ? req.accountId! : IdParam.parse(req.params).id;
+    const { limit, offset } = FollowListQuery.parse(req.query);
+    return followList('followers', id, req.accountId!, limit, offset);
+  });
+
+  app.get('/v1/users/:id/following', { preHandler: [app.requireAuth] }, async (req) => {
+    const raw = (req.params as { id: string }).id;
+    const id = raw === 'me' ? req.accountId! : IdParam.parse(req.params).id;
+    const { limit, offset } = FollowListQuery.parse(req.query);
+    return followList('following', id, req.accountId!, limit, offset);
+  });
+
   app.post('/v1/report', { preHandler: [app.requireAuth] }, async (req) => {
     const body = z.object({
       subject_type: z.enum(['account', 'post', 'comment', 'message', 'story']),

@@ -35,8 +35,8 @@ function Podium({ top, onOpen }: { top: RankEntry[]; onOpen: (id: string) => voi
                   onClick={() => { tg.tap('light'); onOpen(e.account_id); }}>
             <Avatar name={e.display_name} mediaId={e.avatar_media_id}
                     size={i === 1 ? 52 : 42} radius={i === 1 ? 26 : 21} />
-            <div className="podium-name">
-              {e.display_name.split(' ')[0]}
+            <div className="podium-name num">
+              @{e.handle}
               {e.verified ? <VerifiedMark size={11} /> : null}
             </div>
             <div className="podium-score num">{e.score}</div>
@@ -105,8 +105,8 @@ export default function Ranks({ onOpenUser }: { onOpenUser: (accountId: string) 
                   <span className="rank-pos num">{e.rank}</span>
                   <Avatar name={e.display_name} mediaId={e.avatar_media_id} size={30} radius={15} />
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div className="person-name" style={{ fontSize: '0.88rem' }}>
-                      {e.display_name}
+                    <div className="person-name num" style={{ fontSize: '0.88rem' }}>
+                      @{e.handle}
                       {e.verified ? <VerifiedMark size={12} /> : null}
                     </div>
                   </div>

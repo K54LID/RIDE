@@ -3,9 +3,9 @@ import { apiFetch, type Story, type StoryAuthor } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import Media from './Media';
+import Avatar from './Avatar';
 import Sheet from './Sheet';
 
-const IMAGE_MS = 5000;
 
 /**
  * Full-screen story player.
@@ -14,7 +14,7 @@ const IMAGE_MS = 5000;
  * on: tap right = next, tap left = previous, hold = pause, swipe down =
  * close. Progress is one bar per story, the active one animating.
  *
- * Videos advance on their own `ended` event rather than a timer, so a
+ * Nothing advances on its own; every move is a deliberate tap, so a
  * 9-second clip gets its nine seconds.
  */
 export default function StoryViewer({
@@ -39,9 +39,6 @@ export default function StoryViewer({
     replies: Array<{ body: string; display_name: string }>;
   } | null>(null);
 
-  const timerRef = useRef<number | null>(null);
-  const startedAt = useRef(0);
-  const remaining = useRef(IMAGE_MS);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const lastTouch = useRef(0);
@@ -100,32 +97,23 @@ export default function StoryViewer({
     setReply('');
     void apiFetch(`/v1/stories/${story.id}/view`, { method: 'POST' }).catch(() => undefined);
 
-    if (story.kind === 'image') {
-      remaining.current = IMAGE_MS;
-      startedAt.current = Date.now();
-      timerRef.current = window.setTimeout(advance, IMAGE_MS);
-      return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-    }
+    /**
+     * Stories no longer advance on a timer. A story used to disappear
+     * mid-read after a fixed delay, and a video jumped to the next
+     * moment it ended — you could not finish looking at something
+     * without holding a finger down. Movement is now entirely
+     * deliberate: tap the right third to go forward, the left third to
+     * go back. Videos loop instead of ending the story.
+     */
     return undefined;
-  }, [story, advance]);
+  }, [story]);
 
-  // Pause/resume: freeze the timer's remaining budget or the video.
+  // Hold-to-pause still applies to video; images have nothing to pause.
   useEffect(() => {
-    if (!story) return;
-    if (story.kind === 'image') {
-      if (paused && timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-        remaining.current -= Date.now() - startedAt.current;
-      } else if (!paused && timerRef.current === null) {
-        startedAt.current = Date.now();
-        timerRef.current = window.setTimeout(advance, Math.max(300, remaining.current));
-      }
-    } else {
-      const v = videoRef.current;
-      if (v) { if (paused) v.pause(); else void v.play().catch(() => undefined); }
-    }
-  }, [paused, story, advance]);
+    if (!story || story.kind === 'image') return;
+    const v = videoRef.current;
+    if (v) { if (paused) v.pause(); else void v.play().catch(() => undefined); }
+  }, [paused, story]);
 
   const onTouchStart = (e: React.TouchEvent) => {
     const tch = e.touches[0]!;
@@ -232,11 +220,10 @@ export default function StoryViewer({
       <div className="story-progress">
         {(stories ?? []).map((s, i) => (
           <div key={s.id} className="story-bar">
-            <span
-              className={i < storyIdx ? 'full' : i === storyIdx && !paused ? 'live' : ''}
-              style={i === storyIdx && story?.kind === 'image'
-                ? { animationDuration: `${IMAGE_MS}ms` } : undefined}
-            />
+            {/* Position, not elapsed time: nothing advances on its own
+                any more, so an animated fill would be promising a
+                transition that never comes. */}
+            <span className={i < storyIdx ? 'full' : i === storyIdx ? 'current' : ''} />
           </div>
         ))}
       </div>
@@ -246,7 +233,11 @@ export default function StoryViewer({
            onTouchStart={(e) => e.stopPropagation()} onTouchEnd={(e) => e.stopPropagation()}>
         <button className="story-name-btn" disabled={isMine || !onOpenUser}
                 onClick={() => { if (onOpenUser) { tg.tap('light'); onOpenUser(author.author_id); } }}>
-          <span className="story-name">{author.display_name}</span>
+          <Avatar name={author.display_name} mediaId={author.avatar_media_id}
+                  size={30} radius={15} />
+          <span className="story-name">
+            @{author.handle}
+          </span>
         </button>
         <div style={{ display: 'flex', gap: 14 }} onTouchStart={(e) => e.stopPropagation()}>
           {isMine
@@ -266,8 +257,7 @@ export default function StoryViewer({
       <div className="story-stage">
         {!story ? <div className="skel" style={{ position: 'absolute', inset: 0 }} /> :
           story.kind === 'video' ? (
-            <StoryVideo key={story.id} mediaId={story.media_id}
-                        videoRef={videoRef} onEnded={advance} />
+            <StoryVideo key={story.id} mediaId={story.media_id} videoRef={videoRef} />
           ) : (
             <Media key={story.id} id={story.media_id} kind="image" />
           )}
@@ -342,10 +332,9 @@ export default function StoryViewer({
  * sound is often refused by webviews — the catch falls back to muted,
  * which is the accepted convention.
  */
-function StoryVideo({ mediaId, videoRef, onEnded }: {
+function StoryVideo({ mediaId, videoRef }: {
   mediaId: string;
   videoRef: React.MutableRefObject<HTMLVideoElement | null>;
-  onEnded: () => void;
 }) {
   const [url, setUrl] = useState<string | null>(null);
 
@@ -368,5 +357,5 @@ function StoryVideo({ mediaId, videoRef, onEnded }: {
   }, [url, videoRef]);
 
   if (!url) return <div className="skel" style={{ position: 'absolute', inset: 0 }} />;
-  return <video ref={videoRef} src={url} playsInline onEnded={onEnded} />;
+  return <video ref={videoRef} src={url} playsInline loop />;
 }

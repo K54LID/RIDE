@@ -163,21 +163,78 @@ const storyRoutes: FastifyPluginAsync = async (app) => {
     const { body } = z.object({ body: z.string().trim().min(1).max(500) }).parse(req.body);
     const me = req.accountId!;
 
-    await sql.begin(async (tx) => {
+    const conversationId = await sql.begin(async (tx) => {
       const [story] = await tx<Array<{ author_id: string }>>`
         SELECT author_id FROM stories WHERE id = ${id} AND expires_at > now()
       `;
       if (!story) throw new HttpError(404, 'STORY_GONE');
       if (story.author_id === me) throw new HttpError(400, 'CANNOT_REPLY_SELF');
 
+      const blocked = await tx`
+        SELECT 1 FROM blocks
+        WHERE (blocker_id = ${me} AND blocked_id = ${story.author_id})
+           OR (blocker_id = ${story.author_id} AND blocked_id = ${me})
+      `;
+      if (blocked.length > 0) throw new HttpError(403, 'BLOCKED');
+
       await tx`
         INSERT INTO story_replies (story_id, sender_id, body)
         VALUES (${id}, ${me}, ${body})
       `;
+
+      /**
+       * Replying to a story is the start of a conversation, so it now
+       * lands in the private chat as a real message tagged with the
+       * story it answers. Previously it only produced a notification
+       * and a line in the author's viewer panel — there was nothing to
+       * reply back to.
+       *
+       * Reuses the existing 1:1 conversation if there is one, exactly
+       * as /v1/chats/open does, so a story reply doesn't fork a second
+       * thread with the same person.
+       */
+      const [existing] = await tx<Array<{ id: string }>>`
+        SELECT cm.conversation_id AS id
+        FROM conversation_members cm
+        JOIN conversation_members other
+          ON other.conversation_id = cm.conversation_id
+         AND other.account_id = ${story.author_id}
+        WHERE cm.account_id = ${me}
+          AND (SELECT count(*) FROM conversation_members x
+               WHERE x.conversation_id = cm.conversation_id) = 2
+        LIMIT 1
+      `;
+
+      let convId = existing?.id;
+      if (!convId) {
+        const [created] = await tx<Array<{ id: string }>>`
+          INSERT INTO conversations DEFAULT VALUES RETURNING id
+        `;
+        convId = created!.id;
+        await tx`
+          INSERT INTO conversation_members (conversation_id, account_id)
+          VALUES (${convId}, ${me}), (${convId}, ${story.author_id})
+        `;
+      } else {
+        // A reply resurfaces a thread either side had cleared.
+        await tx`
+          UPDATE conversation_members SET is_archived = false
+          WHERE conversation_id = ${convId} AND is_archived
+        `;
+      }
+
+      await tx`
+        INSERT INTO messages (conversation_id, sender_id, kind, body, story_id)
+        VALUES (${convId}, ${me}, 'text', ${body}, ${id})
+      `;
+      await tx`UPDATE conversations SET last_message_at = now() WHERE id = ${convId}`;
+
       await notify(tx, { accountId: story.author_id, actorId: me, kind: 'story_reply',
-                         payload: { story_id: id } });
+                         payload: { story_id: id, conversation_id: convId } });
+      return convId;
     });
-    return { ok: true };
+
+    return { ok: true, conversation_id: conversationId };
   });
 
   /** Author only: who watched, who woofed, what they said. */

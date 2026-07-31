@@ -126,13 +126,38 @@ const SHARE_STOPPED: Record<string, string> = {
   tr: 'Konum silindi. Artık yakındaki sonuçlarda görünmeyeceksin.',
 };
 
-async function send(chatId: number | string, text: string, replyMarkup?: unknown): Promise<void> {
+/** One inline button back into the Mini App. */
+export async function sendOpenApp(
+  chatId: number | string, languageCode: string | null, text?: string,
+): Promise<void> {
+  const lang = (languageCode ?? 'en').split('-')[0]!;
+  await send(chatId, text ?? (OPEN_PROMPT[lang] ?? OPEN_PROMPT.en!), undefined, {
+    inline_keyboard: [[{
+      text: OPEN_LABEL[lang] ?? OPEN_LABEL.en!,
+      web_app: { url: config.MINI_APP_URL },
+    }]],
+  });
+}
+
+const OPEN_PROMPT: Record<string, string> = {
+  en: 'Tap below to open RIDE.',
+  ru: 'Нажмите ниже, чтобы открыть RIDE.',
+  tr: "RIDE'ı açmak için aşağıya dokun.",
+};
+
+async function send(
+  chatId: number | string,
+  text: string,
+  replyMarkup?: unknown,
+  inlineMarkup?: unknown,
+): Promise<void> {
   await fetch(`${API()}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       chat_id: chatId, text,
-      ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+      ...(inlineMarkup ? { reply_markup: inlineMarkup }
+          : replyMarkup ? { reply_markup: replyMarkup } : {}),
     }),
   }).catch(() => undefined);
 }
@@ -180,7 +205,11 @@ export async function handleLocationMessage(
       SET cell = ST_SetSRID(ST_MakePoint(${snapped.lng}, ${snapped.lat}), 4326)::geography,
           updated_at = now()
   `;
+  // Drop the location keyboard, then offer a way straight back into the
+  // app — the whole point of sharing was to go look at Discover, and
+  // without a button that meant hunting for the app again.
   await send(chatId, SHARE_DONE[lang] ?? SHARE_DONE.en!, { remove_keyboard: true });
+  await sendOpenApp(chatId, languageCode);
 }
 
 export async function handleStopLocation(

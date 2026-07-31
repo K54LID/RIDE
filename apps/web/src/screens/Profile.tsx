@@ -4,7 +4,6 @@ import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import PhotoManager from '../components/PhotoManager';
 import PhotoCarousel from '../components/PhotoCarousel';
-import RankChips from '../components/RankChips';
 import RankStandings from '../components/RankStandings';
 import Media from '../components/Media';
 import { VerifiedMark } from '../components/VerifiedMark';
@@ -30,12 +29,13 @@ function ageFrom(birth: string): number | null {
  * social app converged on because it answers "who is this and how do
  * they rate" in one glance.
  */
-export default function Profile({ me, onEdit, onWallet, onSettings, onSaved }: {
+export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onFollows }: {
   me: Me;
   onEdit: () => void;
   onWallet: () => void;
   onSettings: () => void;
   onSaved: () => void;
+  onFollows: (mode: 'followers' | 'following') => void;
 }) {
   const t = useT();
   const age = ageFrom(me.birth_date);
@@ -80,7 +80,7 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved }: {
           bar wasn't already saying. */}
       <div className="head">
         <h1 className="handle-title">
-          {me.handle ? `@${me.handle}` : me.display_name}
+          @{me.handle}
           {me.verification === 'approved' ? <VerifiedMark size={17} /> : null}
           {isVip ? <span className="vip-chip">VIP</span> : null}
         </h1>
@@ -117,7 +117,10 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved }: {
             the page — it sits with the other two counts and opens the
             collection. */}
         <div className="pro-counts">
-          <div><b className="num">{me.followers}</b><span>{t('profile.followers')}</span></div>
+          <button className="pro-count-btn"
+                  onClick={() => { tg.tap('light'); onFollows('followers'); }}>
+            <b className="num">{me.followers}</b><span>{t('profile.followers')}</span>
+          </button>
           <div><b className="num">{me.woofs_received}</b><span>{t('profile.woofs')}</span></div>
           <button className="pro-count-btn" disabled={gifts.length === 0}
                   onClick={() => { tg.tap('light'); setGiftsOpen(true); }}>
@@ -135,8 +138,6 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved }: {
         <Button variant="ghost" onClick={onEdit}>{t('profile.edit')}</Button>
         <Button variant="ghost" onClick={onSaved}>{t('saved.title')}</Button>
       </div>
-
-      <RankChips ranks={ranks} />
 
       {editingPhotos ? (
         <>
@@ -179,7 +180,7 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved }: {
         </>
       )}
 
-      <Sheet open={giftsOpen} onClose={() => setGiftsOpen(false)}>
+      <Sheet center open={giftsOpen} onClose={() => setGiftsOpen(false)}>
         <h2 style={{ marginBottom: 12 }}>{t('profile.gifts')}</h2>
         <div className="showcase">
           {gifts.map((g) => (

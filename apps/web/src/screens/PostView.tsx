@@ -24,6 +24,7 @@ export default function PostView({ postId, meId, onClose, onOpenUser }: {
   const [gone, setGone] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [reportDone, setReportDone] = useState(false);
 
   const load = useCallback(() => {
     apiFetch<{ post: Post }>(`/v1/posts/${postId}`)
@@ -69,6 +70,7 @@ export default function PostView({ postId, meId, onClose, onOpenUser }: {
       });
       tg.notify('success');
       setMenuOpen(false);
+      setReportDone(true);
     } catch { tg.notify('error'); }
   };
 
@@ -111,7 +113,13 @@ export default function PostView({ postId, meId, onClose, onOpenUser }: {
         ) : null}
       </Sheet>
 
-      <Sheet open={menuOpen} onClose={() => setMenuOpen(false)}>
+      <Sheet center open={reportDone} onClose={() => setReportDone(false)}>
+        <h2 style={{ marginBottom: 8 }}>{t('report.sentTitle')}</h2>
+        <p style={{ marginBottom: 16 }}>{t('report.sentBody')}</p>
+        <Button variant="ghost" onClick={() => setReportDone(false)}>{t('common.done')}</Button>
+      </Sheet>
+
+      <Sheet center open={menuOpen} onClose={() => setMenuOpen(false)}>
         {post ? (
           <div className="set-list">
             {post.author_id === meId ? (

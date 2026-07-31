@@ -52,7 +52,7 @@ const onboardingRoutes: FastifyPluginAsync = async (app) => {
             looking_for, interests, languages, tribes,
             height_cm, weight_kg, age_gate_passed_at
           ) VALUES (
-            ${accountId}, ${b.display_name}, ${b.handle ?? null},
+            ${accountId}, ${b.display_name}, ${b.handle},
             ${b.birth_date}, ${b.bio ?? null},
             ${b.gender ?? null}, ${b.pronouns ?? null}, ${b.orientation ?? null},
             ${b.relationship_status ?? null}, ${b.body_type ?? null},

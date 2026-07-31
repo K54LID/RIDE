@@ -76,12 +76,9 @@ export default function CommentSheet({ postId, meId, onCountChange, onAuthor }: 
                   disabled={!onAuthor || c.author_id === meId}
                   onClick={() => { if (onAuthor) { tg.tap('light'); onAuthor(c.author_id); } }}
                 >
-                  <span className="comment-author">
-                    {c.author_name}
+                  <span className="comment-author num">
+                    @{c.author_handle}
                     {c.author_verified ? <VerifiedMark size={12} /> : null}
-                    {c.author_handle ? (
-                      <span className="comment-handle num">@{c.author_handle}</span>
-                    ) : null}
                   </span>
                 </button>
                 <span className="comment-body"> {c.body}</span>

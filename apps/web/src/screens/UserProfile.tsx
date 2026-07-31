@@ -10,7 +10,6 @@ import PersonActions from '../components/PersonActions';
 import { VerifiedMark } from '../components/VerifiedMark';
 import { Button, Skeleton } from '../components/ui';
 import Sheet from '../components/Sheet';
-import RankChips from '../components/RankChips';
 import RankStandings from '../components/RankStandings';
 
 interface Payload {
@@ -19,7 +18,7 @@ interface Payload {
 }
 
 export default function UserProfile({
-  accountId, balance, onClose, onBalanceChange, onOpenChat, onOpenUser,
+  accountId, balance, onClose, onBalanceChange, onOpenChat, onOpenUser, onFollows,
 }: {
   accountId: string;
   balance: number;
@@ -27,6 +26,7 @@ export default function UserProfile({
   onBalanceChange: () => void;
   onOpenChat: (conversationId: string) => void;
   onOpenUser: (accountId: string) => void;
+  onFollows: (mode: 'followers' | 'following') => void;
 }) {
   const t = useT();
   const [data, setData] = useState<Payload | null>(null);
@@ -114,7 +114,7 @@ export default function UserProfile({
   const primary = photos.find((p) => !p.is_private) ?? photos[0];
 
   return (
-    <Page title={u.handle ? `@${u.handle}` : u.display_name} onClose={onClose}>
+    <Page title={`@${u.handle}`} onClose={onClose}>
       <div className="pro-head">
         <div className="pro-avatar" style={{ pointerEvents: 'none' }}>
           {primary
@@ -124,7 +124,10 @@ export default function UserProfile({
         {/* Gifts is a tab beside the other counts and opens the
             collection, rather than a loose showcase down the page. */}
         <div className="pro-counts">
-          <div><b className="num">{u.followers}</b><span>{t('profile.followers')}</span></div>
+          <button className="pro-count-btn"
+                  onClick={() => { tg.tap('light'); onFollows('followers'); }}>
+            <b className="num">{u.followers}</b><span>{t('profile.followers')}</span>
+          </button>
           <div><b className="num">{u.woofs_received}</b><span>{t('profile.woofs')}</span></div>
           <button className="pro-count-btn" disabled={data.gifts.length === 0}
                   onClick={() => { tg.tap('light'); setGiftsOpen(true); }}>
@@ -161,8 +164,6 @@ export default function UserProfile({
 
       <Button variant="ghost" onClick={openChat}>{t('chats.title')}</Button>
 
-      <RankChips ranks={ranks} />
-
       {/* Who paid for this person's standing — with their face, and a
           tap opens their profile. The title lapses 30 days after the
           court unless someone pays again. */}
@@ -177,12 +178,9 @@ export default function UserProfile({
           <div style={{ minWidth: 0, flex: 1 }}>
             <div className="courted-by-label">♛ {t('court.courtedBy')}</div>
             <div className="courted-by-name">
-              {court.courter.display_name}
-              {court.courter.handle ? (
-                <span className="num" style={{ color: 'var(--muted)', fontWeight: 400 }}>
-                  {' '}@{court.courter.handle}
-                </span>
-              ) : null}
+              {court.courter.handle
+                ? <span className="num">@{court.courter.handle}</span>
+                : court.courter.display_name}
             </div>
             {court.courter.expires_at ? (
               <div className="courted-by-days num">
@@ -215,7 +213,7 @@ export default function UserProfile({
         </>
       ) : null}
 
-      <div className="eyebrow tight">{t('profile.standing')}</div>
+      <div className="eyebrow tight">{t('profile.standingOther')}</div>
       <RankStandings ranks={ranks} />
 
       {details.length > 0 ? (
@@ -235,7 +233,7 @@ export default function UserProfile({
       </>
       )}
 
-      <Sheet open={giftsOpen} onClose={() => setGiftsOpen(false)}>
+      <Sheet center open={giftsOpen} onClose={() => setGiftsOpen(false)}>
         <h2 style={{ marginBottom: 12 }}>{t('profile.gifts')}</h2>
         <div className="showcase">
           {data.gifts.map((g) => (
@@ -247,7 +245,7 @@ export default function UserProfile({
         </div>
       </Sheet>
 
-      <Sheet open={blockConfirm} onClose={() => setBlockConfirm(false)}>
+      <Sheet center open={blockConfirm} onClose={() => setBlockConfirm(false)}>
         <h2 style={{ marginBottom: 8 }}>{t('profile.block')} {u.display_name}?</h2>
         <p style={{ marginBottom: 16 }}>{t('profile.block.body')}</p>
         <Button onClick={block}>{t('profile.block')}</Button>

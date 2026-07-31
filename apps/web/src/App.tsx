@@ -11,6 +11,7 @@ import Home from './screens/Home';
 import Chats from './screens/Chats';
 import ChatThread from './screens/ChatThread';
 import Discover from './screens/Discover';
+import FollowList from './screens/FollowList';
 import Ranks from './screens/Ranks';
 import Profile from './screens/Profile';
 import EditProfile from './screens/EditProfile';
@@ -76,6 +77,8 @@ export default function App() {
   const meId = me?.account_id ?? '';
   const meName = me?.display_name ?? '';
   const meAvatar = me?.avatar_media_id ?? null;
+  const [followList, setFollowList] = useState<
+    { accountId: string; mode: 'followers' | 'following' } | null>(null);
 
   // A chat thread owns the whole screen — the bar would fight the composer.
   // A person's profile overlays whatever is beneath it, so it works
@@ -87,6 +90,22 @@ export default function App() {
       onClose={() => setViewingUser(null)}
       onBalanceChange={load}
       onOpenChat={(id) => { setViewingUser(null); setViewingPost(null); openChat(id); }}
+      onOpenUser={setViewingUser}
+      onFollows={(mode) => setFollowList({ accountId: viewingUser, mode })}
+    />
+  ) : null;
+
+  /**
+   * Followers / following sits above the profile overlay, so opening a
+   * person from the list stacks their profile on top and closing it
+   * returns you to the list rather than all the way out.
+   */
+  const followOverlay = followList ? (
+    <FollowList
+      accountId={followList.accountId}
+      mode={followList.mode}
+      meId={meId}
+      onClose={() => setFollowList(null)}
       onOpenUser={setViewingUser}
     />
   ) : null;
@@ -109,6 +128,7 @@ export default function App() {
                     onBack={() => go('chats')} onOpenUser={setViewingUser} />
         {postOverlay}
         {userOverlay}
+        {followOverlay}
       </>
     );
   }
@@ -122,6 +142,7 @@ export default function App() {
                 onOpenChat={openChat} />
         {postOverlay}
         {userOverlay}
+        {followOverlay}
       </>
     );
   }
@@ -131,6 +152,7 @@ export default function App() {
         <Saved meId={meId} onBack={() => go('you')} onOpenUser={setViewingUser} />
         {postOverlay}
         {userOverlay}
+        {followOverlay}
       </>
     );
   }
@@ -159,13 +181,15 @@ export default function App() {
       {tab === 'ranks' && <Ranks onOpenUser={setViewingUser} />}
       {tab === 'you' && me && (
         <Profile me={me} onEdit={() => go('edit')} onWallet={() => go('wallet')}
-                 onSettings={() => go('settings')} onSaved={() => go('saved')} />
+                 onSettings={() => go('settings')} onSaved={() => go('saved')}
+                 onFollows={(mode) => setFollowList({ accountId: meId, mode })} />
       )}
 
       <BottomNav route={route} onGo={go} />
 
       {postOverlay}
       {userOverlay}
+      {followOverlay}
 
       <Sheet center open={route === 'create'} onClose={() => go('home')}>
         <Compose

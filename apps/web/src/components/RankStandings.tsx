@@ -13,9 +13,11 @@ const ORDER: Array<[RankEntryMini['board'], string, keyof T]> = [
 /**
  * Every board spelled out in words: court value, woofs, likes, gifts,
  * followers — each with the person's score and their position on that
- * board. RankChips (the "♛ #1 · 🐾 #4" badges) only shows the ones
- * worth bragging about; this is the full picture underneath it, so a
- * profile answers "where do I actually stand" without a trip to Ranks.
+ * board.
+ *
+ * This is the only place a profile states rank now. The old "♛ #1 · 🐾 #4"
+ * chip strip said the same thing twice, less legibly, and has been
+ * removed along with its component.
  */
 export default function RankStandings({ ranks }: { ranks: RankEntryMini[] }) {
   const t = useT();

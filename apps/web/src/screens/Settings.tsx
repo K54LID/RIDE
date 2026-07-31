@@ -4,6 +4,7 @@ import { tg } from '../lib/tg';
 import { useI18n, LOCALES, type Locale } from '../i18n';
 import { Button, Skeleton } from '../components/ui';
 import Sheet from '../components/Sheet';
+import Page from '../components/Page';
 import { useMediaUpload } from '../lib/useMediaUpload';
 
 type Vis = 'everyone' | 'members' | 'friends' | 'nobody';
@@ -52,6 +53,7 @@ export default function Settings({ onBack, onAdmin }: {
   const [s, setS] = useState<SettingsState | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [verifyIntro, setVerifyIntro] = useState(false);
+  const [blockedOpen, setBlockedOpen] = useState(false);
   const [verifySent, setVerifySent] = useState(false);
   const selfie = useMediaUpload(1);
   const selfieInput = useRef<HTMLInputElement>(null);
@@ -177,27 +179,14 @@ export default function Settings({ onBack, onAdmin }: {
                right={<Switch on={s.show_online} onChange={(v) => patch({ show_online: v })} />} />
           <Row label={t('settings.showLastSeen')}
                right={<Switch on={s.show_last_seen} onChange={(v) => patch({ show_last_seen: v })} />} />
+          {/* The list used to spill out underneath this row, so the
+              row's own ">" pointed at nothing and the blocked people
+              sat loose in the privacy group. It opens a page now. */}
           <Row label={t('settings.blocked')}
                sub={`${s.blocked.length}`}
+               onClick={() => { tg.tap('light'); setBlockedOpen(true); }}
                right={<span style={{ color: 'var(--faint)' }}>›</span>} />
         </div>
-        {s.blocked.length > 0 ? (
-          <div className="set-list" style={{ marginTop: 8 }}>
-            {s.blocked.map((b) => (
-              <Row key={b.blocked_id} label={b.display_name}
-                   sub={b.handle ? `@${b.handle}` : undefined}
-                   right={
-                     <button className="chip" onClick={async () => {
-                       tg.tap('light');
-                       await apiFetch('/v1/settings/unblock', {
-                         method: 'POST', body: JSON.stringify({ account_id: b.blocked_id }),
-                       });
-                       load();
-                     }}>{t('settings.unblock')}</button>
-                   } />
-            ))}
-          </div>
-        ) : null}
       </div>
 
       <div className="set-group">
@@ -260,13 +249,42 @@ export default function Settings({ onBack, onAdmin }: {
           the delete-account group, off-screen from the button the
           person just pressed — tapping "Request" appeared to do
           nothing. A sheet rises over the current view instead. */}
-      <Sheet open={verifySent} onClose={() => setVerifySent(false)}>
+      {blockedOpen ? (
+        <Page title={t('settings.blocked')} onClose={() => setBlockedOpen(false)}>
+          {s.blocked.length === 0 ? (
+            <p className="hint" style={{ textAlign: 'center', padding: 32 }}>
+              {t('settings.blocked.empty')}
+            </p>
+          ) : (
+            <div className="set-list">
+              {s.blocked.map((b) => (
+                <Row key={b.blocked_id}
+                     label={`@${b.handle}`}
+                     right={
+                       <button className="chip" onClick={async () => {
+                         tg.tap('light');
+                         try {
+                           await apiFetch('/v1/settings/unblock', {
+                             method: 'POST', body: JSON.stringify({ account_id: b.blocked_id }),
+                           });
+                           tg.notify('success');
+                         } catch { tg.notify('error'); }
+                         load();
+                       }}>{t('settings.unblock')}</button>
+                     } />
+              ))}
+            </div>
+          )}
+        </Page>
+      ) : null}
+
+      <Sheet center open={verifySent} onClose={() => setVerifySent(false)}>
         <h2 style={{ marginBottom: 8 }}>{t('verify.sentTitle')}</h2>
         <p style={{ marginBottom: 16 }}>{t('verify.sentBody')}</p>
         <Button variant="ghost" onClick={() => setVerifySent(false)}>{t('common.done')}</Button>
       </Sheet>
 
-      <Sheet open={verifyIntro} onClose={() => setVerifyIntro(false)}>
+      <Sheet center open={verifyIntro} onClose={() => setVerifyIntro(false)}>
         <h2 style={{ marginBottom: 8 }}>{t('verify.title')}</h2>
         <p style={{ marginBottom: 6 }}>{t('verify.step1')}</p>
         <p style={{ marginBottom: 6 }}>{t('verify.step2')}</p>
@@ -278,7 +296,7 @@ export default function Settings({ onBack, onAdmin }: {
         <Button variant="ghost" onClick={() => setVerifyIntro(false)}>{t('common.cancel')}</Button>
       </Sheet>
 
-      <Sheet open={confirmDelete} onClose={() => setConfirmDelete(false)}>
+      <Sheet center open={confirmDelete} onClose={() => setConfirmDelete(false)}>
         <h2 style={{ marginBottom: 8 }}>{t('settings.deleteConfirm')}</h2>
         <p style={{ marginBottom: 16 }}>{t('settings.deleteConfirm.body')}</p>
         <Button onClick={deleteAccount}>{t('settings.deleteAccount')}</Button>

@@ -51,7 +51,9 @@ export default function Alerts({ onBack, onOpenUser, onOpenPost, onOpenChat }: {
   useEffect(load, [load]);
 
   const line = (n: NotificationItem): string => {
-    const who = n.actor_name ?? 'Someone';
+    // Handles are the identifier everywhere outside the profile header
+    // and the Discover grid, alerts included.
+    const who = n.actor_handle ? `@${n.actor_handle}` : n.actor_name ?? 'Someone';
     switch (n.kind) {
       case 'woof': return `${who} ${t('notif.woofed')}`;
       case 'gift': return `${who} ${t('notif.gifted')}`;

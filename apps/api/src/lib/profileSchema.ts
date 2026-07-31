@@ -7,11 +7,15 @@ const tagList = z.array(z.string().trim().min(1).max(40)).max(20);
 
 export const ProfileCoreSchema = z.object({
   display_name: z.string().trim().min(1).max(50),
+  /**
+   * Required. The handle is how a person is addressed everywhere except
+   * their own profile header and the Discover grid, so an account
+   * without one cannot be referred to at all.
+   */
   handle: z
     .string()
     .trim()
-    .regex(/^[a-zA-Z0-9_]{3,24}$/, 'Handle: 3–24 letters, numbers or underscores')
-    .optional(),
+    .regex(/^[a-zA-Z0-9_]{3,24}$/, 'Handle: 3–24 letters, numbers or underscores'),
   bio: z.string().trim().max(500).optional(),
   gender: shortText.optional(),
   pronouns: shortText.optional(),

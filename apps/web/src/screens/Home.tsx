@@ -37,8 +37,8 @@ export function PostCard({ post, meId, onLike, onComment, onMenu, onSave, onAuth
                 onClick={() => { if (onAuthor) { tg.tap('light'); onAuthor(post.author_id); } }}>
           <Avatar name={post.author_name} mediaId={post.author_avatar_media_id} size={36} radius={11} />
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div className="person-name" style={{ fontSize: '0.94rem' }}>
-              {post.author_name}
+            <div className="person-name num" style={{ fontSize: '0.94rem' }}>
+              @{post.author_handle}
               {post.author_verified ? <VerifiedMark size={14} /> : null}
             </div>
             <div className="person-sub">
@@ -198,9 +198,11 @@ export default function Home({ meId, meName, meAvatar, onCompose, onAlerts, onOp
         method: 'POST',
         body: JSON.stringify({ subject_type: 'post', subject_id: p.id, reason: 'post_report' }),
       });
+      // A ✓ that vanished after 900ms left people unsure anything had
+      // happened. Say plainly where the report went.
+      setMenuPost(null);
       setReportDone(true);
       tg.notify('success');
-      setTimeout(() => { setReportDone(false); setMenuPost(null); }, 900);
     } catch { tg.notify('error'); }
   };
 
@@ -310,7 +312,7 @@ export default function Home({ meId, meName, meAvatar, onCompose, onAlerts, onOp
         ) : null}
       </Sheet>
 
-      <Sheet open={menuPost !== null} onClose={() => setMenuPost(null)}>
+      <Sheet center open={menuPost !== null} onClose={() => setMenuPost(null)}>
         {menuPost ? (
           <div className="set-list">
             {menuPost.author_id === meId ? (
@@ -337,9 +339,7 @@ export default function Home({ meId, meName, meAvatar, onCompose, onAlerts, onOp
                   <span className="set-row-label">{t('post.share')}</span>
                 </button>
                 <button className="set-row danger" onClick={() => report(menuPost)}>
-                  <span className="set-row-label">
-                    {reportDone ? '✓' : t('post.report')}
-                  </span>
+                  <span className="set-row-label">{t('post.report')}</span>
                 </button>
               </>
             )}
@@ -347,7 +347,13 @@ export default function Home({ meId, meName, meAvatar, onCompose, onAlerts, onOp
         ) : null}
       </Sheet>
 
-      <Sheet open={editPost !== null} onClose={() => setEditPost(null)}>
+      <Sheet center open={reportDone} onClose={() => setReportDone(false)}>
+        <h2 style={{ marginBottom: 8 }}>{t('report.sentTitle')}</h2>
+        <p style={{ marginBottom: 16 }}>{t('report.sentBody')}</p>
+        <Button variant="ghost" onClick={() => setReportDone(false)}>{t('common.done')}</Button>
+      </Sheet>
+
+      <Sheet center open={editPost !== null} onClose={() => setEditPost(null)}>
         <h2 style={{ marginBottom: 12 }}>{t('post.edit')}</h2>
         <label className="field">
           <textarea rows={4} maxLength={2000} value={editBody}

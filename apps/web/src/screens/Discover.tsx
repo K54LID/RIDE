@@ -129,10 +129,10 @@ export default function Discover({ onOpenUser }: {
               but the bot chat does. This asks the bot to put the
               share-location keyboard in the chat, then closes the app
               so that button is the first thing behind it. */}
-          <button className="icon-btn sm" aria-label={t('discover.updateLocation')}
+          <button className="icon-btn" aria-label={t('discover.updateLocation')}
                   disabled={locating}
                   onClick={requestLocation}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none"
                  stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" />
               <circle cx="12" cy="10" r="2.6" />

@@ -46,7 +46,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 export interface Me {
   account_id: string;
   display_name: string;
-  handle: string | null;
+  handle: string;
   bio: string | null;
   court_value: number;
   gender: string | null;
@@ -81,7 +81,7 @@ export interface Post {
   comment_count: number;
   created_at: string;
   author_name: string;
-  author_handle: string | null;
+  author_handle: string;
   author_court_value: number;
   author_verified: boolean;
   author_avatar_media_id: string | null;
@@ -94,7 +94,7 @@ export interface Post {
 export interface Person {
   account_id: string;
   display_name: string;
-  handle: string | null;
+  handle: string;
   bio: string | null;
   age: number | null;
   gender: string | null;
@@ -110,7 +110,7 @@ export interface RankEntry {
   rank: number;
   account_id: string;
   display_name: string;
-  handle: string | null;
+  handle: string;
   court_value: number;
   verified: boolean;
   score: number;
@@ -159,7 +159,7 @@ export interface ReferralState {
 }
 
 export interface StoryAuthor {
-  author_id: string; display_name: string; handle: string | null;
+  author_id: string; display_name: string; handle: string;
   story_count: number; unseen_count: number; latest_at: string;
   avatar_media_id: string | null;
 }
@@ -171,7 +171,7 @@ export interface Story {
 
 export interface ChatSummary {
   id: string; last_message_at: string; pinned: boolean;
-  peer_id: string; peer_name: string; peer_handle: string | null;
+  peer_id: string; peer_name: string; peer_handle: string;
   peer_verified: boolean; peer_avatar_media_id: string | null;
   peer_online: boolean | null; peer_last_seen: string | null;
   last_body: string | null; last_kind: string | null;
@@ -185,6 +185,7 @@ export interface ChatMessage {
   edited_at: string | null; deleted_at: string | null; created_at: string;
   reply_body: string | null; reply_author: string | null;
   reactions: Record<string, number> | null; my_reaction: string | null;
+  story_id: string | null; story_media_id: string | null; story_alive: boolean | null;
 }
 
 export interface ProfilePhoto {
@@ -193,12 +194,12 @@ export interface ProfilePhoto {
 
 export interface Comment {
   id: string; body: string; created_at: string; author_id: string;
-  author_name: string; author_handle: string | null; author_verified: boolean;
+  author_name: string; author_handle: string; author_verified: boolean;
   author_avatar_media_id: string | null;
 }
 
 export interface PublicUser {
-  account_id: string; display_name: string; handle: string | null;
+  account_id: string; display_name: string; handle: string;
   bio: string | null; court_value: number;
   gender: string | null; pronouns: string | null; orientation: string | null;
   relationship_status: string | null;
@@ -213,8 +214,17 @@ export interface PublicUser {
 
 export interface AlbumGrant {
   viewer_id: string; granted_at: string;
-  display_name: string; handle: string | null;
+  display_name: string; handle: string;
   avatar_media_id: string | null;
+}
+
+export interface FollowPerson {
+  account_id: string;
+  display_name: string;
+  handle: string;
+  verified: boolean;
+  avatar_media_id: string | null;
+  i_follow: boolean;
 }
 
 export interface RankEntryMini {
@@ -227,7 +237,7 @@ export interface CourtInfo {
   court_value: number;
   next_cost: number;
   courter: {
-    account_id: string; display_name: string | null; handle: string | null;
+    account_id: string; display_name: string | null; handle: string;
     at: string; expires_at: string | null; avatar_media_id: string | null;
   } | null;
 }

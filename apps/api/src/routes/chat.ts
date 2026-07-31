@@ -175,13 +175,19 @@ const chatRoutes: FastifyPluginAsync = async (app) => {
       SELECT m.id, m.sender_id, m.kind::text AS kind, m.body, m.media_id,
              m.reply_to_id, m.edited_at, m.deleted_at, m.created_at,
              rm.body AS reply_body,
-             rp.display_name AS reply_author,
+             rp.handle AS reply_author,
+             -- Story replies carry the story they answer, so the bubble
+             -- can say so and show the thumbnail while it still exists.
+             m.story_id,
+             st.media_id AS story_media_id,
+             (st.id IS NOT NULL AND st.expires_at > now()) AS story_alive,
              (SELECT json_object_agg(r.emoji, r.cnt) FROM (
                 SELECT emoji, count(*)::int AS cnt FROM message_reactions
                 WHERE message_id = m.id GROUP BY emoji
              ) r) AS reactions,
              mr.emoji AS my_reaction
       FROM messages m
+      LEFT JOIN stories st ON st.id = m.story_id
       LEFT JOIN messages rm ON rm.id = m.reply_to_id
       LEFT JOIN profiles rp ON rp.account_id = rm.sender_id
       LEFT JOIN message_reactions mr ON mr.message_id = m.id AND mr.account_id = ${me}

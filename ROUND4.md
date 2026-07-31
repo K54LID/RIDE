@@ -205,3 +205,175 @@ id never leaves the server.
 ## New strings
 
 `discover.updateLocation`, `discover.locationFailed` — all ten locales.
+
+---
+
+# Round 6 — partial
+
+**This round is incomplete.** Nine of the thirteen items are done and
+build clean; four are not started and are listed at the bottom with why.
+
+## Done
+
+### Bot: "Open RIDE" after saving a location
+The location-saved confirmation now sends a second message carrying the
+same inline `web_app` button `/start` uses. New exported helper
+`sendOpenApp()` in `lib/botCommands.ts`, reusable anywhere the bot
+should offer a way back into the app.
+
+### Sheets are stable in the middle — verification, chat actions, all of them
+Root cause for both "verification request UI is not fixed" and "editing
+/ deleting / reacting to a message is not possible". `.sheet` positioned
+itself with `top: 50%` + `translateY(-50%)`, which resolves against the
+**layout** viewport. On several Telegram clients that runs taller than
+what's actually on screen, so a "centred" sheet sat low and a menu
+opened from near the bottom of a chat put its buttons off the fold
+entirely — the buttons existed and were simply unreachable.
+
+The panel now lives inside a fixed `.sheet-wrap` sized to
+`--tg-viewport-stable-height` and centres with flexbox, which cannot
+drift. Message actions, edit, verification intro/sent, delete-account,
+post menus, gifts and block confirms all pass `center`.
+
+### Reports reach the admin panel
+`GET /v1/admin/reports` returned bare ids, so the only possible action
+was "resolve" with nothing to look at. It now resolves the responsible
+account for every subject type, the post excerpt, whether the post is
+already deleted, and the reporter's handle.
+
+New **Reports** pane in the admin panel with **Delete post**, **Ban**
+and **Dismiss**. Acting and closing the report is one gesture — split
+apart, a moderator could delete a post and leave the report open, so
+the same thing got handled twice.
+
+### Reporters are told what happened
+The old flow flashed a ✓ inside the menu for 900ms. Reporting now opens
+a confirmation sheet saying it has gone to the admins to review, in
+both the feed and the full-screen post view. It also states that the
+outcome won't be reported back, which is true and better said upfront.
+
+### Stories don't close themselves
+Images had a 5s timer and videos advanced on `ended`, so a story could
+vanish mid-read and the only defence was holding a finger down. All
+auto-advance is removed: tap the right third to go forward, the left
+third to go back, and videos loop. The progress bars mark position
+rather than animating a fill that no longer corresponds to anything.
+
+### Story author's photo
+The story header showed a bare name. It now shows the author's avatar
+beside their **handle**, and the whole thing still opens their profile.
+
+### Blocked users live in Settings
+The blocked list used to spill out underneath the "Blocked" row, so the
+row's own "›" pointed at nothing. It opens a proper page now, listing
+people by handle with Unblock.
+
+### Smaller things
+- Location button is `icon-btn`, the same size as Filters.
+- **Chats → Chat** (singular) in the nav and screen title, all ten locales.
+- The `♛ #1 · 🐾 #4` chip strip is gone from both profiles, and
+  `RankChips.tsx` with it. The written standings list below is now the
+  only place a profile states rank. **Confirmed against the screenshot:**
+  the circled row was the chip strip, and the `YOUR STANDING` block
+  below it is what stays.
+- Two things the screenshot itself surfaced, now fixed: the standings
+  heading said `YOUR STANDING` on *other people's* profiles (new
+  `profile.standingOther` → "Standing"), and the courted-by strip
+  printed the courter's display name and handle together — it shows the
+  handle alone now, consistent with handles being the identifier
+  everywhere outside grid/global and the profile header.
+
+## Not done
+
+- **Handles everywhere / force a username.** Touches onboarding, the
+  profile PATCH schema, a migration to backfill and make `handle`
+  non-null, a gate for existing accounts without one, and every screen
+  that renders a name. Half-done here would leave accounts that can't
+  be addressed.
+- **Clickable handles and photos everywhere.** Depends on the above —
+  worth doing in the same pass, since both edit the same call sites.
+- **Followers list with follow/unfollow.** Needs a new paginated
+  endpoint plus a screen; not started.
+- **Story reply → private chat, marked as a reply to the story.** Needs
+  a message kind that references a story, schema included; not started.
+
+---
+
+# Round 7 — the four remaining items
+
+All four are done. Both apps pass `tsc --noEmit`; the web app builds.
+
+**Two new migrations, and 012 is not reversible casually — read it
+before running.**
+
+## Handles are the identity
+
+Confirmed rule: **display name on the profile header and the Discover
+grid/global tiles; handle everywhere else.**
+
+`profiles.handle` is now `NOT NULL` (migration `012_handles_required`).
+Existing rows are backfilled deterministically: slugify the display
+name where that yields something legal and unclaimed, otherwise
+`user_<first 8 of account_id>`, which is unique by construction. The
+partial unique index is replaced with a plain one now the predicate is
+redundant.
+
+The client types changed from `handle: string | null` to `handle:
+string`, which turned every "no handle, fall back to the name" branch
+into a compile error — that was the point, and it is how the call sites
+below were found rather than guessed:
+
+- comments, post authors in the feed / saved / post view
+- chat list rows, chat thread header, quoted reply authors
+- ranks podium and rows, stories rail, story viewer header
+- alerts, blocked list, courted-by strip, profile page titles
+
+Onboarding and Edit profile now require a handle instead of offering it
+as optional, and `ProfileCoreSchema.handle` is no longer `.optional()`.
+The PATCH path uses `COALESCE`, so a handle can be changed but never
+cleared.
+
+## Followers and following
+
+New `GET /v1/users/:id/followers` and `/following` (both accept `me`),
+paginated, each row carrying `i_follow` so the button is right on first
+paint instead of needing a request per row. Blocked people are omitted
+both directions.
+
+New `FollowList` screen, reached by tapping the Followers count on
+either profile. Follow/unfollow inline, optimistic with revert on
+failure. Rows stay put when you unfollow — a list that removed people
+as you tapped would move the next row under your finger.
+
+It stacks above the profile overlay, so opening someone from the list
+puts their profile on top and closing returns you to the list.
+
+## Story replies go to the chat
+
+A reply used to write `story_replies` and fire a notification, and that
+was all — the author had no thread to answer in, and the reply was
+visible only in their viewer panel.
+
+`POST /v1/stories/:id/reply` now also inserts a real message into the
+private conversation, reusing the existing 1:1 thread if there is one
+(same lookup `/v1/chats/open` uses) so a reply can't fork a second
+thread with the same person. It returns `conversation_id`. Blocks are
+checked. The reply resurfaces a thread either side had cleared.
+
+Migration `013_story_reply_messages` adds `messages.story_id`.
+`ON DELETE SET NULL`, not cascade: stories expire within 24h and losing
+the conversation with them would be worse than losing the thumbnail —
+the bubble degrades to "Replied to a story (expired)".
+
+## Clickable everywhere
+
+Handles and photos already opened profiles in the feed, comments, chat
+list, chat header, ranks, stories rail, story header and courted-by.
+Added: follow-list rows, and alerts now name people by handle.
+
+## Deployment
+
+Run migrations in order. **012 makes `handle` NOT NULL** — take a
+backup first. The backfill is written to be safe on re-run, but the
+`ALTER COLUMN ... SET NOT NULL` is not something to discover a problem
+with on a live database.

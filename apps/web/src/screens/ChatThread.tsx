@@ -148,6 +148,9 @@ export default function ChatThread({ conversationId, meId, onBack, onOpenUser }:
       edited_at: null, deleted_at: null, created_at: new Date().toISOString(),
       reply_body: reply?.body ?? null, reply_author: null,
       reactions: null, my_reaction: null,
+      // Composed here, so never a story reply — those are created by
+      // the stories route and arrive on the next poll.
+      story_id: null, story_media_id: null, story_alive: null,
     };
     setMessages((cur) => [...(cur ?? []), temp]);
     scrollDown();
@@ -254,7 +257,7 @@ export default function ChatThread({ conversationId, meId, onBack, onOpenUser }:
             {peer?.peer_online ? <span className="chat-online sm" /> : null}
           </div>
           <span style={{ minWidth: 0 }}>
-            <span className="chat-head-name">{peer?.peer_name ?? ''}</span>
+            <span className="chat-head-name num">{peer ? `@${peer.peer_handle}` : ''}</span>
             <span className={`chat-head-sub ${peerTyping ? 'typing' : ''}`}>{presence}</span>
           </span>
         </button>
@@ -282,9 +285,25 @@ export default function ChatThread({ conversationId, meId, onBack, onOpenUser }:
                 className={`bubble ${mine ? 'mine' : ''} ${m.id < 0 ? 'pending' : ''}`}
                 onClick={() => { if (m.deleted_at === null && m.id > 0) setMenuMsg(m); }}
               >
+                {/* A story reply says what it is answering. The story
+                    itself expires after 24h — the message outlives it,
+                    so the thumbnail degrades to a plain label. */}
+                {m.story_id ? (
+                  <div className="bubble-story">
+                    {m.story_alive && m.story_media_id ? (
+                      <span className="bubble-story-thumb">
+                        <Media id={m.story_media_id} kind="image" thumb />
+                      </span>
+                    ) : null}
+                    <span className="bubble-story-label">
+                      {m.story_alive ? t('chat.storyReply') : t('chat.storyReplyGone')}
+                    </span>
+                  </div>
+                ) : null}
+
                 {m.reply_body ? (
                   <div className="bubble-reply">
-                    {m.reply_author ? <b>{m.reply_author}</b> : null}
+                    {m.reply_author ? <b className="num">@{m.reply_author}</b> : null}
                     <span>{m.reply_body.slice(0, 90)}</span>
                   </div>
                 ) : null}
@@ -358,7 +377,7 @@ export default function ChatThread({ conversationId, meId, onBack, onOpenUser }:
         </div>
       </div>
 
-      <Sheet open={menuMsg !== null} onClose={() => setMenuMsg(null)}>
+      <Sheet center open={menuMsg !== null} onClose={() => setMenuMsg(null)}>
         {menuMsg ? (
           <>
             <div className="react-row">
@@ -388,7 +407,7 @@ export default function ChatThread({ conversationId, meId, onBack, onOpenUser }:
         ) : null}
       </Sheet>
 
-      <Sheet open={editMsg !== null} onClose={() => setEditMsg(null)}>
+      <Sheet center open={editMsg !== null} onClose={() => setEditMsg(null)}>
         <h2 style={{ marginBottom: 12 }}>{t('post.edit')}</h2>
         <label className="field">
           <input value={editBody} onChange={(e) => setEditBody(e.target.value)} />

@@ -362,17 +362,56 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
     return { user, ledger };
   });
 
+  /**
+   * Open reports, with enough context to act without leaving the pane:
+   * who reported, who is being reported, and — for a post — an excerpt
+   * so a moderator can judge it. Previously this returned bare ids, so
+   * the only possible action was "resolve" with nothing to look at.
+   */
   app.get('/v1/admin/reports', { preHandler: [app.requireAuth, staffOnly] }, async () => {
     const rows = await sql`
-      SELECT r.id, r.subject_type, r.subject_id, r.reason, r.details, r.created_at,
-             p.display_name AS reporter_name
+      SELECT r.id, r.subject_type::text AS subject_type, r.subject_id,
+             r.reason, r.details, r.created_at,
+             rp.display_name AS reporter_name, rp.handle AS reporter_handle,
+             -- The account ultimately responsible for the reported thing:
+             -- the account itself, or the author of the post/comment.
+             CASE r.subject_type::text
+               WHEN 'account' THEN r.subject_id::uuid
+               WHEN 'post'    THEN (SELECT po.author_id FROM posts po
+                                    WHERE po.id::text = r.subject_id)
+               WHEN 'comment' THEN (SELECT co.author_id FROM comments co
+                                    WHERE co.id::text = r.subject_id)
+               WHEN 'story'   THEN (SELECT st.author_id FROM stories st
+                                    WHERE st.id::text = r.subject_id)
+             END AS target_id,
+             (SELECT po.body FROM posts po WHERE po.id::text = r.subject_id) AS post_excerpt,
+             (SELECT po.deleted_at IS NOT NULL FROM posts po
+              WHERE po.id::text = r.subject_id) AS post_deleted
       FROM reports r
-      LEFT JOIN profiles p ON p.account_id = r.reporter_id
+      LEFT JOIN profiles rp ON rp.account_id = r.reporter_id
       WHERE r.state = 'open'
       ORDER BY r.created_at
       LIMIT 50
     `;
-    return { reports: rows };
+
+    const targetIds = rows
+      .map((r) => r.target_id as string | null)
+      .filter((v): v is string => v !== null);
+    const targets = targetIds.length
+      ? await sql<Array<{ account_id: string; display_name: string; handle: string | null; status: string }>>`
+          SELECT p.account_id, p.display_name, p.handle, a.status::text AS status
+          FROM profiles p JOIN accounts a ON a.id = p.account_id
+          WHERE p.account_id = ANY(${targetIds})
+        `
+      : [];
+    const byId = new Map(targets.map((t) => [t.account_id, t]));
+
+    return {
+      reports: rows.map((r) => ({
+        ...r,
+        target: r.target_id ? byId.get(r.target_id as string) ?? null : null,
+      })),
+    };
   });
 
   app.post('/v1/admin/reports/:id/resolve', { preHandler: [app.requireAuth, staffOnly] }, async (req) => {

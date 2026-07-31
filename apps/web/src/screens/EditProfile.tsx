@@ -23,7 +23,7 @@ export default function EditProfile({ me, onSaved, onBack }: {
   useEffect(() => tg.backButton(onBack), [onBack]);
 
   const [displayName, setDisplayName] = useState(me.display_name);
-  const [handle, setHandle] = useState(me.handle ?? '');
+  const [handle, setHandle] = useState(me.handle);
   const [bio, setBio] = useState(me.bio ?? '');
   const [gender, setGender] = useState(me.gender);
   const [pronouns, setPronouns] = useState(me.pronouns);
@@ -39,7 +39,8 @@ export default function EditProfile({ me, onSaved, onBack }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleValid = handle === '' || /^[a-zA-Z0-9_]{3,24}$/.test(handle);
+  // A handle is required now — it is how everyone is addressed.
+  const handleValid = /^[a-zA-Z0-9_]{3,24}$/.test(handle);
 
   const save = async () => {
     setBusy(true);
@@ -49,7 +50,7 @@ export default function EditProfile({ me, onSaved, onBack }: {
         method: 'PATCH',
         body: JSON.stringify({
           display_name: displayName.trim(),
-          handle: handle || undefined,
+          handle,
           bio: bio.trim() || undefined,
           gender: gender ?? undefined,
           pronouns: pronouns ?? undefined,

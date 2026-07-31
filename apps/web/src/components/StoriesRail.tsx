@@ -81,7 +81,7 @@ export default function StoriesRail({
             <span className={`rail-ring ${a.unseen_count > 0 ? 'unseen' : 'seen'}`}>
               <Avatar name={a.display_name} mediaId={a.avatar_media_id} size={56} radius={28} />
             </span>
-            <span className="rail-name">{a.display_name.split(' ')[0]}</span>
+            <span className="rail-name num">@{a.handle}</span>
           </button>
         )
       ))}
