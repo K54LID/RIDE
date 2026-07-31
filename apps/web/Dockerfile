@@ -14,6 +14,11 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 RUN npm ci --include=dev
+# Everything the web build needs is inside apps/web — including
+# scripts/check-hooks.mjs, which runs as part of `npm run build`. Keep
+# it that way: a build-time file outside this copy silently fails the
+# image build, and a failed build means the previous image keeps
+# serving.
 COPY apps/web apps/web
 RUN npm run build --workspace @ride/web
 

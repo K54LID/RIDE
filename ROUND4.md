@@ -445,3 +445,70 @@ So the API was up throughout — which is itself the proof that the blank
 screen was client-side: had the API been down, `phase` would have gone
 to `'error'` and shown the offline card, and the bad hook would never
 have been reached.
+
+---
+
+# Round 9 — the round-8 fix never reached production
+
+## What actually happened
+
+Round 8 fixed the hooks bug correctly, and then stopped that fix from
+ever shipping.
+
+I added `scripts/check-hooks.mjs` at the **repo root** and wired it into
+`apps/web`'s `build` script. But `apps/web/Dockerfile` copies only
+`package.json`, the three workspace manifests, and `apps/web`. It never
+copied `scripts/`. So inside the image, `npm run build` immediately ran
+`node ../../scripts/check-hooks.mjs` against a file that did not exist,
+exited 1, and failed the image build.
+
+A failed build means Coolify publishes nothing and keeps serving the
+previous image — the round-7 one, with the blank screen. Which is why
+redeploying changed nothing.
+
+Reproduced by staging a directory containing exactly what the
+Dockerfile copies and running the same command: `npm error command sh
+-c node ../../scripts/check-hooks.mjs`.
+
+**Fix:** the guard moved to `apps/web/scripts/check-hooks.mjs`, inside
+the workspace it checks, so it travels with `COPY apps/web apps/web`.
+The Dockerfile needs no special case, which is the point — a build-time
+file outside the copied tree is the failure mode, not a thing to
+remember to copy.
+
+## The blank screen is now proven, not inferred
+
+`apps/web/scripts/smoke.mjs` mounts the real production bundle in jsdom
+with a stubbed API and asserts `#root` has content.
+
+- fixed build → `root children: 2`, renders the feed, **PASS**
+- bug re-introduced → `root children: 0`, `innerHTML len: 0`, and
+  **React error #310** — "Rendered more hooks than during the previous
+  render" — **FAIL**
+
+React #310 with an empty root is precisely "only the background colour
+is visible". The diagnosis is now confirmed by reproduction rather than
+reasoning.
+
+## Why the pipeline let this through twice
+
+- `tsc` cannot see hook ordering; the code is well-typed.
+- `vite build` succeeds; the bug is at runtime, on the second render.
+- No ESLint, so no `eslint-plugin-react-hooks`.
+- And nothing ever *ran* the built artefact.
+
+Now in place:
+
+1. **`apps/web/scripts/check-hooks.mjs`** — zero-dependency, runs in
+   `typecheck` and `build`, fails on a hook below a conditional return.
+   Verified in both directions.
+2. **`apps/web/scripts/smoke.mjs`** in CI — installs jsdom with
+   `npm i --no-save` so it can never enter `package-lock.json` and
+   therefore can never affect the Docker image build. Deliberate, given
+   what a build-time dependency just cost.
+
+## Verified before shipping
+
+- `package-lock.json` unchanged; `jsdom` absent from it.
+- Web build succeeds in a staged copy of the exact Docker context.
+- Smoke test passes against the dist produced by that staged build.

@@ -18,6 +18,16 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
 
+      # Mount the built bundle in a DOM and assert it renders. A Rules
+      # of Hooks violation shipped once with a green typecheck AND a
+      # green vite build, and rendered nothing but the background
+      # colour. Only running it catches that.
+      #
+      # --no-save so jsdom never enters package-lock.json and therefore
+      # can never reach the Docker image build.
+      - run: npm i --no-save jsdom
+      - run: node apps/web/scripts/smoke.mjs apps/web/dist
+
   # Deployment is triggered by Coolify's own GitHub webhook on push to
   # main, not from here. Keeping deploy out of Actions means one system
   # owns the pipeline and there is no race between the two.
