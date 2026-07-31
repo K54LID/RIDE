@@ -69,6 +69,8 @@ export interface Me {
   following: number;
   gifts_received: number;
   avatar_media_id: string | null;
+  /** t.me link to the bot — what every share sheet should send. */
+  bot_url: string;
 }
 
 export interface Post {
@@ -156,6 +158,8 @@ export interface DailyState {
 
 export interface ReferralState {
   code: string; reward: number; invited: number; earned: number;
+  /** t.me link carrying the code in its /start payload. */
+  link: string;
 }
 
 export interface StoryAuthor {

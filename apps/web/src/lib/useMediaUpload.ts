@@ -42,6 +42,17 @@ export function useMediaUpload(max = 10) {
           const xhr = new XMLHttpRequest();
           xhr.open('POST', `${BASE}/v1/media`);
           xhr.setRequestHeader('Authorization', `tma ${tg.initData()}`);
+          /**
+           * An XHR with no timeout waits forever. If the server stalls
+           * mid-upload, `uploading` never clears, Publish stays
+           * disabled, and the compose sheet is stuck with no error and
+           * no way out but reloading the app. Ninety seconds is longer
+           * than any 45MB video needs on a bad connection and far
+           * shorter than "never".
+           */
+          xhr.timeout = 90_000;
+          xhr.ontimeout = () => reject(new Error(
+            'Upload timed out. Check your connection and try again.'));
           xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100));
           };
@@ -91,7 +102,16 @@ export function useMediaUpload(max = 10) {
 
   const reset = useCallback(() => {
     setItems((cur) => {
-      cur.forEach((i) => URL.revokeObjectURL(i.previewUrl));
+      /**
+       * Revoke *after* the render that unmounts these elements, not
+       * during it. reset() is called from the publish handler while the
+       * thumbnails are still in the DOM, and pulling a blob URL out from
+       * under a live <video> mid-commit is how WebKit ends up with a
+       * decoder waiting on bytes that no longer exist. One tick later
+       * the elements are gone and the URLs are safe to release.
+       */
+      const stale = cur;
+      setTimeout(() => stale.forEach((i) => URL.revokeObjectURL(i.previewUrl)), 0);
       return [];
     });
   }, []);
@@ -118,6 +138,8 @@ export function uploadBlob(blob: Blob, filename = 'photo.jpg'): Promise<string> 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${BASE}/v1/media`);
     xhr.setRequestHeader('Authorization', `tma ${tg.initData()}`);
+    xhr.timeout = 90_000;
+    xhr.ontimeout = () => reject(new Error('Upload timed out'));
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve((JSON.parse(xhr.responseText) as { id: string }).id);

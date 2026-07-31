@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { z } from 'zod';
 import { sql } from '../lib/db.js';
 import { HttpError } from '../lib/errors.js';
 import { OnboardingSchema, ageOn, MIN_AGE } from '../lib/profileSchema.js';
@@ -14,6 +15,30 @@ import { OnboardingSchema, ageOn, MIN_AGE } from '../lib/profileSchema.js';
  * the second gives a clean error, the third is the guarantee.
  */
 const onboardingRoutes: FastifyPluginAsync = async (app) => {
+  /**
+   * Is this handle free?
+   *
+   * Runs on verifyTma rather than requireAuth for the same reason the
+   * POST below does: the caller is usually mid-onboarding and has no
+   * account yet. It answers about handles only — no profile, no id, no
+   * hint about who holds a taken one.
+   *
+   * This is a courtesy, not the guarantee. The unique index on
+   * profiles.handle is the guarantee: someone can always take the name
+   * between this answer and the submit, and the 409 path handles that.
+   */
+  app.get('/v1/handles/available', async (req) => {
+    app.verifyTma(req);
+    const { handle } = z.object({
+      handle: z.string().trim().regex(/^[a-zA-Z0-9_]{3,24}$/),
+    }).parse(req.query);
+
+    const rows = await sql`
+      SELECT 1 FROM profiles WHERE lower(handle) = lower(${handle}) LIMIT 1
+    `;
+    return { handle, available: rows.length === 0 };
+  });
+
   app.post('/v1/onboarding', async (req) => {
     const tma = app.verifyTma(req);
 

@@ -7,6 +7,7 @@ import Sheet from '../components/Sheet';
 import CommentSheet from '../components/CommentSheet';
 import { Button, Skeleton } from '../components/ui';
 import { PostCard } from './Home';
+import { botUrl } from '../lib/appInfo';
 
 /**
  * One post, full screen — the destination when someone taps "X liked
@@ -58,7 +59,7 @@ export default function PostView({ postId, meId, onClose, onOpenUser }: {
     setMenuOpen(false);
     const text = `${post.author_name} on RIDE: ${(post.body ?? '').slice(0, 120)}`;
     window.open(
-      `https://t.me/share/url?url=${encodeURIComponent('https://ridethatbot.fun')}&text=${encodeURIComponent(text)}`,
+      `https://t.me/share/url?url=${encodeURIComponent(botUrl())}&text=${encodeURIComponent(text)}`,
       '_blank');
   };
 

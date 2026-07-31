@@ -46,6 +46,7 @@ export default function Discover({ onOpenUser }: {
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locationSent, setLocationSent] = useState(false);
+  const [hasLocation, setHasLocation] = useState(true);
 
   const requestLocation = async () => {
     tg.tap('medium');
@@ -94,8 +95,8 @@ export default function Discover({ onOpenUser }: {
     if (verifiedOnly) p.set('verified_only', 'true');
     if (onlineOnly) p.set('online_only', 'true');
 
-    apiFetch<{ people: Person[] }>(`/v1/discover?${p.toString()}`)
-      .then((r) => setPeople(r.people))
+    apiFetch<{ people: Person[]; has_location: boolean }>(`/v1/discover?${p.toString()}`)
+      .then((r) => { setPeople(r.people); setHasLocation(r.has_location); })
       .catch(() => setFailed(true));
   }, [q, sort, view, gender, ageBand, looking, languages, interests, maxKm, verifiedOnly, onlineOnly]);
 
@@ -185,6 +186,24 @@ export default function Discover({ onOpenUser }: {
         </button>
       </div>
 
+      {/* Grid is a distance query, so with no fix on file it can only
+          ever come back empty — which reads as "nobody is near you"
+          rather than "we don't know where you are", and nobody ever
+          found the 📍 button on their own. Say it plainly, put the
+          button in the sentence, and point at where it lives for next
+          time. */}
+      {!hasLocation && view === 'grid' && !locationSent ? (
+        <div className="card compact" style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: '0.9rem', marginBottom: 4 }}>
+            {t('discover.noLocation')}
+          </div>
+          <p className="hint" style={{ marginBottom: 12 }}>{t('discover.noLocation.body')}</p>
+          <Button onClick={requestLocation} disabled={locating}>
+            {t('discover.shareLocation')}
+          </Button>
+        </div>
+      ) : null}
+
       {failed ? (
         <EmptyState title={t('common.offline')} body={t('common.offline.body')}
                     action={<Button onClick={load}>{t('common.retry')}</Button>} />
@@ -228,6 +247,7 @@ export default function Discover({ onOpenUser }: {
               : sort === 'new' ? t('discover.sort.new')
               : t('discover.sort.nearby')
             }
+            required
             onChange={(label) => {
               setSort(
                 label === t('discover.sort.new') ? 'new'

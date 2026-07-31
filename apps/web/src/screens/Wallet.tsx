@@ -149,8 +149,11 @@ export default function Wallet({ onBack, onBalanceChange }: {
               className="pack"
               onClick={() => {
                 tg.tap('light');
-                // Telegram's share sheet is the natural surface for this.
-                const url = `https://t.me/share/url?url=${encodeURIComponent('https://ridethatbot.fun')}&text=${encodeURIComponent(`${t('referral.share')} ${ref.code}`)}`;
+                // Telegram's share sheet is the natural surface for
+                // this, and what it sends is the bot link with the
+                // referral code already in its /start payload — not a
+                // website address and a code to retype.
+                const url = `https://t.me/share/url?url=${encodeURIComponent(ref.link)}&text=${encodeURIComponent(`${t('referral.share')} ${ref.code}`)}`;
                 window.open(url, '_blank');
               }}
             >

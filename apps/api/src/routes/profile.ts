@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { sql } from '../lib/db.js';
 import { HttpError } from '../lib/errors.js';
 import { ProfileCoreSchema } from '../lib/profileSchema.js';
+import { botLink } from '../lib/botIdentity.js';
 
 /** Fresh fragment per call — postgres.js query objects are single-use. */
 const selectMe = (accountId: string) => sql`
@@ -34,7 +35,9 @@ const profileRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/me', { preHandler: [app.requireAuth] }, async (req) => {
     const rows = await selectMe(req.accountId!);
     if (!rows[0]) throw new HttpError(404, 'PROFILE_NOT_FOUND');
-    return rows[0];
+    // Every share sheet in the client needs a link back into the bot;
+    // this is the one response every client already fetches on launch.
+    return { ...rows[0], bot_url: await botLink() };
   });
 
   app.patch('/v1/me', { preHandler: [app.requireAuth] }, async (req) => {

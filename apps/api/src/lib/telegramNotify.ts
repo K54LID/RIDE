@@ -38,7 +38,19 @@ const SETTING_FOR_KIND: Record<string, string> = {
   featured: 'woofs',
   verification: 'woofs',
   verification_request: 'woofs',
+  support_message: 'woofs',
 };
+
+/**
+ * Kinds that ignore the recipient's notification preferences.
+ *
+ * These are operational, not social: a moderator who muted "woofs"
+ * would otherwise silently stop receiving verification requests and
+ * support messages, and nobody would find out until a queue had been
+ * sitting unread for a week. They only ever go to staff, and staff
+ * asked for the job.
+ */
+const ALWAYS_DELIVER = new Set(['support_message', 'verification_request']);
 
 interface PendingRow {
   id: string;
@@ -69,10 +81,35 @@ function compose(kind: string, actor: string, lang: string, payload: Record<stri
                `🎁 ${actor} отправил вам подарок`,
                `🎁 ${actor} sana bir hediye gönderdi`);
     case 'court': {
-      const v = payload.value_after;
-      return L(`♛ ${actor} courted you — your value is now ${v}`,
-               `♛ ${actor} поухаживал за вами — ваша ценность теперь ${v}`,
-               `♛ ${actor} sana kur yaptı — değerin şimdi ${v}`);
+      /**
+       * Every part of this is conditional, because a missing number
+       * must produce a shorter sentence rather than the word
+       * "undefined" in a push notification. `value_after` has been in
+       * the payload since courting shipped, but a notification written
+       * by an older build still has to read correctly today.
+       */
+      const v = typeof payload.value_after === 'number' ? payload.value_after : null;
+      const paid = typeof payload.payout === 'number' ? payload.payout : null;
+      const head = L(`♛ ${actor} courted you`,
+                     `♛ ${actor} поухаживал за вами`,
+                     `♛ ${actor} sana kur yaptı`);
+      const value = v === null ? '' : L(` — your value is now ${v} coins`,
+                                        ` — ваша ценность теперь ${v} монет`,
+                                        ` — değerin şimdi ${v} coin`);
+      const share = paid === null || paid <= 0 ? '' : L(` and ${paid} coins went to your balance`,
+                                                        ` и ${paid} монет зачислено на ваш баланс`,
+                                                        ` ve bakiyene ${paid} coin eklendi`);
+      return `${head}${value}${share}`;
+    }
+    case 'support_message': {
+      const which = payload.support_kind === 'bug' ? 'Bug report' : 'Support message';
+      const who = typeof payload.handle === 'string' && payload.handle
+        ? `@${payload.handle}`
+        : (typeof payload.name === 'string' && payload.name ? payload.name : actor);
+      const body = typeof payload.excerpt === 'string' ? payload.excerpt : '';
+      // Staff-facing, so English only: this is an operational message,
+      // not something a member ever receives.
+      return `🛠 ${which} from ${who}:\n\n${body}\n\nReview it in the admin panel.`;
     }
     case 'follow':
       return L(`👤 ${actor} started following you`,
@@ -183,7 +220,8 @@ export async function deliverPending(): Promise<number> {
     const key = SETTING_FOR_KIND[row.kind] ?? 'woofs';
     // `all` is the master switch; per-kind keys refine it. Undefined
     // means "not configured", which we treat as enabled.
-    const enabled = prefs.all !== false && prefs[key] !== false;
+    const enabled = ALWAYS_DELIVER.has(row.kind)
+      || (prefs.all !== false && prefs[key] !== false);
 
     if (!enabled) { skipped.push(row.id); continue; }
 

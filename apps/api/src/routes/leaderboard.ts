@@ -18,16 +18,54 @@ const QuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 
-const INTERVAL: Record<string, string> = {
-  day: '1 day',
-  week: '7 days',
-  month: '30 days',
-};
+/**
+ * Period windows are calendar buckets in UTC, not rolling intervals.
+ *
+ * They used to be `now() - 7 days`, which is a window that slides: a
+ * woof from last Tuesday quietly stopped counting this Tuesday, nothing
+ * ever hit zero, and there was no moment anyone could point at and call
+ * a reset. Ranks now works the way a leaderboard is expected to —
+ * today's board starts at midnight UTC and everyone begins the day on
+ * nothing — which is also what makes a countdown to the reset possible
+ * rather than a lie.
+ *
+ * All-time is unbounded and is never reset by the clock; only an admin
+ * stats reset moves that line.
+ */
+function windowFor(period: string): { since: Date | null; resetsAt: Date | null } {
+  const now = new Date();
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth();
+  const d = now.getUTCDate();
+
+  if (period === 'day') {
+    return {
+      since: new Date(Date.UTC(y, m, d)),
+      resetsAt: new Date(Date.UTC(y, m, d + 1)),
+    };
+  }
+  if (period === 'week') {
+    // Weeks start Monday, matching Postgres date_trunc('week') and most
+    // of the world outside the US.
+    const dow = (now.getUTCDay() + 6) % 7;      // Mon = 0
+    return {
+      since: new Date(Date.UTC(y, m, d - dow)),
+      resetsAt: new Date(Date.UTC(y, m, d - dow + 7)),
+    };
+  }
+  if (period === 'month') {
+    return {
+      since: new Date(Date.UTC(y, m, 1)),
+      resetsAt: new Date(Date.UTC(y, m + 1, 1)),
+    };
+  }
+  return { since: null, resetsAt: null };
+}
 
 const leaderboardRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/leaderboard', { preHandler: [app.requireAuth] }, async (req) => {
     const { board, period, limit } = QuerySchema.parse(req.query);
-    const since = period === 'all' ? null : INTERVAL[period]!;
+    const { since, resetsAt } = windowFor(period);
 
     let rows;
 
@@ -49,7 +87,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
         JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
         LEFT JOIN woofs w ON w.target_id = p.account_id
           AND w.created_at > COALESCE(p.stats_reset_at, 'epoch')
-          ${since ? sql`AND w.created_at > now() - ${since}::interval` : sql``}
+          ${since ? sql`AND w.created_at > ${since}` : sql``}
         WHERE NOT p.ghost_mode
         GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
         HAVING count(w.id) > 0
@@ -65,7 +103,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
         JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
         LEFT JOIN gift_transfers g ON g.receiver_id = p.account_id
           AND g.created_at > COALESCE(p.stats_reset_at, 'epoch')
-          ${since ? sql`AND g.created_at > now() - ${since}::interval` : sql``}
+          ${since ? sql`AND g.created_at > ${since}` : sql``}
         WHERE NOT p.ghost_mode
         GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
         HAVING count(g.id) > 0
@@ -85,7 +123,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
         JOIN posts po   ON po.author_id = p.account_id AND po.deleted_at IS NULL
         JOIN post_likes pl ON pl.post_id = po.id
           AND pl.created_at > COALESCE(p.stats_reset_at, 'epoch')
-          ${since ? sql`AND pl.created_at > now() - ${since}::interval` : sql``}
+          ${since ? sql`AND pl.created_at > ${since}` : sql``}
         WHERE NOT p.ghost_mode
         GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
         HAVING count(pl.post_id) > 0
@@ -101,7 +139,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
         JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
         LEFT JOIN follows f ON f.followee_id = p.account_id
           AND f.created_at > COALESCE(p.stats_reset_at, 'epoch')
-          ${since ? sql`AND f.created_at > now() - ${since}::interval` : sql``}
+          ${since ? sql`AND f.created_at > ${since}` : sql``}
         WHERE NOT p.ghost_mode
         GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
         HAVING count(f.follower_id) > 0
@@ -120,7 +158,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
             JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
             JOIN court_events c ON c.target_id = p.account_id
               AND c.created_at > COALESCE(p.stats_reset_at, 'epoch')
-              AND c.created_at > now() - ${since}::interval
+              AND c.created_at > ${since}
             WHERE NOT p.ghost_mode
             GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
             ORDER BY score DESC
@@ -141,6 +179,13 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
     return {
       board,
       period,
+      /**
+       * When this board next empties. Null for all-time, which never
+       * does. The client renders a countdown from it rather than
+       * computing bucket boundaries of its own — two implementations of
+       * "when is midnight" would eventually disagree.
+       */
+      resets_at: resetsAt ? resetsAt.toISOString() : null,
       entries: rows.map((r, i) => ({ rank: i + 1, ...r })),
     };
   });

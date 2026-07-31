@@ -36,6 +36,10 @@ interface PhotoSize { file_id: string; width: number; height: number; file_size?
  * method: photos get compressed and thumbnailed by Telegram, videos keep
  * duration metadata.
  */
+/** Ceilings on outbound calls to Telegram. See the note at the fetch. */
+const UPLOAD_TIMEOUT_MS = 60_000;
+const FETCH_TIMEOUT_MS = 15_000;
+
 export async function uploadToTelegram(
   buffer: Buffer,
   filename: string,
@@ -53,7 +57,17 @@ export async function uploadToTelegram(
   form.append(field, new Blob([new Uint8Array(buffer)], { type: mime }), filename);
   form.append('disable_notification', 'true');
 
-  const res = await fetch(`${API()}/${method}`, { method: 'POST', body: form });
+  /**
+   * A deadline, because without one this request can hang indefinitely.
+   * That is not theoretical: `fetch` has no default timeout, so a
+   * stalled connection to Telegram left the client's upload XHR open
+   * forever, `media.uploading` stuck true, and Publish permanently
+   * disabled — a compose sheet that looked frozen until the app was
+   * reloaded. Failing at 60s gives the person an error they can retry.
+   */
+  const res = await fetch(`${API()}/${method}`, {
+    method: 'POST', body: form, signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS),
+  });
   const json = (await res.json()) as {
     ok: boolean;
     description?: string;
@@ -122,7 +136,8 @@ export async function resolveFileUrl(fileId: string): Promise<string> {
     return `https://api.telegram.org/file/bot${config.TELEGRAM_BOT_TOKEN}/${hit.path}`;
   }
 
-  const res = await fetch(`${API()}/getFile?file_id=${encodeURIComponent(fileId)}`);
+  const res = await fetch(`${API()}/getFile?file_id=${encodeURIComponent(fileId)}`,
+                          { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   const json = (await res.json()) as {
     ok: boolean; description?: string; result?: { file_path: string };
   };

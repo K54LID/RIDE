@@ -96,6 +96,18 @@ const discoverRoutes: FastifyPluginAsync = async (app) => {
      */
     const isGlobal = f.sort === 'global';
 
+    /**
+     * Whether *this* person has ever shared a fix. Without it the Grid
+     * tab is empty for everyone who hasn't, and an empty grid looks
+     * like "nobody is near you" rather than "we don't know where you
+     * are" — so nobody ever discovered the location button.
+     */
+    const [own] = await sql<Array<{ has_location: boolean }>>`
+      SELECT EXISTS (
+        SELECT 1 FROM user_locations WHERE account_id = ${me}
+      ) AS has_location
+    `;
+
     const rows = await sql`
       SELECT p.account_id, p.display_name, p.handle, p.bio, p.court_value,
              p.gender, p.interests, p.languages, p.looking_for,
@@ -161,6 +173,7 @@ const discoverRoutes: FastifyPluginAsync = async (app) => {
         distance: isGlobal || r.distance_m === null ? null : distanceBucket(Number(r.distance_m)),
       })),
       has_more: rows.length === f.limit,
+      has_location: own?.has_location ?? false,
     };
   });
 };

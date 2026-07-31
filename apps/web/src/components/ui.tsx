@@ -70,23 +70,45 @@ export function ChipGroup({
   );
 }
 
-/** Single-select variant — same visual language, radio semantics. */
+/**
+ * Single-select variant — same visual language, radio semantics.
+ *
+ * Tapping the chip that is already on clears it. Radio buttons
+ * traditionally can't be unset, which is fine for a form that demands
+ * an answer and wrong for a filter or an optional profile field: having
+ * picked "Man" once there was no way back to "no preference" short of
+ * Clear-all, and nothing about the chip suggested it was now permanent.
+ * `required` opts back into the old behaviour for the one control that
+ * genuinely must always hold a value — the sort order.
+ */
 export function ChipPick({
-  options, value, onChange,
-}: { options: readonly string[]; value: string | null; onChange: (v: string) => void }) {
+  options, value, onChange, required = false,
+}: {
+  options: readonly string[];
+  value: string | null;
+  onChange: (v: string | null) => void;
+  required?: boolean;
+}) {
   return (
     <div className="chips">
-      {options.map((opt) => (
-        <button
-          key={opt}
-          type="button"
-          className="chip"
-          aria-pressed={value === opt}
-          onClick={() => { tg.select(); onChange(opt); }}
-        >
-          {opt}
-        </button>
-      ))}
+      {options.map((opt) => {
+        const on = value === opt;
+        return (
+          <button
+            key={opt}
+            type="button"
+            className="chip"
+            aria-pressed={on}
+            onClick={() => {
+              tg.select();
+              if (on && required) return;
+              onChange(on ? null : opt);
+            }}
+          >
+            {opt}
+          </button>
+        );
+      })}
     </div>
   );
 }

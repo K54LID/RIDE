@@ -33,7 +33,18 @@ interface AdminReport {
   target: { account_id: string; display_name: string; handle: string | null; status: string } | null;
 }
 
-type Pane = 'overview' | 'users' | 'reports' | 'verify' | 'storage' | 'log';
+type Pane = 'overview' | 'users' | 'reports' | 'support' | 'verify' | 'storage' | 'log';
+
+/** A message someone wrote from Settings → Contact support / Report a bug. */
+interface SupportMessage {
+  id: string;
+  kind: 'support' | 'bug';
+  body: string;
+  created_at: string;
+  account_id: string;
+  display_name: string | null;
+  handle: string | null;
+}
 
 export default function Admin({ onBack }: { onBack: () => void }) {
   const t = useT();
@@ -42,6 +53,7 @@ export default function Admin({ onBack }: { onBack: () => void }) {
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [verifs, setVerifs] = useState<VerificationReq[] | null>(null);
   const [reports, setReports] = useState<AdminReport[] | null>(null);
+  const [support, setSupport] = useState<SupportMessage[] | null>(null);
   const [log, setLog] = useState<Array<Record<string, unknown>> | null>(null);
   const [q, setQ] = useState('');
   const [amounts, setAmounts] = useState<Record<string, string>>({});
@@ -70,6 +82,10 @@ export default function Admin({ onBack }: { onBack: () => void }) {
     if (pane === 'reports') {
       apiFetch<{ reports: AdminReport[] }>('/v1/admin/reports')
         .then((r) => setReports(r.reports)).catch(() => setReports([]));
+    }
+    if (pane === 'support') {
+      apiFetch<{ messages: SupportMessage[] }>('/v1/admin/support')
+        .then((r) => setSupport(r.messages)).catch(() => setSupport([]));
     }
     if (pane === 'verify') {
       apiFetch<{ requests: VerificationReq[] }>('/v1/admin/verifications')
@@ -159,7 +175,7 @@ export default function Admin({ onBack }: { onBack: () => void }) {
       <div className="head"><h1>{t('admin.title')}</h1></div>
 
       <div className="seg">
-        {(['overview', 'users', 'reports', 'verify', 'storage', 'log'] as Pane[]).map((p) => (
+        {(['overview', 'users', 'reports', 'support', 'verify', 'storage', 'log'] as Pane[]).map((p) => (
           <button key={p} aria-pressed={pane === p} onClick={() => { tg.select(); setPane(p); }}>
             {t(`admin.${p}` as 'admin.overview')}
           </button>
@@ -318,6 +334,39 @@ export default function Admin({ onBack }: { onBack: () => void }) {
             </div>
           ))}
         </>
+      )}
+
+      {/* Support and bug reports. Staff also get each one pushed to
+          Telegram as it arrives, so this pane is the record and the
+          place to clear them, not the only way to find out. */}
+      {pane === 'support' && (
+        support === null ? <Skeleton h={90} /> :
+        support.length === 0 ? <EmptyState title="Nothing waiting" body="" /> : (
+          <>
+            {support.map((m) => (
+              <div key={m.id} className="card compact" style={{ marginBottom: 10 }}>
+                <div className="person-sub num" style={{ marginBottom: 4 }}>
+                  {m.kind === 'bug' ? '🐞 bug' : '🛠 support'} · {new Date(m.created_at).toLocaleString()}
+                </div>
+                <div className="person-name" style={{ fontSize: '0.95rem' }}>
+                  {m.handle ? `@${m.handle}` : m.display_name ?? 'Unknown'}
+                </div>
+                <p style={{ margin: '8px 0 12px', fontSize: '0.87rem', whiteSpace: 'pre-wrap' }}>
+                  {m.body}
+                </p>
+                <div className="chips">
+                  <button className="chip" onClick={async () => {
+                    tg.tap('light');
+                    try {
+                      await apiFetch(`/v1/admin/support/${m.id}/resolve`, { method: 'POST' });
+                      setSupport((cur) => cur?.filter((x) => x.id !== m.id) ?? cur);
+                    } catch { tg.notify('error'); }
+                  }}>Mark handled</button>
+                </div>
+              </div>
+            ))}
+          </>
+        )
       )}
 
       {pane === 'reports' && (

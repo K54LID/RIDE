@@ -6,6 +6,7 @@ import { Button, Skeleton } from '../components/ui';
 import Sheet from '../components/Sheet';
 import Page from '../components/Page';
 import Avatar from '../components/Avatar';
+import Legal from './Legal';
 import { useMediaUpload } from '../lib/useMediaUpload';
 
 type Vis = 'everyone' | 'members' | 'friends' | 'nobody';
@@ -57,6 +58,13 @@ export default function Settings({ onBack, onAdmin }: {
   const [verifyIntro, setVerifyIntro] = useState(false);
   const [blockedOpen, setBlockedOpen] = useState(false);
   const [verifySent, setVerifySent] = useState(false);
+  const [legal, setLegal] = useState<'terms' | 'privacy' | null>(null);
+  /** Which support form is open, if any. */
+  const [writing, setWriting] = useState<'support' | 'bug' | null>(null);
+  const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
   const selfie = useMediaUpload(1);
   const selfieInput = useRef<HTMLInputElement>(null);
 
@@ -111,6 +119,35 @@ export default function Settings({ onBack, onAdmin }: {
       .catch(() => tg.notify('error'));
   }, [selfie, load]);
 
+  /**
+   * Both support buttons used to open https://t.me/ — a link to
+   * Telegram's home page. Whatever anyone typed went nowhere, so the
+   * app has been shipping with no way to reach its own operator. This
+   * stores the message for the admin panel and pushes it to every staff
+   * account's Telegram with the sender and the text in it.
+   */
+  const sendSupport = async () => {
+    const message = draft.trim();
+    if (!message || !writing) return;
+    setSending(true);
+    setSendError(null);
+    try {
+      await apiFetch('/v1/support', {
+        method: 'POST',
+        body: JSON.stringify({ kind: writing, message }),
+      });
+      tg.notify('success');
+      setWriting(null);
+      setDraft('');
+      setSent(true);
+    } catch (err) {
+      tg.notify('error');
+      setSendError(err instanceof Error ? err.message : t('common.offline.body'));
+    } finally {
+      setSending(false);
+    }
+  };
+
   const deleteAccount = async () => {
     try {
       await apiFetch('/v1/settings/delete-account', { method: 'POST' });
@@ -134,8 +171,21 @@ export default function Settings({ onBack, onAdmin }: {
 
   return (
     <div className="screen">
+      {/* Telegram's own back button is registered too, but it is not
+          reliable to lean on alone: any overlay opened from this screen
+          used to hide it on the way out and leave Settings with no way
+          back at all. An in-screen control cannot be taken away by
+          something else's cleanup. */}
       <div className="head">
-        <h1>
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button className="page-back" aria-label={t('common.back')}
+                  onClick={() => { tg.tap('light'); onBack(); }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                 strokeLinejoin="round">
+              <path d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
           {t('settings.title')}
           {isStaff ? <span className="staff-tag">{s.role}</span> : null}
         </h1>
@@ -228,13 +278,17 @@ export default function Settings({ onBack, onAdmin }: {
       <div className="set-group">
         <div className="eyebrow" style={{ marginBottom: 8 }}>{t('settings.support')}</div>
         <div className="set-list">
-          <Row label={t('settings.contact')} onClick={() => window.open('https://t.me/', '_blank')}
+          <Row label={t('settings.contact')}
+               onClick={() => { tg.tap('light'); setSendError(null); setWriting('support'); }}
                right={<span style={{ color: 'var(--faint)' }}>›</span>} />
-          <Row label={t('settings.bug')} onClick={() => window.open('https://t.me/', '_blank')}
+          <Row label={t('settings.bug')}
+               onClick={() => { tg.tap('light'); setSendError(null); setWriting('bug'); }}
                right={<span style={{ color: 'var(--faint)' }}>›</span>} />
-          <Row label={t('settings.terms')} onClick={() => window.open('https://ridethatbot.fun/terms', '_blank')}
+          <Row label={t('settings.terms')}
+               onClick={() => { tg.tap('light'); setLegal('terms'); }}
                right={<span style={{ color: 'var(--faint)' }}>›</span>} />
-          <Row label={t('settings.privacyPolicy')} onClick={() => window.open('https://ridethatbot.fun/privacy', '_blank')}
+          <Row label={t('settings.privacyPolicy')}
+               onClick={() => { tg.tap('light'); setLegal('privacy'); }}
                right={<span style={{ color: 'var(--faint)' }}>›</span>} />
         </div>
       </div>
@@ -285,6 +339,32 @@ export default function Settings({ onBack, onAdmin }: {
           )}
         </Page>
       ) : null}
+
+      {legal ? <Legal kind={legal} onClose={() => setLegal(null)} /> : null}
+
+      <Sheet center open={writing !== null} onClose={() => setWriting(null)}>
+        <h2 style={{ marginBottom: 4 }}>
+          {writing === 'bug' ? t('settings.bug') : t('settings.contact')}
+        </h2>
+        <p className="hint" style={{ marginBottom: 12 }}>{t('support.hint')}</p>
+        <label className="field">
+          <textarea rows={5} maxLength={2000} value={draft} autoFocus
+                    placeholder={t('support.placeholder')}
+                    onChange={(e) => setDraft(e.target.value)} />
+        </label>
+        {sendError ? <p className="error">{sendError}</p> : null}
+        <Button onClick={sendSupport} disabled={sending || draft.trim().length === 0}>
+          {sending ? t('common.loading') : t('support.send')}
+        </Button>
+        <div style={{ height: 10 }} />
+        <Button variant="ghost" onClick={() => setWriting(null)}>{t('common.cancel')}</Button>
+      </Sheet>
+
+      <Sheet center open={sent} onClose={() => setSent(false)}>
+        <h2 style={{ marginBottom: 8 }}>{t('support.sentTitle')}</h2>
+        <p style={{ marginBottom: 16 }}>{t('support.sentBody')}</p>
+        <Button variant="ghost" onClick={() => setSent(false)}>{t('common.done')}</Button>
+      </Sheet>
 
       <Sheet center open={verifySent} onClose={() => setVerifySent(false)}>
         <h2 style={{ marginBottom: 8 }}>{t('verify.sentTitle')}</h2>

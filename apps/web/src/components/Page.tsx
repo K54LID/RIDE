@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { tg } from '../lib/tg';
+import { lockScroll } from '../lib/scrollLock';
 
 /**
  * Full-screen overlay page.
@@ -20,9 +21,8 @@ export default function Page({
 }) {
   useEffect(() => {
     const restore = tg.backButton(onClose);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { restore(); document.body.style.overflow = prev; };
+    const unlock = lockScroll();
+    return () => { restore(); unlock(); };
   }, [onClose]);
 
   /**

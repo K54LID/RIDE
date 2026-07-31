@@ -73,16 +73,49 @@ export default function Ranks({ onOpenUser }: { onOpenUser: (accountId: string) 
   const [howOpen, setHowOpen] = useState(false);
   const [entries, setEntries] = useState<RankEntry[] | null>(null);
   const [failed, setFailed] = useState(false);
+  /** When the current board next empties. Null on All time, which doesn't. */
+  const [resetsAt, setResetsAt] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   const load = useCallback(() => {
     setEntries(null);
     setFailed(false);
-    apiFetch<{ entries: RankEntry[] }>(`/v1/leaderboard?board=${board}&period=${period}`)
-      .then((r) => setEntries(r.entries))
+    apiFetch<{ entries: RankEntry[]; resets_at: string | null }>(
+      `/v1/leaderboard?board=${board}&period=${period}`)
+      .then((r) => { setEntries(r.entries); setResetsAt(r.resets_at); })
       .catch(() => setFailed(true));
   }, [board, period]);
 
   useEffect(load, [load]);
+
+  /**
+   * Tick once a minute, not once a second. The countdown is measured in
+   * hours and days; a seconds display on a leaderboard is a distraction
+   * that also wakes the webview sixty times more often than it needs to.
+   * Crossing the boundary reloads the board, so the reset is something
+   * you can watch happen rather than something you notice later.
+   */
+  useEffect(() => {
+    if (!resetsAt) return;
+    const id = setInterval(() => {
+      const t0 = Date.now();
+      setNow(t0);
+      if (t0 >= new Date(resetsAt).getTime()) load();
+    }, 60000);
+    return () => clearInterval(id);
+  }, [resetsAt, load]);
+
+  const countdown = (() => {
+    if (!resetsAt) return null;
+    const ms = new Date(resetsAt).getTime() - now;
+    if (ms <= 0) return null;
+    const mins = Math.floor(ms / 60000);
+    const days = Math.floor(mins / 1440);
+    const hours = Math.floor((mins % 1440) / 60);
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${mins % 60}m`;
+    return `${mins}m`;
+  })();
 
   return (
     <div className="screen">
@@ -99,6 +132,14 @@ export default function Ranks({ onOpenUser }: { onOpenUser: (accountId: string) 
           <button key={p} aria-pressed={period === p}
                   onClick={() => { tg.select(); setPeriod(p); }}>{t(key)}</button>
         ))}
+      </div>
+
+      {/* All time has no countdown because it never resets — saying so
+          is the point, otherwise the absence of a timer reads as a bug. */}
+      <div className="rank-reset">
+        {countdown
+          ? <>{t('ranks.resetsIn')} <b className="num">{countdown}</b></>
+          : t('ranks.neverResets')}
       </div>
 
       <button className="rank-how" onClick={() => { tg.tap('light'); setHowOpen((v) => !v); }}

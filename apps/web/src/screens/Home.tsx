@@ -10,6 +10,7 @@ import Sheet from '../components/Sheet';
 import CommentSheet from '../components/CommentSheet';
 import StoriesRail from '../components/StoriesRail';
 import StoryViewer from '../components/StoryViewer';
+import { botUrl } from '../lib/appInfo';
 
 function timeAgo(iso: string): string {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -187,8 +188,10 @@ export default function Home({ meId, meName, meAvatar, onCompose, onAlerts, onOp
     tg.tap('light');
     setMenuPost(null);
     const text = `${p.author_name} on RIDE: ${(p.body ?? '').slice(0, 120)}`;
+    // The bot link opens RIDE inside Telegram. The old website URL sent
+    // people to a web page that is not the app.
     window.open(
-      `https://t.me/share/url?url=${encodeURIComponent('https://ridethatbot.fun')}&text=${encodeURIComponent(text)}`,
+      `https://t.me/share/url?url=${encodeURIComponent(botUrl())}&text=${encodeURIComponent(text)}`,
       '_blank');
   };
 

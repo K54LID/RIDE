@@ -55,19 +55,58 @@ export const tg = {
     app()?.HapticFeedback?.notificationOccurred(type);
   },
 
-  /** Returns a cleanup function, so callers can use it directly in useEffect. */
+  /**
+   * Returns a cleanup function, so callers can use it directly in useEffect.
+   *
+   * Handlers form a stack and only the top one runs. Telegram's own
+   * `onClick` is additive — every registered callback fires on a single
+   * press — so with a profile over a follower list over a profile, one
+   * back press used to close all three. Worse, each cleanup called
+   * `BackButton.hide()` unconditionally, so closing an inner overlay
+   * hid the button for the screen still underneath it: that is why the
+   * back arrow vanished from Settings after opening and closing the
+   * blocked list.
+   *
+   * One dispatcher is bound to Telegram for the life of the app. Push
+   * and pop only change which handler it calls, and visibility follows
+   * the stack: shown while anything is registered, hidden when empty.
+   */
   backButton(onBack: (() => void) | null): () => void {
-    const b = app()?.BackButton;
-    if (!b) return () => undefined;
     if (!onBack) {
-      b.hide();
+      // Explicit "nothing to go back to" — e.g. the first onboarding
+      // step. Leaves any deeper handlers alone.
+      syncBackButton();
       return () => undefined;
     }
-    b.onClick(onBack);
-    b.show();
+
+    backStack.push(onBack);
+    syncBackButton();
+
+    let released = false;
     return () => {
-      b.offClick(onBack);
-      b.hide();
+      if (released) return;
+      released = true;
+      const i = backStack.lastIndexOf(onBack);
+      if (i !== -1) backStack.splice(i, 1);
+      syncBackButton();
     };
   },
 };
+
+const backStack: Array<() => void> = [];
+let dispatcherBound = false;
+
+/** Runs the topmost handler only. Bound to Telegram exactly once. */
+function dispatchBack(): void {
+  backStack[backStack.length - 1]?.();
+}
+
+function syncBackButton(): void {
+  const b = app()?.BackButton;
+  if (!b) return;
+  if (!dispatcherBound) {
+    b.onClick(dispatchBack);
+    dispatcherBound = true;
+  }
+  if (backStack.length > 0) b.show(); else b.hide();
+}

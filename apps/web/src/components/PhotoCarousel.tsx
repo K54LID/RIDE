@@ -16,9 +16,24 @@ import { useT } from '../i18n';
  * Tapping a thumbnail opens it full-screen; tap again (or the ✕, or
  * Telegram's back button) to close.
  */
-export default function PhotoCarousel({ photos, lockedCount = 0, onDeleted }: {
+export default function PhotoCarousel({
+  photos, lockedCount = 0, hideLocks = false, onLockedClick, onDeleted,
+}: {
   photos: ProfilePhoto[];
+  /**
+   * Photos behind the lock. Rendered as the last cell of this same
+   * strip — the album is one of the photos, not a separate block beside
+   * them with its own size and baseline.
+   */
   lockedCount?: number;
+  /**
+   * Suppress the per-thumbnail 🔒 badge. Inside the private album sheet
+   * every photo is private and the sheet's title already says so, so a
+   * lock on each thumbnail is the same word said twice.
+   */
+  hideLocks?: boolean;
+  /** Makes the album cell a button. Without it the cell is inert. */
+  onLockedClick?: () => void;
   /**
    * Present only on your own profile. Given it, the lightbox offers
    * Delete — going through Edit profile to remove a photo you are
@@ -49,27 +64,40 @@ export default function PhotoCarousel({ photos, lockedCount = 0, onDeleted }: {
           <button key={p.id} className="pstrip-cell" role="listitem"
                   onClick={() => { tg.tap('light'); setOpenId(p.id); }}>
             <Media id={p.media_id} kind="image" thumb />
-            {p.is_private ? <span className="pstrip-lock">🔒</span> : null}
+            {p.is_private && !hideLocks ? <span className="pstrip-lock">🔒</span> : null}
           </button>
         ))}
+
+        {/* The album is a cell of this strip, so it lines up with the
+            photos exactly: same square, same radius, same baseline. As a
+            sibling of the strip it sat a few pixels high and a size
+            apart, which read as a different kind of thing entirely. */}
         {lockedCount > 0 ? (
-          <div className="pstrip-cell locked" aria-hidden="true">
-            <span>🔒</span>
-            <span className="num">{lockedCount}</span>
-          </div>
+          onLockedClick ? (
+            <button className="pstrip-cell locked" role="listitem"
+                    aria-label={t('profile.privateAlbum')}
+                    onClick={() => { tg.tap('light'); onLockedClick(); }}>
+              <span>🔒</span>
+              <span className="num">{lockedCount}</span>
+            </button>
+          ) : (
+            <div className="pstrip-cell locked" aria-hidden="true">
+              <span>🔒</span>
+              <span className="num">{lockedCount}</span>
+            </div>
+          )
         ) : null}
       </div>
 
       {open ? (
         <div className="lightbox" role="dialog" aria-modal="true"
              onClick={() => setOpenId(null)}>
-          <button className="lightbox-close" aria-label={t('common.close')}
-                  onClick={() => setOpenId(null)}>✕</button>
-          <Media key={open.id} id={open.media_id} kind="image" />
-
-          {onDeleted ? (
-            <div className="lightbox-bar" onClick={(e) => e.stopPropagation()}>
-              {confirming ? (
+          {/* Controls live in one bar at the top, the way the story
+              viewer does it: delete sits next to the exit, both under
+              the thumb, neither at the far bottom of the screen. */}
+          <div className="lightbox-top" onClick={(e) => e.stopPropagation()}>
+            {onDeleted ? (
+              confirming ? (
                 <>
                   <span className="lightbox-ask">{t('photo.deleteConfirm')}</span>
                   <button className="chip" disabled={busy}
@@ -87,13 +115,21 @@ export default function PhotoCarousel({ photos, lockedCount = 0, onDeleted }: {
                           }}>{t('common.delete')}</button>
                 </>
               ) : (
-                <button className="chip danger"
+                <button className="lightbox-del" aria-label={t('common.delete')}
                         onClick={() => { tg.tap('light'); setConfirming(true); }}>
-                  {t('common.delete')}
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"
+                       strokeLinejoin="round">
+                    <path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13M10 11v6M14 11v6" />
+                  </svg>
                 </button>
-              )}
-            </div>
-          ) : null}
+              )
+            ) : null}
+            <button className="lightbox-close" aria-label={t('common.close')}
+                    onClick={() => setOpenId(null)}>✕</button>
+          </div>
+
+          <Media key={open.id} id={open.media_id} kind="image" />
         </div>
       ) : null}
     </>

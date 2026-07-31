@@ -28,6 +28,18 @@ export type Locale = keyof typeof LOCALES;
 export const RTL: ReadonlySet<Locale> = new Set<Locale>(['ar']);
 
 const en = {
+  'support.hint': 'Write what happened. An admin receives this with your handle attached, and replies come through the bot chat.',
+  'support.placeholder': 'What happened?',
+  'support.send': 'Send',
+  'support.sentTitle': 'Message sent',
+  'support.sentBody': 'An admin has it, with your handle attached. Replies come through the bot chat.',
+  'discover.noLocation': 'Share your location to see people nearby',
+  'discover.noLocation.body': 'The grid is sorted by distance, so it stays empty until you share a fix once. You can update or remove it any time with the 📍 button next to Filters.',
+  'discover.shareLocation': 'Share my location',
+  'ranks.resetsIn': 'Resets in',
+  'ranks.neverResets': 'All-time standings never reset',
+  'profile.blocked': 'Blocked',
+  'profile.blocked.body': 'They have been added to your blocked list. They cannot message you or see what you post. Unblock them from Settings or from their profile.',
   'ranks.howTitle': 'How this leaderboard works',
   'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you, and it is the only board money moves directly. Courting lasts 30 days; when it lapses the value stays but stops growing.',
   'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile. One per person per cooldown, so this measures how many different people came by — not how often one did.',
@@ -372,6 +384,18 @@ const en = {
 export type T = Record<keyof typeof en, string>;
 
 const tr: T = {
+  'support.hint': 'Ne olduğunu yaz. Bir yönetici bunu kullanıcı adınla birlikte alır ve yanıtlar bot sohbetinden gelir.',
+  'support.placeholder': 'Ne oldu?',
+  'support.send': 'Gönder',
+  'support.sentTitle': 'Mesaj gönderildi',
+  'support.sentBody': 'Bir yöneticiye kullanıcı adınla birlikte ulaştı. Yanıtlar bot sohbetinden gelir.',
+  'discover.noLocation': 'Yakındakileri görmek için konumunu paylaş',
+  'discover.noLocation.body': 'Izgara mesafeye göre sıralanır, bu yüzden bir kez konum paylaşana kadar boş kalır. Filtreler yanındaki 📍 düğmesiyle istediğin zaman güncelleyebilir veya kaldırabilirsin.',
+  'discover.shareLocation': 'Konumumu paylaş',
+  'ranks.resetsIn': 'Sıfırlanmasına',
+  'ranks.neverResets': 'Tüm zamanlar sıralaması hiç sıfırlanmaz',
+  'profile.blocked': 'Engellendi',
+  'profile.blocked.body': 'Engellenenler listene eklendi. Sana mesaj gönderemez ve paylaşımlarını göremez. Ayarlar\'dan veya profilinden engeli kaldırabilirsin.',
   'ranks.howTitle': 'How this leaderboard works',
   'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
   'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
@@ -594,6 +618,18 @@ const tr: T = {
 };
 
 const ru: T = {
+  'support.hint': 'Опишите, что произошло. Администратор получит сообщение вместе с вашим ником, ответы придут в чат бота.',
+  'support.placeholder': 'Что случилось?',
+  'support.send': 'Отправить',
+  'support.sentTitle': 'Сообщение отправлено',
+  'support.sentBody': 'Администратор получил его вместе с вашим ником. Ответы придут в чат бота.',
+  'discover.noLocation': 'Поделитесь геопозицией, чтобы видеть людей рядом',
+  'discover.noLocation.body': 'Сетка сортируется по расстоянию, поэтому остаётся пустой, пока вы не поделитесь геопозицией. Обновить или удалить её можно в любой момент кнопкой 📍 рядом с фильтрами.',
+  'discover.shareLocation': 'Поделиться геопозицией',
+  'ranks.resetsIn': 'Сброс через',
+  'ranks.neverResets': 'Рейтинг за всё время не сбрасывается',
+  'profile.blocked': 'Заблокирован',
+  'profile.blocked.body': 'Пользователь добавлен в список заблокированных. Он не сможет писать вам и видеть ваши публикации. Разблокировать можно в настройках или в его профиле.',
   'ranks.howTitle': 'How this leaderboard works',
   'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
   'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
@@ -816,6 +852,18 @@ const ru: T = {
 };
 
 const ar: T = {
+  'support.hint': 'اكتب ما حدث. سيصل هذا إلى المشرف مع اسم المستخدم الخاص بك، وتأتي الردود عبر محادثة البوت.',
+  'support.placeholder': 'ماذا حدث؟',
+  'support.send': 'إرسال',
+  'support.sentTitle': 'تم إرسال الرسالة',
+  'support.sentBody': 'وصلت إلى المشرف مع اسم المستخدم الخاص بك. تأتي الردود عبر محادثة البوت.',
+  'discover.noLocation': 'شارك موقعك لترى من حولك',
+  'discover.noLocation.body': 'يتم ترتيب الشبكة حسب المسافة، لذا تبقى فارغة حتى تشارك موقعك مرة واحدة. يمكنك تحديثه أو إزالته في أي وقت من زر 📍 بجانب عوامل التصفية.',
+  'discover.shareLocation': 'مشاركة موقعي',
+  'ranks.resetsIn': 'يُعاد الضبط خلال',
+  'ranks.neverResets': 'تصنيف كل الأوقات لا يُعاد ضبطه أبدًا',
+  'profile.blocked': 'تم الحظر',
+  'profile.blocked.body': 'تمت إضافته إلى قائمة المحظورين. لا يمكنه مراسلتك ولا رؤية منشوراتك. يمكنك رفع الحظر من الإعدادات أو من ملفه الشخصي.',
   'ranks.howTitle': 'How this leaderboard works',
   'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
   'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
@@ -1038,6 +1086,18 @@ const ar: T = {
 };
 
 const az: T = {
+  'support.hint': 'Nə baş verdiyini yaz. Admin bunu istifadəçi adınla birlikdə alır, cavablar bot söhbətinə gəlir.',
+  'support.placeholder': 'Nə baş verdi?',
+  'support.send': 'Göndər',
+  'support.sentTitle': 'Mesaj göndərildi',
+  'support.sentBody': 'Admin onu istifadəçi adınla birlikdə aldı. Cavablar bot söhbətinə gəlir.',
+  'discover.noLocation': 'Yaxınlıqdakıları görmək üçün məkanını paylaş',
+  'discover.noLocation.body': 'Şəbəkə məsafəyə görə sıralanır, ona görə bir dəfə məkan paylaşana qədər boş qalır. Filtrlərin yanındakı 📍 düyməsi ilə istənilən vaxt yeniləyə və ya silə bilərsən.',
+  'discover.shareLocation': 'Məkanımı paylaş',
+  'ranks.resetsIn': 'Sıfırlanmasına',
+  'ranks.neverResets': 'Bütün zamanlar reytinqi heç vaxt sıfırlanmır',
+  'profile.blocked': 'Bloklandı',
+  'profile.blocked.body': 'Bloklananlar siyahına əlavə olundu. O sənə yaza və paylaşımlarını görə bilməz. Blokdan çıxarmaq Ayarlarda və ya onun profilində mümkündür.',
   'ranks.howTitle': 'How this leaderboard works',
   'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
   'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
@@ -1260,6 +1320,18 @@ const az: T = {
 };
 
 const es: T = {
+  'support.hint': 'Cuenta qué ha pasado. Un administrador lo recibe junto con tu usuario y responde por el chat del bot.',
+  'support.placeholder': '¿Qué ha pasado?',
+  'support.send': 'Enviar',
+  'support.sentTitle': 'Mensaje enviado',
+  'support.sentBody': 'Un administrador lo tiene, junto con tu usuario. Las respuestas llegan por el chat del bot.',
+  'discover.noLocation': 'Comparte tu ubicación para ver gente cerca',
+  'discover.noLocation.body': 'La cuadrícula se ordena por distancia, así que estará vacía hasta que compartas tu ubicación una vez. Puedes actualizarla o borrarla cuando quieras con el botón 📍 junto a los filtros.',
+  'discover.shareLocation': 'Compartir mi ubicación',
+  'ranks.resetsIn': 'Se reinicia en',
+  'ranks.neverResets': 'La clasificación histórica nunca se reinicia',
+  'profile.blocked': 'Bloqueado',
+  'profile.blocked.body': 'Se ha añadido a tu lista de bloqueados. No puede escribirte ni ver lo que publicas. Puedes desbloquearlo desde Ajustes o desde su perfil.',
   'ranks.howTitle': 'How this leaderboard works',
   'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
   'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
@@ -1482,6 +1554,18 @@ const es: T = {
 };
 
 const de: T = {
+  'support.hint': 'Schreib, was passiert ist. Ein Admin bekommt das zusammen mit deinem Handle, Antworten kommen über den Bot-Chat.',
+  'support.placeholder': 'Was ist passiert?',
+  'support.send': 'Senden',
+  'support.sentTitle': 'Nachricht gesendet',
+  'support.sentBody': 'Ein Admin hat sie, samt deinem Handle. Antworten kommen über den Bot-Chat.',
+  'discover.noLocation': 'Teile deinen Standort, um Leute in der Nähe zu sehen',
+  'discover.noLocation.body': 'Das Raster ist nach Entfernung sortiert und bleibt deshalb leer, bis du einmal deinen Standort teilst. Du kannst ihn jederzeit über die 📍-Schaltfläche neben den Filtern aktualisieren oder löschen.',
+  'discover.shareLocation': 'Standort teilen',
+  'ranks.resetsIn': 'Zurücksetzen in',
+  'ranks.neverResets': 'Die Allzeit-Wertung wird nie zurückgesetzt',
+  'profile.blocked': 'Blockiert',
+  'profile.blocked.body': 'Die Person steht jetzt auf deiner Blockliste. Sie kann dir nicht schreiben und nicht sehen, was du postest. Aufheben kannst du das in den Einstellungen oder in ihrem Profil.',
   'ranks.howTitle': 'How this leaderboard works',
   'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
   'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
@@ -1704,6 +1788,18 @@ const de: T = {
 };
 
 const fr: T = {
+  'support.hint': 'Décris ce qui s\'est passé. Un administrateur le reçoit avec ton identifiant, et les réponses arrivent dans le chat du bot.',
+  'support.placeholder': 'Que s\'est-il passé ?',
+  'support.send': 'Envoyer',
+  'support.sentTitle': 'Message envoyé',
+  'support.sentBody': 'Un administrateur l\'a reçu, avec ton identifiant. Les réponses arrivent dans le chat du bot.',
+  'discover.noLocation': 'Partage ta position pour voir les gens autour',
+  'discover.noLocation.body': 'La grille est triée par distance : elle reste vide tant que tu n\'as pas partagé ta position une fois. Tu peux la mettre à jour ou la supprimer à tout moment avec le bouton 📍 à côté des filtres.',
+  'discover.shareLocation': 'Partager ma position',
+  'ranks.resetsIn': 'Réinitialisation dans',
+  'ranks.neverResets': 'Le classement de tous les temps ne se réinitialise jamais',
+  'profile.blocked': 'Bloqué',
+  'profile.blocked.body': 'Cette personne est ajoutée à ta liste de blocage. Elle ne peut plus t\'écrire ni voir ce que tu publies. Tu peux la débloquer depuis les Réglages ou depuis son profil.',
   'ranks.howTitle': 'How this leaderboard works',
   'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
   'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
@@ -1926,6 +2022,18 @@ const fr: T = {
 };
 
 const it: T = {
+  'support.hint': 'Racconta cosa è successo. Un amministratore lo riceve insieme al tuo handle e risponde nella chat del bot.',
+  'support.placeholder': 'Cosa è successo?',
+  'support.send': 'Invia',
+  'support.sentTitle': 'Messaggio inviato',
+  'support.sentBody': 'Un amministratore lo ha ricevuto, con il tuo handle. Le risposte arrivano nella chat del bot.',
+  'discover.noLocation': 'Condividi la tua posizione per vedere chi è vicino',
+  'discover.noLocation.body': 'La griglia è ordinata per distanza, quindi resta vuota finché non condividi la posizione una volta. Puoi aggiornarla o rimuoverla quando vuoi con il pulsante 📍 accanto ai filtri.',
+  'discover.shareLocation': 'Condividi la mia posizione',
+  'ranks.resetsIn': 'Si azzera tra',
+  'ranks.neverResets': 'La classifica di sempre non si azzera mai',
+  'profile.blocked': 'Bloccato',
+  'profile.blocked.body': 'È stato aggiunto alla tua lista bloccati. Non può scriverti né vedere quello che pubblichi. Puoi sbloccarlo dalle Impostazioni o dal suo profilo.',
   'ranks.howTitle': 'How this leaderboard works',
   'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
   'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
@@ -2148,6 +2256,18 @@ const it: T = {
 };
 
 const pt: T = {
+  'support.hint': 'Conta o que aconteceu. Um administrador recebe isto com o teu handle e as respostas chegam pelo chat do bot.',
+  'support.placeholder': 'O que aconteceu?',
+  'support.send': 'Enviar',
+  'support.sentTitle': 'Mensagem enviada',
+  'support.sentBody': 'Um administrador recebeu, com o teu handle. As respostas chegam pelo chat do bot.',
+  'discover.noLocation': 'Partilha a tua localização para ver pessoas por perto',
+  'discover.noLocation.body': 'A grelha é ordenada por distância, por isso fica vazia até partilhares a localização uma vez. Podes atualizá-la ou removê-la a qualquer momento no botão 📍 ao lado dos filtros.',
+  'discover.shareLocation': 'Partilhar a minha localização',
+  'ranks.resetsIn': 'Reinicia em',
+  'ranks.neverResets': 'A classificação de sempre nunca reinicia',
+  'profile.blocked': 'Bloqueado',
+  'profile.blocked.body': 'Foi adicionado à tua lista de bloqueados. Não te pode enviar mensagens nem ver o que publicas. Podes desbloquear nas Definições ou no perfil dele.',
   'ranks.howTitle': 'How this leaderboard works',
   'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
   'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',

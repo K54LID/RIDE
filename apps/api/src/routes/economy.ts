@@ -5,6 +5,7 @@ import { sql } from '../lib/db.js';
 import { HttpError } from '../lib/errors.js';
 import { debit, credit } from '../lib/coins.js';
 import { notify } from '../lib/notify.js';
+import { botLink } from '../lib/botIdentity.js';
 
 /**
  * Coin sinks and sources: gifts, courting, featured slots, referrals,
@@ -131,8 +132,18 @@ const economyRoutes: FastifyPluginAsync = async (app) => {
       const before = target.court_value;
       const after = before * 2;
       const cost = after;
+      /**
+       * The person courted keeps half. Being courted is the one thing
+       * in the app that happens *to* you rather than because you spent
+       * anything, so it paying nothing made the whole mechanic read as
+       * a tax on being popular. Floor, because coins are integers — the
+       * odd coin stays with the house rather than rounding a 1-coin
+       * court up into a free coin.
+       */
+      const payout = Math.floor(cost / 2);
 
       await debit(tx, me, cost, 'court_spend', { type: 'court', id });
+      await credit(tx, id, payout, 'court_payout', { type: 'court', id: me });
 
       await tx`
         UPDATE profiles SET court_value = ${after}, updated_at = now()
@@ -153,10 +164,10 @@ const economyRoutes: FastifyPluginAsync = async (app) => {
       `;
       await notify(tx, {
         accountId: id, actorId: me, kind: 'court',
-        payload: { value_before: before, value_after: after },
+        payload: { value_before: before, value_after: after, payout },
       });
 
-      return { court_value: after, spent: cost };
+      return { court_value: after, spent: cost, payout };
     });
 
     return { ok: true, ...result };
@@ -312,6 +323,13 @@ const economyRoutes: FastifyPluginAsync = async (app) => {
 
     return {
       code: row!.referral_code,
+      // The code travels in the /start payload, so an invite opens the
+      // bot with the code already attached instead of asking someone to
+      // copy seven characters out of a message.
+      // `referral_code` is nullable in the column type even though the
+      // block above guarantees one by here; `?? undefined` gives
+      // botLink the plain bot link rather than a `?start=null`.
+      link: await botLink(row!.referral_code ?? undefined),
       reward: REFERRAL_REWARD,
       invited: stats?.invited ?? 0,
       earned: stats?.earned ?? 0,

@@ -34,6 +34,7 @@ export default function Compose({ onPosted, onCancel }: {
   const fileInput = useRef<HTMLInputElement>(null);
 
   const publish = async () => {
+    if (busy) return;          // a second tap must not post twice
     setBusy(true);
     setError(null);
     try {

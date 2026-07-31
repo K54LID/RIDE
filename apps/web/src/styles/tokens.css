@@ -15,6 +15,10 @@
   --court:     #C9A227;
   --court-lit: #F0D264;
   --pulse:     #FF3D81;
+  /* Destructive red. --pulse is the brand pink and reads as an accent,
+     not a warning, which is why Block did not look like Block. */
+  --danger:    #F4453D;
+  --danger-dim: rgba(244, 69, 61, 0.12);
   --pulse-dim: #C42A62;
   --violet:    #7C4DFF;
   --verify:    #3BA3F5;

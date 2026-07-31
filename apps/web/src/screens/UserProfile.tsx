@@ -36,6 +36,7 @@ export default function UserProfile({
   const [court, setCourt] = useState<CourtInfo | null>(null);
   const [ranks, setRanks] = useState<RankEntryMini[]>([]);
   const [blockConfirm, setBlockConfirm] = useState(false);
+  const [blockDone, setBlockDone] = useState(false);
   const [giftsOpen, setGiftsOpen] = useState(false);
   const [albumOpen, setAlbumOpen] = useState(false);
 
@@ -56,6 +57,10 @@ export default function UserProfile({
     try {
       await apiFetch(`/v1/users/${accountId}/block`, { method: 'POST' });
       tg.notify('success');
+      // "Blocked" on its own leaves people wondering whether it stuck
+      // and whether it can be undone. Say where they went and how to
+      // reverse it, then reload so the profile shows its blocked state.
+      setBlockDone(true);
       load();
     } catch { tg.notify('error'); }
   };
@@ -199,27 +204,14 @@ export default function UserProfile({
         </button>
       ) : null}
 
-      <div className="photo-strip">
-        {photos.some((p) => !p.is_private) ? (
-          <PhotoCarousel photos={photos.filter((p) => !p.is_private)} />
-        ) : null}
-
-      {/* The private album is its own section, not mixed in with the
-          public photos. Anything in it is only here because this
-          person unlocked it for you in chat; otherwise you get the
-          count and a lock. */}
-          {/* Tile at the end of the strip. Granted → opens the album;
-              not granted → the count of what is behind the lock. */}
-          {photos.some((p) => p.is_private) || lockedCount > 0 ? (
-            <button className={`album-tile ${lockedCount > 0 ? 'locked' : ''}`}
-                    onClick={() => { tg.tap('light'); setAlbumOpen(true); }}>
-              <span className="album-lock" aria-hidden="true">🔒</span>
-              <span className="album-count num">
-                {lockedCount > 0 ? lockedCount : photos.filter((p) => p.is_private).length}
-              </span>
-            </button>
-          ) : null}
-        </div>
+      {/* The album is the last cell of the same strip. Granted → it
+          opens; not granted → it shows the count of what is behind the
+          lock. Either way it lines up with the public photos instead of
+          sitting beside them as a differently-sized tile. */}
+      <PhotoCarousel
+        photos={photos.filter((p) => !p.is_private)}
+        lockedCount={lockedCount > 0 ? lockedCount : photos.filter((p) => p.is_private).length}
+        onLockedClick={() => setAlbumOpen(true)} />
 
       <div className="eyebrow tight">{t('profile.standingOther')}</div>
       <RankStandings ranks={ranks} />
@@ -243,7 +235,8 @@ export default function UserProfile({
         {lockedCount > 0 ? (
           <p className="hint" style={{ marginBottom: 12 }}>{t('album.lockedHint')}</p>
         ) : null}
-        <PhotoCarousel photos={photos.filter((p) => p.is_private)} lockedCount={lockedCount} />
+        <PhotoCarousel photos={photos.filter((p) => p.is_private)}
+                       lockedCount={lockedCount} hideLocks />
       </Sheet>
 
       <Sheet center open={giftsOpen} onClose={() => setGiftsOpen(false)}>
@@ -256,6 +249,12 @@ export default function UserProfile({
             </div>
           ))}
         </div>
+      </Sheet>
+
+      <Sheet center open={blockDone} onClose={() => setBlockDone(false)}>
+        <h2 style={{ marginBottom: 8 }}>{t('profile.blocked')}</h2>
+        <p style={{ marginBottom: 16 }}>{t('profile.blocked.body')}</p>
+        <Button variant="ghost" onClick={() => setBlockDone(false)}>{t('common.done')}</Button>
       </Sheet>
 
       <Sheet center open={blockConfirm} onClose={() => setBlockConfirm(false)}>

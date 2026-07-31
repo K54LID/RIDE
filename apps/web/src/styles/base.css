@@ -1216,13 +1216,24 @@ h2 { font-size: 1.02rem; }
 .video-poster:active .video-play { transform: translate(-50%, -50%) scale(0.9); }
 .video-play.loading svg { animation: spin 0.8s linear infinite; }
 
-/* Delete-from-lightbox bar, own profile only. */
-.lightbox-bar {
-  position: absolute; inset-inline: 0; bottom: calc(20px + env(safe-area-inset-bottom));
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 0 16px;
+/* Lightbox controls, own profile only. One bar at the top holding
+   delete and exit — the same place the story viewer keeps them, and
+   within reach of a thumb rather than at the foot of the screen. */
+.lightbox-top {
+  position: absolute; z-index: 2;
+  inset-inline: 12px;
+  top: calc(10px + env(safe-area-inset-top));
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
 }
-.lightbox-ask { font-size: 0.85rem; color: #fff; }
+.lightbox-ask { font-size: 0.85rem; color: #fff; margin-inline-end: auto; }
+.lightbox-del {
+  flex: none;
+  width: 36px; height: 36px; padding: 0; margin: 0;
+  display: grid; place-items: center;
+  border: 0; border-radius: 50%;
+  background: rgba(255,255,255,0.14); color: var(--danger);
+}
+.lightbox-del:active { transform: scale(0.92); }
 .chip.danger { border-color: var(--pulse); color: var(--pulse); }
 
 /* Unread-message count on the Chat tab. */
@@ -1248,27 +1259,13 @@ h2 { font-size: 1.02rem; }
 }
 .viewer-id:active { opacity: 0.6; }
 
-/* ---- private album tile ---- */
-/* Sits at the end of the photo strip so a lock appears among the
-   photos: "there is more behind this", rather than a separate section
-   further down the page that reads as unrelated. */
-.photo-strip { display: flex; align-items: flex-start; gap: 8px; }
-.photo-strip > .photos { flex: 1; min-width: 0; }
-/* Exactly a photo cell: same square, same radius, same size. It sits in
-   the same row, so anything else reads as a different kind of thing. */
-.album-tile {
-  flex: none;
-  width: var(--pcell); height: var(--pcell);
-  aspect-ratio: 1;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  border: 1px solid var(--court); border-radius: var(--r-md);
-  background: rgba(201, 162, 39, 0.08);
-  color: var(--court-lit); font: inherit;
-}
-.album-tile:active { background: rgba(201, 162, 39, 0.15); }
-.album-tile.locked { border-style: solid; }
-.album-lock { font-size: 1.5rem; line-height: 1; }
-.album-count { font-size: 0.8rem; font-weight: 700; }
+/* The private album used to be a tile *beside* the photo strip, in a
+   flex wrapper. It never lined up: .pstrip carries a 12px top margin
+   and the tile did not, and the wrapper's `> .photos { flex: 1 }`
+   targeted a class the carousel never rendered, so the strip sized to
+   content and the two sat at different heights. The album is a cell of
+   the strip itself now (see .pstrip-cell.locked), which is the only way
+   to guarantee they share a row, a size and a baseline. */
 
 /* ---- followers / following list ---- */
 .follow-row {
@@ -1422,8 +1419,11 @@ h2 { font-size: 1.02rem; }
 }
 .pstrip-cell.locked {
   display: grid; place-content: center; gap: 2px;
+  border-color: var(--court);
+  background: rgba(201, 162, 39, 0.08);
   color: var(--court-lit); font-size: 0.95rem; text-align: center;
 }
+.pstrip-cell.locked:active { background: rgba(201, 162, 39, 0.16); }
 
 /* Tap a thumbnail → the photo alone, full screen. */
 .lightbox {
@@ -1438,8 +1438,7 @@ h2 { font-size: 1.02rem; }
 }
 .lightbox .skel { width: 70%; aspect-ratio: 1; }
 .lightbox-close {
-  position: absolute; z-index: 1;
-  top: calc(10px + env(safe-area-inset-top)); inset-inline-end: 12px;
+  flex: none;
   width: 36px; height: 36px; padding: 0; margin: 0;
   border: 0; border-radius: 50%;
   background: rgba(255,255,255,0.14); color: #fff; font-size: 1rem;
@@ -1555,10 +1554,11 @@ button.podium-col { border: 0; background: none; color: var(--ink); font: inheri
    deliberate choice rather than a link hidden at the foot of the page. */
 .block-row {
   width: 100%; margin-top: 8px; padding: 11px;
-  background: none; border: 1px solid var(--hairline);
+  background: var(--danger-dim); border: 1px solid var(--danger);
   border-radius: var(--r-md);
-  color: var(--muted); font: inherit; font-size: 0.85rem;
+  color: var(--danger); font: inherit; font-size: 0.85rem; font-weight: 600;
 }
+.block-row:active { background: rgba(244, 69, 61, 0.2); }
 
 /* ---- crop editor ---- */
 .crop-overlay {
@@ -1598,3 +1598,31 @@ button.podium-col { border: 0; background: none; color: var(--ink); font: inheri
 
 /* ---- admin selfie lightbox reuses .lightbox ---- */
 .admin-selfie { cursor: zoom-in; }
+
+/* ---- wallet chip (profile header) ---- */
+/* Wide enough to carry the balance. An icon on its own gave no reason
+   to tap it and no idea what was behind it. */
+.wallet-chip {
+  display: flex; align-items: center; gap: 7px;
+  height: 34px; padding: 0 12px; margin: 0;
+  border: 1px solid var(--court); border-radius: var(--r-pill);
+  background: rgba(201, 162, 39, 0.10);
+  color: var(--court-lit); font: inherit; font-size: 0.85rem;
+}
+.wallet-chip b { font-weight: 700; }
+.wallet-chip:active { transform: scale(0.95); background: rgba(201, 162, 39, 0.18); }
+
+/* ---- onboarding step navigation ---- */
+/* Back and Skip under the primary action: available without competing
+   with it, and never the thing a thumb hits first. */
+.onb-nav {
+  display: flex; justify-content: space-between; gap: 10px;
+  margin-top: 14px;
+}
+
+/* ---- rank period countdown ---- */
+.rank-reset {
+  margin: 0 0 10px;
+  font-size: 0.78rem; color: var(--faint);
+}
+.rank-reset b { color: var(--court-lit); }

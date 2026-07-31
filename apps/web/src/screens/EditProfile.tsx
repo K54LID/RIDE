@@ -42,6 +42,39 @@ export default function EditProfile({ me, onSaved, onBack }: {
   // A handle is required now — it is how everyone is addressed.
   const handleValid = /^[a-zA-Z0-9_]{3,24}$/.test(handle);
 
+  /**
+   * Same live availability check as registration. Changing your handle
+   * here hit the same wall from the other side: you only learned the
+   * name was taken after pressing Save, by which point the rest of the
+   * form had already been sent and rejected with it.
+   *
+   * Your own current handle is always "free" — otherwise editing your
+   * bio while leaving the handle alone would flag your own name as
+   * taken and disable Save.
+   */
+  const [handleState, setHandleState] =
+    useState<'idle' | 'checking' | 'free' | 'taken' | 'error'>('idle');
+  const handleSeq = useRef(0);
+
+  useEffect(() => {
+    if (!handleValid || handle.toLowerCase() === me.handle.toLowerCase()) {
+      setHandleState('idle');
+      return;
+    }
+    setHandleState('checking');
+    const seq = ++handleSeq.current;
+    const id = setTimeout(() => {
+      apiFetch<{ available: boolean }>(
+        `/v1/handles/available?handle=${encodeURIComponent(handle)}`)
+        .then((r) => {
+          if (seq !== handleSeq.current) return;
+          setHandleState(r.available ? 'free' : 'taken');
+        })
+        .catch(() => { if (seq === handleSeq.current) setHandleState('error'); });
+    }, 400);
+    return () => clearTimeout(id);
+  }, [handle, handleValid, me.handle]);
+
   const payload = useCallback(() => ({
     display_name: displayName.trim(),
     handle,
@@ -89,7 +122,8 @@ export default function EditProfile({ me, onSaved, onBack }: {
       if (!opts?.silent) setJustSaved(Date.now());
     } catch (err) {
       if (err instanceof ApiError && err.code === 'HANDLE_TAKEN') {
-        setError('That handle is taken. Try another.');
+        setHandleState('taken');
+        setError('That username is not available. Try another one.');
       }
     } finally {
       inFlight.current = false;
@@ -133,7 +167,8 @@ export default function EditProfile({ me, onSaved, onBack }: {
     } catch (err) {
       tg.notify('error');
       if (err instanceof ApiError && err.code === 'HANDLE_TAKEN') {
-        setError('That handle is taken. Try another.');
+        setHandleState('taken');
+        setError('That username is not available. Try another one.');
       } else {
         setError(err instanceof ApiError ? err.message : 'Could not save');
       }
@@ -156,7 +191,13 @@ export default function EditProfile({ me, onSaved, onBack }: {
                onChange={(e) => setDisplayName(e.target.value)} />
       </Field>
       <Field label={t('profile.handle')}
-             hint={handleValid ? undefined : 'Letters, numbers and underscores only, 3–24 characters.'}>
+             hint={
+               !handleValid ? 'Letters, numbers and underscores only, 3–24 characters.'
+               : handleState === 'checking' ? 'Checking availability…'
+               : handleState === 'taken' ? '✕ That username is not available — try another one.'
+               : handleState === 'free' ? '✓ Available.'
+               : undefined
+             }>
         <input value={handle} maxLength={24} autoCapitalize="none" autoCorrect="off"
                onChange={(e) => setHandle(e.target.value.replace(/\s/g, ''))} />
       </Field>
@@ -187,7 +228,9 @@ export default function EditProfile({ me, onSaved, onBack }: {
 
       {error ? <p className="error">{error}</p> : null}
 
-      <Button onClick={save} disabled={busy || !handleValid || displayName.trim().length === 0}>
+      <Button onClick={save}
+              disabled={busy || !handleValid || handleState === 'taken'
+                        || displayName.trim().length === 0}>
         {busy ? t('common.loading') : t('common.save')}
       </Button>
       <div style={{ height: 10 }} />

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch, ApiError, type Me } from './lib/api';
 import { useRoute, type Route } from './lib/router';
+import { setBotUrl } from './lib/appInfo';
 import { tg } from './lib/tg';
 import { useT } from './i18n';
 import BottomNav from './components/BottomNav';
@@ -27,26 +28,49 @@ import PostView from './screens/PostView';
 
 type Phase = 'loading' | 'onboarding' | 'ready' | 'error';
 
+/** One frame of the overlay stack. */
+type Overlay =
+  | { kind: 'user'; accountId: string }
+  | { kind: 'follows'; accountId: string; mode: 'followers' | 'following' }
+  | { kind: 'post'; postId: string };
+
 export default function App() {
   const t = useT();
   const [phase, setPhase] = useState<Phase>('loading');
   const [me, setMe] = useState<Me | null>(null);
   const [{ route, chatId }, go, openChat] = useRoute();
   const [feedKey, setFeedKey] = useState(0);
-  const [viewingUser, setViewingUser] = useState<string | null>(null);
-  const [viewingPost, setViewingPost] = useState<string | null>(null);
   /**
+   * Overlays are a stack, not three single slots.
+   *
+   * They used to be `viewingUser`, `viewingPost` and `followList`, one
+   * of each. Opening a person from a follower list overwrote the person
+   * already there, and tapping *their* followers replaced the list that
+   * was rendered underneath the profile — so the second list opened
+   * behind the profile covering it and the app looked like it refused
+   * to go any deeper. Followers of followers of followers now works to
+   * any depth, because each push is a new frame rather than a
+   * replacement.
+   *
    * Must be declared here with the other hooks, NOT further down beside
-   * the overlay it feeds. Everything below is preceded by three
+   * the overlays it feeds. Everything below is preceded by three
    * conditional early returns (loading / error / onboarding), so a hook
    * declared there is skipped on the first render and called on the
    * second — React counts hooks per render, sees the count change when
    * phase flips loading → ready, and tears the whole tree down. That is
    * a blank screen showing nothing but the background colour.
    */
-  const [followList, setFollowList] = useState<
-    { accountId: string; mode: 'followers' | 'following' } | null>(null);
+  const [stack, setStack] = useState<Overlay[]>([]);
   const [unreadChats, setUnreadChats] = useState(0);
+
+  const push = useCallback((o: Overlay) => setStack((cur) => [...cur, o]), []);
+  const openUser = useCallback(
+    (accountId: string) => push({ kind: 'user', accountId }), [push]);
+  const openPost = useCallback(
+    (postId: string) => push({ kind: 'post', postId }), [push]);
+  /** Close this frame and everything above it. */
+  const popTo = useCallback((i: number) => setStack((cur) => cur.slice(0, i)), []);
+  const clearStack = useCallback(() => setStack([]), []);
 
   /**
    * Poll the chat list for unread count so the Chat tab can carry a
@@ -68,7 +92,7 @@ export default function App() {
 
   const load = useCallback(() => {
     apiFetch<Me>('/v1/me')
-      .then((data) => { setMe(data); setPhase('ready'); })
+      .then((data) => { setBotUrl(data.bot_url); setMe(data); setPhase('ready'); })
       .catch((err: unknown) => {
         setPhase(err instanceof ApiError && err.code === 'ONBOARDING_REQUIRED'
           ? 'onboarding' : 'error');
@@ -111,52 +135,56 @@ export default function App() {
   // A chat thread owns the whole screen — the bar would fight the composer.
   // A person's profile overlays whatever is beneath it, so it works
   // identically from Discover, a chat header, or the feed.
-  const userOverlay = viewingUser ? (
-    <UserProfile
-      accountId={viewingUser}
-      balance={me?.coin_balance ?? 0}
-      onClose={() => setViewingUser(null)}
-      onBalanceChange={load}
-      onOpenChat={(id) => { setViewingUser(null); setViewingPost(null); openChat(id); }}
-      onOpenUser={setViewingUser}
-      onFollows={(mode) => setFollowList({ accountId: viewingUser, mode })}
-    />
-  ) : null;
-
-  /**
-   * Followers / following sits above the profile overlay, so opening a
-   * person from the list stacks their profile on top and closing it
-   * returns you to the list rather than all the way out.
-   */
-  const followOverlay = followList ? (
-    <FollowList
-      accountId={followList.accountId}
-      mode={followList.mode}
-      meId={meId}
-      onClose={() => setFollowList(null)}
-      onOpenUser={setViewingUser}
-    />
-  ) : null;
-
-  // A post overlay sits beneath the profile overlay in the DOM, so
-  // tapping a name inside the post stacks the person on top of it.
-  const postOverlay = viewingPost ? (
-    <PostView
-      postId={viewingPost}
-      meId={meId}
-      onClose={() => setViewingPost(null)}
-      onOpenUser={setViewingUser}
-    />
-  ) : null;
+  //
+  // Rendered in stack order: each frame is a fixed, full-screen portal,
+  // so the last one painted is the one on top, and closing it reveals
+  // exactly what was underneath. Frames below stay mounted and keep
+  // their scroll position and loaded data.
+  const overlays = stack.map((frame, i) => {
+    const close = () => popTo(i);
+    if (frame.kind === 'user') {
+      return (
+        <UserProfile
+          key={`user:${i}:${frame.accountId}`}
+          accountId={frame.accountId}
+          balance={me?.coin_balance ?? 0}
+          onClose={close}
+          onBalanceChange={load}
+          onOpenChat={(id) => { clearStack(); openChat(id); }}
+          onOpenUser={openUser}
+          onFollows={(mode) => push({ kind: 'follows', accountId: frame.accountId, mode })}
+        />
+      );
+    }
+    if (frame.kind === 'follows') {
+      return (
+        <FollowList
+          key={`follows:${i}:${frame.accountId}:${frame.mode}`}
+          accountId={frame.accountId}
+          mode={frame.mode}
+          meId={meId}
+          onClose={close}
+          onOpenUser={openUser}
+        />
+      );
+    }
+    return (
+      <PostView
+        key={`post:${i}:${frame.postId}`}
+        postId={frame.postId}
+        meId={meId}
+        onClose={close}
+        onOpenUser={openUser}
+      />
+    );
+  });
 
   if (chatId) {
     return (
       <>
         <ChatThread conversationId={chatId} meId={meId}
-                    onBack={() => go('chats')} onOpenUser={setViewingUser} />
-        {postOverlay}
-        {followOverlay}
-        {userOverlay}
+                    onBack={() => go('chats')} onOpenUser={openUser} />
+        {overlays}
       </>
     );
   }
@@ -165,22 +193,18 @@ export default function App() {
     return (
       <>
         <Alerts onBack={() => go('home')}
-                onOpenUser={setViewingUser}
-                onOpenPost={setViewingPost}
+                onOpenUser={openUser}
+                onOpenPost={openPost}
                 onOpenChat={openChat} />
-        {postOverlay}
-        {followOverlay}
-        {userOverlay}
+        {overlays}
       </>
     );
   }
   if (route === 'saved') {
     return (
       <>
-        <Saved meId={meId} onBack={() => go('you')} onOpenUser={setViewingUser} />
-        {postOverlay}
-        {followOverlay}
-        {userOverlay}
+        <Saved meId={meId} onBack={() => go('you')} onOpenUser={openUser} />
+        {overlays}
       </>
     );
   }
@@ -201,23 +225,21 @@ export default function App() {
       {tab === 'home' && (
         <Home key={feedKey} meId={meId} meName={meName} meAvatar={meAvatar}
               onCompose={() => go('create')} onAlerts={() => go('alerts')}
-              onOpenUser={setViewingUser} />
+              onOpenUser={openUser} />
       )}
       {tab === 'achievements' && <Achievements />}
-      {tab === 'chats' && <Chats meId={meId} onOpen={openChat} onOpenUser={setViewingUser} />}
-      {tab === 'discover' && <Discover onOpenUser={setViewingUser} />}
-      {tab === 'ranks' && <Ranks onOpenUser={setViewingUser} />}
+      {tab === 'chats' && <Chats meId={meId} onOpen={openChat} onOpenUser={openUser} />}
+      {tab === 'discover' && <Discover onOpenUser={openUser} />}
+      {tab === 'ranks' && <Ranks onOpenUser={openUser} />}
       {tab === 'you' && me && (
         <Profile me={me} onEdit={() => go('edit')} onWallet={() => go('wallet')}
                  onSettings={() => go('settings')} onSaved={() => go('saved')}
-                 onFollows={(mode) => setFollowList({ accountId: meId, mode })} />
+                 onFollows={(mode) => push({ kind: 'follows', accountId: meId, mode })} />
       )}
 
       <BottomNav route={route} onGo={go} unreadChats={unreadChats} />
 
-      {postOverlay}
-      {followOverlay}
-      {userOverlay}
+      {overlays}
 
       <Sheet center open={route === 'create'} onClose={() => go('home')}>
         <Compose

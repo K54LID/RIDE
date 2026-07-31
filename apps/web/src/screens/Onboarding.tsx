@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { apiFetch, ApiError } from '../lib/api';
 import { tg } from '../lib/tg';
 import { Button, ChipGroup, ChipPick, Field } from '../components/ui';
@@ -27,6 +27,15 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * Handle availability, checked against the database as they type.
+   * Finding out the handle was taken only after filling in four steps
+   * and pressing the final button — and being thrown back to step 1 —
+   * is a bad way to learn it.
+   */
+  const [handleState, setHandleState] =
+    useState<'idle' | 'checking' | 'free' | 'taken' | 'error'>('idle');
+  const handleSeq = useRef(0);
 
   const [displayName, setDisplayName] = useState('');
   const [handle, setHandle] = useState('');
@@ -50,6 +59,26 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
     return tg.backButton(() => setStep((s) => Math.max(0, s - 1)));
   }, [step]);
 
+  const handleValid = /^[a-zA-Z0-9_]{3,24}$/.test(handle);
+
+  useEffect(() => {
+    if (!handleValid) { setHandleState('idle'); return; }
+    setHandleState('checking');
+    // Sequence number, not just a cleared timer: an in-flight response
+    // for an older handle must never overwrite the newer verdict.
+    const seq = ++handleSeq.current;
+    const id = setTimeout(() => {
+      apiFetch<{ available: boolean }>(
+        `/v1/handles/available?handle=${encodeURIComponent(handle)}`)
+        .then((r) => {
+          if (seq !== handleSeq.current) return;
+          setHandleState(r.available ? 'free' : 'taken');
+        })
+        .catch(() => { if (seq === handleSeq.current) setHandleState('error'); });
+    }, 400);
+    return () => clearTimeout(id);
+  }, [handle, handleValid]);
+
   const age = useMemo(() => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return null;
     const b = new Date(`${birthDate}T00:00:00Z`);
@@ -62,9 +91,13 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
   }, [birthDate]);
 
   // Required: the handle is how this person is addressed everywhere
-  // except their own profile header and the Discover grid.
-  const handleValid = /^[a-zA-Z0-9_]{3,24}$/.test(handle);
-  const step0Valid = displayName.trim().length > 0 && age !== null && age >= 18 && handleValid;
+  // except their own profile header and the Discover grid. A handle
+  // known to be taken blocks the step; a check still in flight or one
+  // that failed for network reasons does not, because the server
+  // rejects duplicates anyway and a dead spinner should not trap
+  // someone in step 1.
+  const step0Valid = displayName.trim().length > 0 && age !== null && age >= 18
+    && handleValid && handleState !== 'taken';
 
   const submit = async () => {
     setBusy(true);
@@ -95,7 +128,11 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
       tg.notify('error');
       if (err instanceof ApiError) {
         if (err.code === 'UNDERAGE') setError('RIDE is for adults 18 and over.');
-        else if (err.code === 'HANDLE_TAKEN') { setError('That handle is taken. Try another.'); setStep(0); }
+        else if (err.code === 'HANDLE_TAKEN') {
+          setError('That username is not available. Try another one.');
+          setHandleState('taken');
+          setStep(0);
+        }
         else if (err.code === 'NETWORK') setError('No connection. Check your network and try again.');
         else setError(err.message);
       } else {
@@ -107,6 +144,30 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
   };
 
   const next = () => { tg.tap('medium'); setStep((s) => s + 1); };
+  const back = () => { tg.tap('light'); setStep((s) => Math.max(0, s - 1)); };
+
+  /**
+   * Steps 2–4 are all optional, so "skip" means: submit what exists and
+   * let them finish from Edit profile whenever they like. It is not
+   * offered on step 1 — a display name, an age and a handle are the
+   * minimum an account can exist with, and the handle in particular is
+   * how everyone else addresses them.
+   */
+  const skip = () => { tg.tap('light'); void submit(); };
+
+  /**
+   * Back / Skip under each optional step. A value, not a nested
+   * component: a component declared inside another is a fresh type on
+   * every render, which remounts its subtree and trips the hooks check.
+   */
+  const stepNav = (
+    <div className="onb-nav">
+      <button type="button" className="chip" onClick={back}>Back</button>
+      <button type="button" className="chip" onClick={skip} disabled={busy}>
+        {busy ? 'Saving…' : 'Skip for now'}
+      </button>
+    </div>
+  );
 
   return (
     <div className="screen">
@@ -129,7 +190,16 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
             <input value={displayName} maxLength={50} placeholder="What people call you"
                    onChange={(e) => setDisplayName(e.target.value)} />
           </Field>
-          <Field label="Handle" hint={handleValid ? '3–24 letters, numbers or underscores.' : 'Required. Letters, numbers and underscores only, 3–24 characters.'}>
+          <Field
+            label="Handle"
+            hint={
+              !handleValid ? 'Required. Letters, numbers and underscores only, 3–24 characters.'
+              : handleState === 'checking' ? 'Checking availability…'
+              : handleState === 'taken' ? '✕ That username is not available — try another one.'
+              : handleState === 'free' ? '✓ Available.'
+              : '3–24 letters, numbers or underscores.'
+            }
+          >
             <input value={handle} maxLength={24} placeholder="ride_handle"
                    autoCapitalize="none" autoCorrect="off"
                    onChange={(e) => setHandle(e.target.value.replace(/\s/g, ''))} />
@@ -151,6 +221,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
           <Field label="Orientation"><ChipPick options={ORIENTATIONS} value={orientation} onChange={setOrientation} /></Field>
           <Field label="Relationship"><ChipPick options={STATUS} value={status} onChange={setStatus} /></Field>
           <Button onClick={next}>Continue</Button>
+          {stepNav}
         </>
       )}
 
@@ -165,6 +236,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
           </Field>
           <Field label="Languages"><ChipGroup options={LANGUAGES} selected={languages} onChange={setLanguages} /></Field>
           <Button onClick={next}>Continue</Button>
+          {stepNav}
         </>
       )}
 
@@ -190,6 +262,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
           <Button onClick={submit} disabled={busy}>
             {busy ? t('common.loading') : 'Enter RIDE'}
           </Button>
+          {stepNav}
         </>
       )}
     </div>

@@ -93,13 +93,17 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
           {isVip ? <span className="vip-chip">VIP</span> : null}
         </h1>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="icon-btn sm" aria-label={t('wallet.title')}
+          {/* A wallet icon alone said nothing about what was in it.
+              The balance is the reason anyone opens this screen, so it
+              rides on the button itself. */}
+          <button className="wallet-chip" aria-label={t('wallet.title')}
                   onClick={() => { tg.tap('light'); onWallet(); }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                  stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round">
               <path d="M3 8a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z" />
               <path d="M16 12.5h3" strokeLinecap="round" />
             </svg>
+            <b className="num">{me.coin_balance}</b>
           </button>
           <button className="icon-btn sm" aria-label={t('settings.title')}
                   onClick={() => { tg.tap('light'); onSettings(); }}>
@@ -153,21 +157,14 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
           <PhotoManager />
         </>
       ) : (
-        <div className="photo-strip">
-          {photos.some((p) => !p.is_private) ? (
-            <PhotoCarousel photos={photos.filter((p) => !p.is_private)}
-                           onDeleted={deletePhoto} />
-          ) : null}
-          {/* The album is a tile at the end of the public strip, not a
-              second section further down — a lock sitting with the
-              photos reads as "there is more behind this". */}
-          {privateCount > 0 ? (
-            <button className="album-tile" onClick={() => { tg.tap('light'); setAlbumOpen(true); }}>
-              <span className="album-lock" aria-hidden="true">🔒</span>
-              <span className="album-count num">{privateCount}</span>
-            </button>
-          ) : null}
-        </div>
+        /* The album is the last cell of the public strip, not a tile
+           beside it — same row, same square, same baseline, so the
+           lock reads as "there is more behind this" rather than as a
+           separate widget that happens to sit nearby. */
+        <PhotoCarousel photos={photos.filter((p) => !p.is_private)}
+                       lockedCount={privateCount}
+                       onLockedClick={() => setAlbumOpen(true)}
+                       onDeleted={deletePhoto} />
       )}
 
       {shown.length > 0 ? (
@@ -194,7 +191,8 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
       <Sheet center open={albumOpen} onClose={() => setAlbumOpen(false)}>
         <h2 style={{ marginBottom: 4 }}>🔒 {t('profile.privateAlbum')}</h2>
         <p className="hint" style={{ marginBottom: 12 }}>{t('album.ownerHint')}</p>
-        <PhotoCarousel photos={photos.filter((p) => p.is_private)} onDeleted={deletePhoto} />
+        <PhotoCarousel photos={photos.filter((p) => p.is_private)} hideLocks
+                       onDeleted={deletePhoto} />
       </Sheet>
 
       <Sheet center open={giftsOpen} onClose={() => setGiftsOpen(false)}>

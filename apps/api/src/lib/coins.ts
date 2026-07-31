@@ -16,7 +16,9 @@ export type SpendReason =
 
 export type EarnReason =
   | 'daily_login' | 'referral_bonus' | 'achievement' | 'leaderboard_reward'
-  | 'gift_received' | 'admin_credit' | 'refund';
+  | 'gift_received' | 'admin_credit' | 'refund'
+  /** Half of what a courter paid, credited to the person courted. */
+  | 'court_payout';
 
 export async function debit(
   tx: TransactionSql,

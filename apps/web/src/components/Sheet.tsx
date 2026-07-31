@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom';
 import { useEffect, type ReactNode } from 'react';
 import { tg } from '../lib/tg';
+import { lockScroll } from '../lib/scrollLock';
 
 /**
  * Dialog sheet. Anchored to the top of the visible viewport by default
@@ -15,12 +16,14 @@ export default function Sheet({
   useEffect(() => {
     if (!open) return;
     const restore = tg.backButton(onClose);
-    // Block background scroll while the sheet owns the screen.
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    // Block background scroll while the sheet owns the screen. The lock
+    // is reference-counted (lib/scrollLock) so a sheet opened over a
+    // page can't restore the wrong value on the way out and leave the
+    // whole app unscrollable.
+    const unlock = lockScroll();
     return () => {
       restore();
-      document.body.style.overflow = prev;
+      unlock();
     };
   }, [open, onClose]);
 
