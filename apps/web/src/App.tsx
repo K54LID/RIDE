@@ -155,8 +155,8 @@ export default function App() {
         <ChatThread conversationId={chatId} meId={meId}
                     onBack={() => go('chats')} onOpenUser={setViewingUser} />
         {postOverlay}
-        {userOverlay}
         {followOverlay}
+        {userOverlay}
       </>
     );
   }
@@ -169,8 +169,8 @@ export default function App() {
                 onOpenPost={setViewingPost}
                 onOpenChat={openChat} />
         {postOverlay}
-        {userOverlay}
         {followOverlay}
+        {userOverlay}
       </>
     );
   }
@@ -179,8 +179,8 @@ export default function App() {
       <>
         <Saved meId={meId} onBack={() => go('you')} onOpenUser={setViewingUser} />
         {postOverlay}
-        {userOverlay}
         {followOverlay}
+        {userOverlay}
       </>
     );
   }
@@ -216,8 +216,8 @@ export default function App() {
       <BottomNav route={route} onGo={go} unreadChats={unreadChats} />
 
       {postOverlay}
-      {userOverlay}
       {followOverlay}
+      {userOverlay}
 
       <Sheet center open={route === 'create'} onClose={() => go('home')}>
         <Compose

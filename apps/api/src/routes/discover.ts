@@ -25,6 +25,13 @@ const FiltersSchema = z.object({
   verified_only: z.coerce.boolean().optional(),
   online_only: z.coerce.boolean().optional(),
   sort: z.enum(['active', 'new', 'court', 'nearby', 'global']).default('active'),
+  /**
+   * Set by the Grid tab. Restricts results to people whose distance can
+   * actually be computed — "near you" is a property of the tab, not of
+   * whichever sort the person happened to pick, so it travels
+   * separately from `sort`.
+   */
+  nearby_only: z.coerce.boolean().optional(),
   limit: z.coerce.number().int().min(1).max(50).default(24),
   offset: z.coerce.number().int().min(0).max(500).default(0),
 });
@@ -119,7 +126,7 @@ const discoverRoutes: FastifyPluginAsync = async (app) => {
         ${interests ? sql`AND p.interests && ${interests}` : sql``}
         ${f.verified_only ? sql`AND p.verification = 'approved'` : sql``}
         ${isGlobal || f.online_only ? sql`AND a.last_seen_at > now() - interval '5 minutes'` : sql``}
-        ${!isGlobal && f.sort === 'nearby'
+        ${!isGlobal && f.nearby_only
           ? sql`AND ul.cell IS NOT NULL AND ml.cell IS NOT NULL` : sql``}
         ${!isGlobal && f.max_km ? sql`AND ul.cell IS NOT NULL AND ml.cell IS NOT NULL
                          AND ST_DWithin(ml.cell, ul.cell, ${f.max_km * 1000})` : sql``}

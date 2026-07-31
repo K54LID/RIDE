@@ -17,6 +17,19 @@ const BOARDS: Array<[Board, 'ranks.court' | 'ranks.woofs' | 'ranks.likes' | 'ran
   ['followers', 'ranks.followers'],
 ];
 
+/**
+ * Every board explains itself: what is being counted, and the one thing
+ * that moves it. A leaderboard nobody understands is just a number
+ * people resent — if it is going to rank people it owes them the rule.
+ */
+const EXPLAIN: Record<Board, `ranks.how.${Board}`> = {
+  court: 'ranks.how.court',
+  woofs: 'ranks.how.woofs',
+  likes: 'ranks.how.likes',
+  gifts: 'ranks.how.gifts',
+  followers: 'ranks.how.followers',
+};
+
 const PERIODS: Array<[Period, 'ranks.day' | 'ranks.week' | 'ranks.month' | 'ranks.all']> = [
   ['day', 'ranks.day'], ['week', 'ranks.week'],
   ['month', 'ranks.month'], ['all', 'ranks.all'],
@@ -57,6 +70,7 @@ export default function Ranks({ onOpenUser }: { onOpenUser: (accountId: string) 
   // barely moves day to day.
   const [board, setBoard] = useState<Board>('court');
   const [period, setPeriod] = useState<Period>('day');
+  const [howOpen, setHowOpen] = useState(false);
   const [entries, setEntries] = useState<RankEntry[] | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -86,6 +100,19 @@ export default function Ranks({ onOpenUser }: { onOpenUser: (accountId: string) 
                   onClick={() => { tg.select(); setPeriod(p); }}>{t(key)}</button>
         ))}
       </div>
+
+      <button className="rank-how" onClick={() => { tg.tap('light'); setHowOpen((v) => !v); }}
+              aria-expanded={howOpen}>
+        <span>{t('ranks.howTitle')}</span>
+        <span aria-hidden="true">{howOpen ? '−' : '?'}</span>
+      </button>
+      {howOpen ? (
+        <div className="card compact rank-how-body">
+          <p>{t(EXPLAIN[board])}</p>
+          <p className="hint" style={{ marginTop: 8 }}>{t('ranks.how.period')}</p>
+          <p className="hint" style={{ marginTop: 6 }}>{t('ranks.how.fair')}</p>
+        </div>
+      ) : null}
 
       {failed ? (
         <EmptyState title={t('common.offline')} body={t('common.offline.body')}

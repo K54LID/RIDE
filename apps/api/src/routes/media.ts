@@ -134,6 +134,18 @@ const mediaRoutes: FastifyPluginAsync = async (app) => {
     `;
     if (!row) throw new HttpError(404, 'MEDIA_NOT_FOUND');
 
+    /**
+     * Falling back to the full file on a thumb request is right for
+     * images — since migration 011 that is exactly how they serve
+     * sharp. It is wrong for video: the poster in the feed asks for
+     * ?thumb=1, and a video with no stored thumbnail would answer by
+     * streaming the entire clip to every person who scrolled past it.
+     * Telegram usually returns a thumbnail for sendVideo, but not
+     * always, so 404 and let the client show its placeholder.
+     */
+    if (wantThumb && row.kind === 'video' && !row.thumb_ref) {
+      throw new HttpError(404, 'NO_THUMBNAIL');
+    }
     const ref = wantThumb && row.thumb_ref ? row.thumb_ref : row.file_ref;
 
     let url: string;

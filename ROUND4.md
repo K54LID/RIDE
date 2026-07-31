@@ -595,3 +595,75 @@ down. On someone else's profile the count is what is behind the lock.
 - All 14 migrations apply in order on a real Postgres 16 + PostGIS.
 - The corrected delete-account statement runs against the live NOT NULL
   constraint.
+
+---
+
+# Round 11
+
+## Panels open in the thumb zone now
+
+Round 10 portalled sheets to `document.body`, which fixed *where they
+were measured from*. This fixes *where they sit*: `.sheet-wrap` anchors
+to the bottom instead of centring.
+
+Centre and top both mean the same thing on a long feed — you tap ⋯ on a
+post near the bottom of the screen and the action jumps to the far end
+of the phone, away from your hand. Bottom is where every mobile action
+sheet lives, and the wrapper is still sized to the visible viewport, so
+it cannot fall below the fold — which was the original reason it was
+moved to the top in round 3.
+
+Applies to the post menu, delete, edit, verification, gifts, block
+confirm and the album, since they all share `Sheet`.
+
+## Discover no longer picks a filter for you
+
+Round 10 defaulted the sort chip to "Nearby" to make Grid behave. That
+was the wrong lever — it silently changed a control the person owns.
+
+The two concerns are separated now: the **tab** decides who you see
+(Grid sends `nearby_only=1`, Global ignores location entirely) and the
+**sort chip** decides the order within that, defaulting back to Active
+and never changing on its own.
+
+## Photos delete from where you are looking at them
+
+`PhotoCarousel` takes an optional `onDeleted`. Given it — own profile
+only — the lightbox grows a Delete with an inline confirm. Going to
+Edit profile to remove a photo already open on screen was a detour with
+no purpose. The endpoint already existed.
+
+## Video previews play
+
+Feed video was `controls preload="metadata"` — a poster frame that
+needed a tap to reveal whether it was worth watching, which is a
+decision with no information behind it. Now `autoPlay muted loop
+playsInline`. Muted is not a preference: it is the only autoplay mobile
+browsers allow without a gesture. Controls stay for sound and scrubbing.
+
+## Followers → profile opens on top
+
+`{followOverlay}` was rendered after `{userOverlay}`, and later
+siblings paint above earlier ones. Opening someone from the follow list
+put their profile *behind* the list, so it looked like nothing happened
+until you pressed back. Order swapped: the profile is last, so it
+lands on top and back returns you to the list.
+
+## Every leaderboard explains itself
+
+A "How this leaderboard works" toggle on Ranks, with text per board:
+what is counted, and the one thing that moves it — court value only
+moves with coins; woofs count distinct people, not repeat taps; likes
+are summed across all your posts; gifts count per gift, not by price;
+followers count only new follows inside the period. Plus what the
+period selector actually means, and that ghost mode removes you from
+every board while blocking changes visibility but not scores.
+
+A board that ranks people owes them the rule it ranks by.
+
+English and a shorter shared version for the other nine locales.
+
+## Verified
+
+Typecheck, hook guard, production build, jsdom smoke test — mounts and
+renders.

@@ -48,6 +48,12 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
   const [giftsOpen, setGiftsOpen] = useState(false);
   const [albumOpen, setAlbumOpen] = useState(false);
 
+  /** Remove a photo from the lightbox, without a trip through Edit profile. */
+  const deletePhoto = async (photoId: string) => {
+    await apiFetch(`/v1/me/photos/${photoId}`, { method: 'DELETE' });
+    setPhotos((cur) => cur.filter((p) => p.id !== photoId));
+  };
+
   useEffect(() => {
     apiFetch<{ collection: OwnedGift[] }>('/v1/users/me/gifts')
       .then((r) => setGifts(r.collection)).catch(() => undefined);
@@ -149,7 +155,8 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
       ) : (
         <div className="photo-strip">
           {photos.some((p) => !p.is_private) ? (
-            <PhotoCarousel photos={photos.filter((p) => !p.is_private)} />
+            <PhotoCarousel photos={photos.filter((p) => !p.is_private)}
+                           onDeleted={deletePhoto} />
           ) : null}
           {/* The album is a tile at the end of the public strip, not a
               second section further down — a lock sitting with the
@@ -187,7 +194,7 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
       <Sheet center open={albumOpen} onClose={() => setAlbumOpen(false)}>
         <h2 style={{ marginBottom: 4 }}>🔒 {t('profile.privateAlbum')}</h2>
         <p className="hint" style={{ marginBottom: 12 }}>{t('album.ownerHint')}</p>
-        <PhotoCarousel photos={photos.filter((p) => p.is_private)} />
+        <PhotoCarousel photos={photos.filter((p) => p.is_private)} onDeleted={deletePhoto} />
       </Sheet>
 
       <Sheet center open={giftsOpen} onClose={() => setGiftsOpen(false)}>

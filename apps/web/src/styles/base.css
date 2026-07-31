@@ -299,7 +299,14 @@ p { margin: 0; color: var(--muted); }
   padding: 14px 12px calc(14px + env(safe-area-inset-bottom));
   pointer-events: none;
 }
-.sheet-wrap { align-items: center; }
+/* Anchored to the BOTTOM — the thumb zone.
+   A panel in the middle or at the top is a reach across the whole
+   screen from wherever the person just tapped, and on a long feed the
+   action they wanted ends up furthest from their hand. Bottom is where
+   every mobile action sheet lives for that reason, and the wrapper is
+   sized to the visible viewport so it can no longer fall below the
+   fold — which was the original reason it was moved to the top. */
+.sheet-wrap { align-items: flex-end; }
 .sheet {
   pointer-events: auto;
   width: min(100%, 496px);
@@ -309,9 +316,7 @@ p { margin: 0; color: var(--muted); }
   border: 1px solid var(--hairline);
   border-radius: var(--r-lg);
   padding: 10px var(--pad) 20px;
-  animation: sheetDrop 0.24s var(--ease);
 }
-@keyframes sheetDrop { from { transform: translateY(-14px); opacity: 0; } }
 .sheet-grip {
   width: 38px; height: 4px; border-radius: 2px;
   background: var(--hairline);
@@ -1163,6 +1168,45 @@ h2 { font-size: 1.02rem; }
 .bubble-story-thumb .skel { width: 100%; height: 100%; }
 .bubble-story-label { font-size: 0.74rem; opacity: 0.75; }
 
+/* "How this works" on the leaderboards. */
+.rank-how {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin: 2px 0 10px; padding: 9px 12px;
+  background: var(--raised); border: 1px solid var(--hairline);
+  border-radius: var(--r-md); color: var(--muted);
+  font: inherit; font-size: 0.8rem; text-align: start;
+}
+.rank-how:active { background: var(--surface); }
+.rank-how-body { margin-bottom: 12px; font-size: 0.84rem; line-height: 1.5; }
+
+/* Video poster + play button. The video bytes are not fetched until
+   this is tapped, so the poster is all a scrolling feed ever loads. */
+.video-poster {
+  position: relative; display: block; width: 100%;
+  padding: 0; border: 0; background: none; line-height: 0;
+}
+.video-poster img { width: 100%; display: block; }
+.video-play {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 52px; height: 52px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(6, 3, 14, 0.62); color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(4px);
+  transition: transform 0.15s var(--ease);
+}
+.video-poster:active .video-play { transform: translate(-50%, -50%) scale(0.9); }
+.video-play.loading svg { animation: spin 0.8s linear infinite; }
+
+/* Delete-from-lightbox bar, own profile only. */
+.lightbox-bar {
+  position: absolute; inset-inline: 0; bottom: calc(20px + env(safe-area-inset-bottom));
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 0 16px;
+}
+.lightbox-ask { font-size: 0.85rem; color: #fff; }
+.chip.danger { border-color: var(--pulse); color: var(--pulse); }
+
 /* Unread-message count on the Chat tab. */
 .nav-icon { position: relative; display: inline-flex; }
 .nav-badge {
@@ -1458,8 +1502,8 @@ button.courted-by { width: 100%; color: var(--ink); font: inherit; text-align: s
 button.podium-col { border: 0; background: none; color: var(--ink); font: inherit; }
 
 /* ---- centred sheet (composer, verification, message actions) ---- */
-.sheet { animation: sheetPop 0.2s var(--ease); }
-@keyframes sheetPop { from { opacity: 0; transform: scale(0.97); } }
+.sheet { animation: sheetUp 0.2s var(--ease); }
+@keyframes sheetUp { from { opacity: 0; transform: translateY(12px); } }
 
 /* ---- rank chips on profiles ---- */
 .rank-chips {

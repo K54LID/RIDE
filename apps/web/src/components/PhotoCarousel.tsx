@@ -16,18 +16,26 @@ import { useT } from '../i18n';
  * Tapping a thumbnail opens it full-screen; tap again (or the ✕, or
  * Telegram's back button) to close.
  */
-export default function PhotoCarousel({ photos, lockedCount = 0 }: {
+export default function PhotoCarousel({ photos, lockedCount = 0, onDeleted }: {
   photos: ProfilePhoto[];
   lockedCount?: number;
+  /**
+   * Present only on your own profile. Given it, the lightbox offers
+   * Delete — going through Edit profile to remove a photo you are
+   * already looking at is a detour with no purpose.
+   */
+  onDeleted?: (photoId: string) => Promise<void> | void;
 }) {
   const t = useT();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   // Telegram's back button closes the lightbox, same as every other
   // overlay in the app.
   useEffect(() => {
     if (!openId) return;
-    return tg.backButton(() => setOpenId(null));
+    return tg.backButton(() => { setConfirming(false); setOpenId(null); });
   }, [openId]);
 
   if (photos.length === 0 && lockedCount === 0) return null;
@@ -58,6 +66,34 @@ export default function PhotoCarousel({ photos, lockedCount = 0 }: {
           <button className="lightbox-close" aria-label={t('common.close')}
                   onClick={() => setOpenId(null)}>✕</button>
           <Media key={open.id} id={open.media_id} kind="image" />
+
+          {onDeleted ? (
+            <div className="lightbox-bar" onClick={(e) => e.stopPropagation()}>
+              {confirming ? (
+                <>
+                  <span className="lightbox-ask">{t('photo.deleteConfirm')}</span>
+                  <button className="chip" disabled={busy}
+                          onClick={() => setConfirming(false)}>{t('common.cancel')}</button>
+                  <button className="chip danger" disabled={busy}
+                          onClick={async () => {
+                            setBusy(true);
+                            try {
+                              await onDeleted(open.id);
+                              tg.notify('success');
+                              setOpenId(null);
+                            } catch { tg.notify('error'); }
+                            setBusy(false);
+                            setConfirming(false);
+                          }}>{t('common.delete')}</button>
+                </>
+              ) : (
+                <button className="chip danger"
+                        onClick={() => { tg.tap('light'); setConfirming(true); }}>
+                  {t('common.delete')}
+                </button>
+              )}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </>

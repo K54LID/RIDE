@@ -34,7 +34,7 @@ export default function Discover({ onOpenUser }: {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [q, setQ] = useState('');
-  const [sort, setSort] = useState<Sort>('nearby');
+  const [sort, setSort] = useState<Sort>('active');
   const [gender, setGender] = useState<string | null>(null);
   const [ageBand, setAgeBand] = useState<string | null>(null);
   const [looking, setLooking] = useState<string[]>([]);
@@ -75,10 +75,11 @@ export default function Discover({ onOpenUser }: {
   const load = useCallback(() => {
     setPeople(null);
     setFailed(false);
-    // Grid is the people around you, Global is random people anywhere.
-    // That is the whole distinction between the two tabs, so Grid sorts
-    // by distance rather than by whatever the sort chip last said.
+    // The tab decides *who* you see — Grid is people near you, Global is
+    // random people anywhere. The sort chip decides the order within
+    // that, and is never changed on the person's behalf.
     const p = new URLSearchParams({ sort: view === 'global' ? 'global' : sort });
+    if (view === 'grid') p.set('nearby_only', '1');
     if (q.trim()) p.set('q', q.trim());
     if (gender) p.set('gender', gender);
     if (ageBand) {

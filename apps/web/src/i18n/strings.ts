@@ -28,6 +28,16 @@ export type Locale = keyof typeof LOCALES;
 export const RTL: ReadonlySet<Locale> = new Set<Locale>(['ar']);
 
 const en = {
+  'ranks.howTitle': 'How this leaderboard works',
+  'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you, and it is the only board money moves directly. Courting lasts 30 days; when it lapses the value stays but stops growing.',
+  'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile. One per person per cooldown, so this measures how many different people came by — not how often one did.',
+  'ranks.how.likes': 'Every like on every post you have written, added up. Post things people want to keep looking at; nothing else moves it.',
+  'ranks.how.gifts': 'Gifts people sent you, counted per gift and not by what they cost. A cheap gift from ten people beats an expensive one from one.',
+  'ranks.how.followers': 'People who followed you. Only new follows inside the period count, so an old account cannot sit at the top forever.',
+  'ranks.how.period': 'Today / Week / Month count only what happened inside that window. All time counts everything since your last stats reset.',
+  'ranks.how.fair': 'Ghost mode keeps you off every board. Blocking hides you from each other but changes neither score.',
+  'common.delete': 'Delete',
+  'photo.deleteConfirm': 'Delete this photo?',
   'compose.private.hint': 'Photos go to the locked album on your profile. Only people you unlock in chat can see them.',
   'common.saved': 'Saved',
   'chat.storyReply': 'Replied to a story',
@@ -362,6 +372,16 @@ const en = {
 export type T = Record<keyof typeof en, string>;
 
 const tr: T = {
+  'ranks.howTitle': 'How this leaderboard works',
+  'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
+  'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
+  'ranks.how.likes': 'Every like on every post you have written, added up.',
+  'ranks.how.gifts': 'Gifts you received, counted per gift rather than by what they cost.',
+  'ranks.how.followers': 'New follows inside the period, so old accounts cannot sit at the top forever.',
+  'ranks.how.period': 'Today / Week / Month count only that window. All time counts everything since your last stats reset.',
+  'ranks.how.fair': 'Ghost mode keeps you off every board. Blocking changes visibility, not scores.',
+  'common.delete': 'Sil',
+  'photo.deleteConfirm': 'Bu fotoğraf silinsin mi?',
   'compose.private.hint': 'Fotoğraflar profilindeki kilitli albüme gider. Yalnızca sohbette kilidini açtığın kişiler görebilir.',
   'common.saved': 'Kaydedildi',
   'chat.storyReply': 'Bir hikâyeyi yanıtladı',
@@ -574,6 +594,16 @@ const tr: T = {
 };
 
 const ru: T = {
+  'ranks.howTitle': 'How this leaderboard works',
+  'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
+  'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
+  'ranks.how.likes': 'Every like on every post you have written, added up.',
+  'ranks.how.gifts': 'Gifts you received, counted per gift rather than by what they cost.',
+  'ranks.how.followers': 'New follows inside the period, so old accounts cannot sit at the top forever.',
+  'ranks.how.period': 'Today / Week / Month count only that window. All time counts everything since your last stats reset.',
+  'ranks.how.fair': 'Ghost mode keeps you off every board. Blocking changes visibility, not scores.',
+  'common.delete': 'Удалить',
+  'photo.deleteConfirm': 'Удалить это фото?',
   'compose.private.hint': 'Фото попадут в закрытый альбом в профиле. Их увидят только те, кому вы открыли доступ в чате.',
   'common.saved': 'Сохранено',
   'chat.storyReply': 'Ответ на историю',
@@ -786,6 +816,16 @@ const ru: T = {
 };
 
 const ar: T = {
+  'ranks.howTitle': 'How this leaderboard works',
+  'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
+  'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
+  'ranks.how.likes': 'Every like on every post you have written, added up.',
+  'ranks.how.gifts': 'Gifts you received, counted per gift rather than by what they cost.',
+  'ranks.how.followers': 'New follows inside the period, so old accounts cannot sit at the top forever.',
+  'ranks.how.period': 'Today / Week / Month count only that window. All time counts everything since your last stats reset.',
+  'ranks.how.fair': 'Ghost mode keeps you off every board. Blocking changes visibility, not scores.',
+  'common.delete': 'حذف',
+  'photo.deleteConfirm': 'حذف هذه الصورة؟',
   'compose.private.hint': 'تذهب الصور إلى الألبوم المقفل في ملفك. يراها فقط من فتحت لهم القفل في المحادثة.',
   'common.saved': 'تم الحفظ',
   'chat.storyReply': 'رد على قصة',
@@ -998,6 +1038,16 @@ const ar: T = {
 };
 
 const az: T = {
+  'ranks.howTitle': 'How this leaderboard works',
+  'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
+  'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
+  'ranks.how.likes': 'Every like on every post you have written, added up.',
+  'ranks.how.gifts': 'Gifts you received, counted per gift rather than by what they cost.',
+  'ranks.how.followers': 'New follows inside the period, so old accounts cannot sit at the top forever.',
+  'ranks.how.period': 'Today / Week / Month count only that window. All time counts everything since your last stats reset.',
+  'ranks.how.fair': 'Ghost mode keeps you off every board. Blocking changes visibility, not scores.',
+  'common.delete': 'Sil',
+  'photo.deleteConfirm': 'Bu şəkil silinsin?',
   'compose.private.hint': 'Şəkillər profilindəki kilidli aloma gedir. Yalnız söhbətdə kilidini açdığın şəxslər görə bilər.',
   'common.saved': 'Yadda saxlanıldı',
   'chat.storyReply': 'Hekayəyə cavab verdi',
@@ -1210,6 +1260,16 @@ const az: T = {
 };
 
 const es: T = {
+  'ranks.howTitle': 'How this leaderboard works',
+  'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
+  'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
+  'ranks.how.likes': 'Every like on every post you have written, added up.',
+  'ranks.how.gifts': 'Gifts you received, counted per gift rather than by what they cost.',
+  'ranks.how.followers': 'New follows inside the period, so old accounts cannot sit at the top forever.',
+  'ranks.how.period': 'Today / Week / Month count only that window. All time counts everything since your last stats reset.',
+  'ranks.how.fair': 'Ghost mode keeps you off every board. Blocking changes visibility, not scores.',
+  'common.delete': 'Eliminar',
+  'photo.deleteConfirm': '¿Eliminar esta foto?',
   'compose.private.hint': 'Las fotos van al álbum bloqueado de tu perfil. Solo quienes desbloquees en el chat pueden verlas.',
   'common.saved': 'Guardado',
   'chat.storyReply': 'Respondió a una historia',
@@ -1422,6 +1482,16 @@ const es: T = {
 };
 
 const de: T = {
+  'ranks.howTitle': 'How this leaderboard works',
+  'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
+  'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
+  'ranks.how.likes': 'Every like on every post you have written, added up.',
+  'ranks.how.gifts': 'Gifts you received, counted per gift rather than by what they cost.',
+  'ranks.how.followers': 'New follows inside the period, so old accounts cannot sit at the top forever.',
+  'ranks.how.period': 'Today / Week / Month count only that window. All time counts everything since your last stats reset.',
+  'ranks.how.fair': 'Ghost mode keeps you off every board. Blocking changes visibility, not scores.',
+  'common.delete': 'Löschen',
+  'photo.deleteConfirm': 'Dieses Foto löschen?',
   'compose.private.hint': 'Fotos landen im gesperrten Album deines Profils. Nur wen du im Chat freischaltest, sieht sie.',
   'common.saved': 'Gespeichert',
   'chat.storyReply': 'Auf eine Story geantwortet',
@@ -1634,6 +1704,16 @@ const de: T = {
 };
 
 const fr: T = {
+  'ranks.howTitle': 'How this leaderboard works',
+  'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
+  'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
+  'ranks.how.likes': 'Every like on every post you have written, added up.',
+  'ranks.how.gifts': 'Gifts you received, counted per gift rather than by what they cost.',
+  'ranks.how.followers': 'New follows inside the period, so old accounts cannot sit at the top forever.',
+  'ranks.how.period': 'Today / Week / Month count only that window. All time counts everything since your last stats reset.',
+  'ranks.how.fair': 'Ghost mode keeps you off every board. Blocking changes visibility, not scores.',
+  'common.delete': 'Supprimer',
+  'photo.deleteConfirm': 'Supprimer cette photo ?',
   'compose.private.hint': 'Les photos vont dans l’album verrouillé de ton profil. Seules les personnes débloquées en discussion les voient.',
   'common.saved': 'Enregistré',
   'chat.storyReply': 'A répondu à une story',
@@ -1846,6 +1926,16 @@ const fr: T = {
 };
 
 const it: T = {
+  'ranks.howTitle': 'How this leaderboard works',
+  'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
+  'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
+  'ranks.how.likes': 'Every like on every post you have written, added up.',
+  'ranks.how.gifts': 'Gifts you received, counted per gift rather than by what they cost.',
+  'ranks.how.followers': 'New follows inside the period, so old accounts cannot sit at the top forever.',
+  'ranks.how.period': 'Today / Week / Month count only that window. All time counts everything since your last stats reset.',
+  'ranks.how.fair': 'Ghost mode keeps you off every board. Blocking changes visibility, not scores.',
+  'common.delete': 'Elimina',
+  'photo.deleteConfirm': 'Eliminare questa foto?',
   'compose.private.hint': 'Le foto finiscono nell’album bloccato del tuo profilo. Le vede solo chi sblocchi in chat.',
   'common.saved': 'Salvato',
   'chat.storyReply': 'Ha risposto a una storia',
@@ -2058,6 +2148,16 @@ const it: T = {
 };
 
 const pt: T = {
+  'ranks.howTitle': 'How this leaderboard works',
+  'ranks.how.court': 'Court value is your standing. It rises when someone spends coins to court you.',
+  'ranks.how.woofs': 'Woofs are the free nudge anyone can send from your profile — one per person.',
+  'ranks.how.likes': 'Every like on every post you have written, added up.',
+  'ranks.how.gifts': 'Gifts you received, counted per gift rather than by what they cost.',
+  'ranks.how.followers': 'New follows inside the period, so old accounts cannot sit at the top forever.',
+  'ranks.how.period': 'Today / Week / Month count only that window. All time counts everything since your last stats reset.',
+  'ranks.how.fair': 'Ghost mode keeps you off every board. Blocking changes visibility, not scores.',
+  'common.delete': 'Excluir',
+  'photo.deleteConfirm': 'Excluir esta foto?',
   'compose.private.hint': 'As fotos vão para o álbum bloqueado do seu perfil. Só quem você desbloqueia no chat pode ver.',
   'common.saved': 'Salvo',
   'chat.storyReply': 'Respondeu a um story',
