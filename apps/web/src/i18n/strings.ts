@@ -28,6 +28,8 @@ export type Locale = keyof typeof LOCALES;
 export const RTL: ReadonlySet<Locale> = new Set<Locale>(['ar']);
 
 const en = {
+  'compose.private.hint': 'Photos go to the locked album on your profile. Only people you unlock in chat can see them.',
+  'common.saved': 'Saved',
   'chat.storyReply': 'Replied to a story',
   'chat.storyReplyGone': 'Replied to a story (expired)',
   'follow.noFollowers': 'No followers yet.',
@@ -360,6 +362,8 @@ const en = {
 export type T = Record<keyof typeof en, string>;
 
 const tr: T = {
+  'compose.private.hint': 'Fotoğraflar profilindeki kilitli albüme gider. Yalnızca sohbette kilidini açtığın kişiler görebilir.',
+  'common.saved': 'Kaydedildi',
   'chat.storyReply': 'Bir hikâyeyi yanıtladı',
   'chat.storyReplyGone': 'Bir hikâyeyi yanıtladı (süresi doldu)',
   'follow.noFollowers': 'Henüz takipçi yok.',
@@ -570,6 +574,8 @@ const tr: T = {
 };
 
 const ru: T = {
+  'compose.private.hint': 'Фото попадут в закрытый альбом в профиле. Их увидят только те, кому вы открыли доступ в чате.',
+  'common.saved': 'Сохранено',
   'chat.storyReply': 'Ответ на историю',
   'chat.storyReplyGone': 'Ответ на историю (истекла)',
   'follow.noFollowers': 'Подписчиков пока нет.',
@@ -780,6 +786,8 @@ const ru: T = {
 };
 
 const ar: T = {
+  'compose.private.hint': 'تذهب الصور إلى الألبوم المقفل في ملفك. يراها فقط من فتحت لهم القفل في المحادثة.',
+  'common.saved': 'تم الحفظ',
   'chat.storyReply': 'رد على قصة',
   'chat.storyReplyGone': 'رد على قصة (انتهت)',
   'follow.noFollowers': 'لا متابعين بعد.',
@@ -990,6 +998,8 @@ const ar: T = {
 };
 
 const az: T = {
+  'compose.private.hint': 'Şəkillər profilindəki kilidli aloma gedir. Yalnız söhbətdə kilidini açdığın şəxslər görə bilər.',
+  'common.saved': 'Yadda saxlanıldı',
   'chat.storyReply': 'Hekayəyə cavab verdi',
   'chat.storyReplyGone': 'Hekayəyə cavab verdi (vaxtı bitib)',
   'follow.noFollowers': 'Hələ izləyici yoxdur.',
@@ -1200,6 +1210,8 @@ const az: T = {
 };
 
 const es: T = {
+  'compose.private.hint': 'Las fotos van al álbum bloqueado de tu perfil. Solo quienes desbloquees en el chat pueden verlas.',
+  'common.saved': 'Guardado',
   'chat.storyReply': 'Respondió a una historia',
   'chat.storyReplyGone': 'Respondió a una historia (caducada)',
   'follow.noFollowers': 'Aún no hay seguidores.',
@@ -1410,6 +1422,8 @@ const es: T = {
 };
 
 const de: T = {
+  'compose.private.hint': 'Fotos landen im gesperrten Album deines Profils. Nur wen du im Chat freischaltest, sieht sie.',
+  'common.saved': 'Gespeichert',
   'chat.storyReply': 'Auf eine Story geantwortet',
   'chat.storyReplyGone': 'Auf eine Story geantwortet (abgelaufen)',
   'follow.noFollowers': 'Noch keine Follower.',
@@ -1620,6 +1634,8 @@ const de: T = {
 };
 
 const fr: T = {
+  'compose.private.hint': 'Les photos vont dans l’album verrouillé de ton profil. Seules les personnes débloquées en discussion les voient.',
+  'common.saved': 'Enregistré',
   'chat.storyReply': 'A répondu à une story',
   'chat.storyReplyGone': 'A répondu à une story (expirée)',
   'follow.noFollowers': 'Aucun abonné pour l’instant.',
@@ -1830,6 +1846,8 @@ const fr: T = {
 };
 
 const it: T = {
+  'compose.private.hint': 'Le foto finiscono nell’album bloccato del tuo profilo. Le vede solo chi sblocchi in chat.',
+  'common.saved': 'Salvato',
   'chat.storyReply': 'Ha risposto a una storia',
   'chat.storyReplyGone': 'Ha risposto a una storia (scaduta)',
   'follow.noFollowers': 'Ancora nessun follower.',
@@ -2040,6 +2058,8 @@ const it: T = {
 };
 
 const pt: T = {
+  'compose.private.hint': 'As fotos vão para o álbum bloqueado do seu perfil. Só quem você desbloqueia no chat pode ver.',
+  'common.saved': 'Salvo',
   'chat.storyReply': 'Respondeu a um story',
   'chat.storyReplyGone': 'Respondeu a um story (expirado)',
   'follow.noFollowers': 'Ainda sem seguidores.',

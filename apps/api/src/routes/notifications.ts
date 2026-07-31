@@ -7,6 +7,9 @@ const notificationRoutes: FastifyPluginAsync = async (app) => {
     // text: the actor's id (tap → their profile) and, when the payload
     // references a post, that post's id plus a thumbnail/excerpt.
     const rows = await sql`
+      -- 'message' is deliberately excluded: an unread message belongs on
+      -- the Chat tab, not in Alerts. Duplicating it in both meant
+      -- clearing Alerts to find out you still had messages waiting.
       SELECT n.id::text AS id, n.kind, n.payload, n.read_at, n.created_at,
              n.actor_id,
              p.display_name AS actor_name, p.handle AS actor_handle,
@@ -25,12 +28,14 @@ const notificationRoutes: FastifyPluginAsync = async (app) => {
         ORDER BY position LIMIT 1
       ) pm ON true
       WHERE n.account_id = ${req.accountId}
+        AND n.kind <> 'message'
       ORDER BY n.id DESC
       LIMIT 60
     `;
     const [unread] = await sql<{ n: number }[]>`
       SELECT count(*)::int AS n FROM notifications
       WHERE account_id = ${req.accountId} AND read_at IS NULL
+        AND kind <> 'message'
     `;
     return { notifications: rows, unread: unread?.n ?? 0 };
   });

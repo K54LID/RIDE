@@ -119,6 +119,8 @@ const discoverRoutes: FastifyPluginAsync = async (app) => {
         ${interests ? sql`AND p.interests && ${interests}` : sql``}
         ${f.verified_only ? sql`AND p.verification = 'approved'` : sql``}
         ${isGlobal || f.online_only ? sql`AND a.last_seen_at > now() - interval '5 minutes'` : sql``}
+        ${!isGlobal && f.sort === 'nearby'
+          ? sql`AND ul.cell IS NOT NULL AND ml.cell IS NOT NULL` : sql``}
         ${!isGlobal && f.max_km ? sql`AND ul.cell IS NOT NULL AND ml.cell IS NOT NULL
                          AND ST_DWithin(ml.cell, ul.cell, ${f.max_km * 1000})` : sql``}
       ORDER BY

@@ -46,6 +46,7 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
   const [photos, setPhotos] = useState<ProfilePhoto[]>([]);
   const [editingPhotos, setEditingPhotos] = useState(false);
   const [giftsOpen, setGiftsOpen] = useState(false);
+  const [albumOpen, setAlbumOpen] = useState(false);
 
   useEffect(() => {
     apiFetch<{ collection: OwnedGift[] }>('/v1/users/me/gifts')
@@ -56,7 +57,8 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
       .then((r) => setPhotos(r.photos)).catch(() => undefined);
   }, [editingPhotos]);
 
-  const primary = photos.find((p) => p.position === 0) ?? photos[0];
+  const primary = photos.find((p) => p.position === 0 && !p.is_private) ?? photos.find((p) => !p.is_private);
+  const privateCount = photos.filter((p) => p.is_private).length;
   const list = (v: string[] | null) => (v && v.length ? v.join(', ') : null);
 
   const details: Array<[string, string | null]> = [
@@ -145,18 +147,20 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
           <PhotoManager />
         </>
       ) : (
-        <>
+        <div className="photo-strip">
           {photos.some((p) => !p.is_private) ? (
             <PhotoCarousel photos={photos.filter((p) => !p.is_private)} />
           ) : null}
-          {photos.some((p) => p.is_private) ? (
-            <>
-              <div className="eyebrow tight">🔒 {t('profile.privateAlbum')}</div>
-              <PhotoCarousel photos={photos.filter((p) => p.is_private)} />
-              <p className="hint">{t('album.ownerHint')}</p>
-            </>
+          {/* The album is a tile at the end of the public strip, not a
+              second section further down — a lock sitting with the
+              photos reads as "there is more behind this". */}
+          {privateCount > 0 ? (
+            <button className="album-tile" onClick={() => { tg.tap('light'); setAlbumOpen(true); }}>
+              <span className="album-lock" aria-hidden="true">🔒</span>
+              <span className="album-count num">{privateCount}</span>
+            </button>
           ) : null}
-        </>
+        </div>
       )}
 
       {shown.length > 0 ? (
@@ -179,6 +183,12 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
           <RankStandings ranks={ranks} />
         </>
       )}
+
+      <Sheet center open={albumOpen} onClose={() => setAlbumOpen(false)}>
+        <h2 style={{ marginBottom: 4 }}>🔒 {t('profile.privateAlbum')}</h2>
+        <p className="hint" style={{ marginBottom: 12 }}>{t('album.ownerHint')}</p>
+        <PhotoCarousel photos={photos.filter((p) => p.is_private)} />
+      </Sheet>
 
       <Sheet center open={giftsOpen} onClose={() => setGiftsOpen(false)}>
         <h2 style={{ marginBottom: 12 }}>{t('profile.gifts')}</h2>

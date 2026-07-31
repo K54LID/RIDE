@@ -38,7 +38,11 @@ const settingsRoutes: FastifyPluginAsync = async (app) => {
       WHERE account_id = ${req.accountId}
     `;
     const blocked = await sql`
-      SELECT b.blocked_id, pr.display_name, pr.handle
+      SELECT b.blocked_id, pr.display_name, pr.handle,
+             (SELECT ph.media_id FROM profile_photos ph
+              WHERE ph.account_id = b.blocked_id AND ph.position = 0
+                AND NOT ph.is_private AND ph.media_id IS NOT NULL
+              LIMIT 1) AS avatar_media_id
       FROM blocks b JOIN profiles pr ON pr.account_id = b.blocked_id
       WHERE b.blocker_id = ${req.accountId}
       ORDER BY b.created_at DESC
@@ -133,8 +137,22 @@ const settingsRoutes: FastifyPluginAsync = async (app) => {
   app.post('/v1/settings/delete-account', { preHandler: [app.requireAuth] }, async (req) => {
     await sql.begin(async (tx) => {
       await tx`UPDATE accounts SET status = 'deleted', deleted_at = now() WHERE id = ${req.accountId}`;
-      await tx`UPDATE profiles SET display_name = 'Deleted account', bio = NULL, handle = NULL
-               WHERE account_id = ${req.accountId}`;
+      /**
+       * handle is NOT NULL as of migration 012, so it cannot simply be
+       * cleared here any more — that would abort the whole transaction
+       * and make account deletion fail outright. Replace it with a
+       * unique, obviously-dead value instead: the account stays
+       * addressable for referential integrity, the old handle is
+       * released for someone else to claim, and nothing is left that
+       * identifies the person.
+       */
+      await tx`
+        UPDATE profiles
+        SET display_name = 'Deleted account',
+            bio = NULL,
+            handle = 'deleted_' || substring(replace(account_id::text, '-', '') from 1 for 12)
+        WHERE account_id = ${req.accountId}
+      `;
       await tx`DELETE FROM telegram_identities WHERE account_id = ${req.accountId}`;
       await tx`DELETE FROM user_locations WHERE account_id = ${req.accountId}`;
     });

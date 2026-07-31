@@ -26,8 +26,8 @@ const LEFT: NavTab[] = ['home', 'achievements', 'chats'];
 const RIGHT: NavTab[] = ['discover', 'ranks', 'you'];
 
 export default function BottomNav({
-  route, onGo,
-}: { route: Route; onGo: (r: Route) => void }) {
+  route, onGo, unreadChats = 0,
+}: { route: Route; onGo: (r: Route) => void; unreadChats?: number }) {
   const t = useT();
 
   const item = (tab: NavTab) => (
@@ -37,11 +37,21 @@ export default function BottomNav({
       onClick={() => { tg.tap('light'); onGo(tab); }}
     >
       {route === tab ? <span className="dot" /> : null}
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-           stroke="currentColor" strokeWidth="1.7"
-           strokeLinecap="round" strokeLinejoin="round">
-        <path d={ICONS[tab]} />
-      </svg>
+      <span className="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" strokeWidth="1.7"
+             strokeLinecap="round" strokeLinejoin="round">
+          <path d={ICONS[tab]} />
+        </svg>
+        {/* Unread messages live here, not in Alerts. Alerts is for
+            things that happened to you; a waiting message is a place to
+            go, and the tab is that place. */}
+        {tab === 'chats' && unreadChats > 0 ? (
+          <span className="nav-badge num" aria-label={`${unreadChats}`}>
+            {unreadChats > 99 ? '99+' : unreadChats}
+          </span>
+        ) : null}
+      </span>
       {t(LABEL_KEYS[tab])}
     </button>
   );

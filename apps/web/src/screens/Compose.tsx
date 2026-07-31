@@ -5,12 +5,17 @@ import { useT } from '../i18n';
 import { Button } from '../components/ui';
 import { useMediaUpload } from '../lib/useMediaUpload';
 
-type Visibility = 'public' | 'followers' | 'friends' | 'private';
+type Visibility = 'public' | 'followers' | 'private';
 
-const OPTIONS: Array<{ v: Visibility; key: 'compose.public' | 'compose.followers' | 'compose.friends' | 'compose.private' }> = [
+/**
+ * 'friends' and 'only me' are gone. 'private' is not "nobody sees it" —
+ * a private post's photos go behind the lock on your profile, visible
+ * to the people you've unlocked in chat. That is the one meaning of
+ * private in this app, so there is only one control for it.
+ */
+const OPTIONS: Array<{ v: Visibility; key: 'compose.public' | 'compose.followers' | 'compose.private' }> = [
   { v: 'public', key: 'compose.public' },
   { v: 'followers', key: 'compose.followers' },
-  { v: 'friends', key: 'compose.friends' },
   { v: 'private', key: 'compose.private' },
 ];
 
@@ -130,7 +135,7 @@ export default function Compose({ onPosted, onCancel }: {
       </button>
 
       <div className="eyebrow" style={{ margin: '18px 0 8px' }}>{t('compose.visibility')}</div>
-      <div className="chips" style={{ marginBottom: 18 }}>
+      <div className="chips" style={{ marginBottom: 8 }}>
         {OPTIONS.map(({ v, key }) => (
           <button
             key={v}
@@ -143,6 +148,10 @@ export default function Compose({ onPosted, onCancel }: {
           </button>
         ))}
       </div>
+
+      {visibility === 'private' ? (
+        <p className="hint" style={{ marginBottom: 18 }}>{t('compose.private.hint')}</p>
+      ) : <div style={{ marginBottom: 10 }} />}
 
       {error ? <p className="error">{error}</p> : null}
       {media.items.some((m) => m.error) && media.mediaIds.length === 0

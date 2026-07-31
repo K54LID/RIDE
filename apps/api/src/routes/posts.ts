@@ -13,6 +13,8 @@ import { notify } from '../lib/notify.js';
 const CreateSchema = z.object({
   body: z.string().trim().max(2000).optional(),
   media_ids: z.array(z.string().uuid()).max(10).optional(),
+  // 'friends' is legacy — existing posts still carry it and the feed
+  // still honours it, but compose no longer offers it.
   visibility: z.enum(['public', 'followers', 'friends', 'private']).default('public'),
   place_name: z.string().trim().max(120).optional(),
 }).refine((v) => (v.body && v.body.length > 0) || (v.media_ids && v.media_ids.length > 0), {
@@ -56,6 +58,35 @@ const postRoutes: FastifyPluginAsync = async (app) => {
             INSERT INTO post_media (post_id, media_id, kind, position)
             VALUES (${created!.id}, ${mid}, ${m.kind}, ${i})
           `;
+        }
+
+        /**
+         * A private post's photos also land in the profile's private
+         * album, which is what "private" means to the person choosing
+         * it: not a post nobody can see, but one that goes behind the
+         * lock on their profile. Only people they've unlocked in chat
+         * can open it — that gating lives in /v1/users/:id/photos and
+         * is unchanged.
+         *
+         * Images only. A video in the album has no thumbnail story and
+         * the strip is built for photos.
+         */
+        if (visibility === 'private') {
+          const [{ next } = { next: 0 }] = await tx<Array<{ next: number }>>`
+            SELECT COALESCE(max(position) + 1, 0)::int AS next
+            FROM profile_photos WHERE account_id = ${req.accountId}
+          `;
+          let pos = next;
+          for (const mid of media_ids) {
+            const m = owned.find((o) => o.id === mid)!;
+            if (m.kind !== 'image') continue;
+            await tx`
+              INSERT INTO profile_photos (account_id, media_id, storage_key, position, is_private)
+              VALUES (${req.accountId}, ${mid}, '', ${pos}, true)
+              ON CONFLICT DO NOTHING
+            `;
+            pos += 1;
+          }
         }
       }
       return created!;

@@ -512,3 +512,86 @@ Now in place:
 - `package-lock.json` unchanged; `jsdom` absent from it.
 - Web build succeeds in a staged copy of the exact Docker context.
 - Smoke test passes against the dist produced by that staged build.
+
+---
+
+# Round 10
+
+## Panels appearing "down" — the actual cause
+
+Round 6 sized the sheet wrapper to the visible viewport, which was
+necessary but not sufficient. `position: fixed` is only relative to the
+viewport when **no ancestor establishes a containing block** — and
+`transform`, `filter`, `backdrop-filter`, `perspective`, `contain` and
+`will-change` all do. Screens here animate in with a transform and the
+nav uses `backdrop-filter`, so a sheet rendered inline was positioning
+itself against whichever ancestor happened to qualify.
+
+`Sheet` now renders through `createPortal(..., document.body)`. With no
+ancestor at all, "fixed" means fixed. Every sheet also centres now —
+top-anchored still reads as misplaced on a tall phone.
+
+This is the same fix for the three-dot post menu, edit, delete,
+verification, gifts, block confirm and the album.
+
+## Delete account was unreachable — and would have failed anyway
+
+Two separate bugs.
+
+**Unreachable:** the density pass set `.screen { padding-bottom: 96px }`,
+a flat value that does not clear `--nav-h` plus the home-indicator
+inset. The last row of any screen sat behind the nav bar, and Delete
+account is the last row in Settings. Now
+`calc(var(--nav-h) + 28px + env(safe-area-inset-bottom))`.
+
+**Broken:** `delete-account` ran `SET handle = NULL`, which migration
+012 forbids. Deleting an account would have aborted the transaction and
+failed outright. It now writes `deleted_<12 hex of account_id>` —
+unique, obviously dead, releases the old handle for reuse. Verified
+against the real schema.
+
+## Private posts and the locked album
+
+Compose offers **Everyone / Followers / Private**. "Friends" and "Only
+me" are gone; the API still accepts `friends` so existing posts keep
+rendering, but nothing produces it.
+
+Private is not "nobody sees it" — a private post's **images** are also
+inserted into `profile_photos` with `is_private = true`, so they land
+in the locked album on the profile. Gating is unchanged: only people
+granted a key in chat can open it. Videos are skipped; the strip is
+built for photos.
+
+The album is now a **tile at the end of the photo strip** with a lock
+and a count, on both profiles, rather than a separate section further
+down. On someone else's profile the count is what is behind the lock.
+
+## Everything else
+
+- **Grid vs Global.** Grid sorts by distance and requires a computable
+  one on both sides, so it is strictly people nearby. Global stays
+  random online people with location ignored entirely.
+- **Profile counts.** Two of the three are buttons now, and a button is
+  not a `div` — `.pro-counts div` never applied to them, so they sat at
+  a different height and weight. All three share one rule set.
+- **Story viewers and repliers** show avatar + `@handle` and open the
+  profile on tap. Both queries gained the avatar subselect.
+- **Unread messages left Alerts.** `kind = 'message'` is excluded from
+  the notifications list *and* its unread count; the Chat tab carries a
+  badge fed by `/v1/chats.total_unread`, polled every 20s. Alerts is for
+  things that happened to you; a waiting message is a place to go.
+- **Blocked list** shows avatar and handle. The settings query gained
+  the avatar subselect.
+- **Autosave in Edit profile.** Writes one second after you stop typing
+  and again on back — back is a save, not a discard. A payload snapshot
+  prevents duplicate PATCHes, an invalid handle defers the write rather
+  than nagging per keystroke, and a failed save stays dirty so the next
+  tick retries. The Save button remains as a status line.
+
+## Verified
+
+- Typecheck, hook-order guard, production build, jsdom smoke test — the
+  app mounts and renders.
+- All 14 migrations apply in order on a real Postgres 16 + PostGIS.
+- The corrected delete-account statement runs against the live NOT NULL
+  constraint.

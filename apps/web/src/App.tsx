@@ -46,6 +46,25 @@ export default function App() {
    */
   const [followList, setFollowList] = useState<
     { accountId: string; mode: 'followers' | 'following' } | null>(null);
+  const [unreadChats, setUnreadChats] = useState(0);
+
+  /**
+   * Poll the chat list for unread count so the Chat tab can carry a
+   * badge. Cheap query, and it is the only signal that a message is
+   * waiting now that messages no longer appear in Alerts.
+   */
+  useEffect(() => {
+    if (phase !== 'ready') return undefined;
+    let alive = true;
+    const tick = () => {
+      apiFetch<{ total_unread: number }>('/v1/chats')
+        .then((r) => { if (alive) setUnreadChats(r.total_unread ?? 0); })
+        .catch(() => undefined);
+    };
+    tick();
+    const id = setInterval(tick, 20000);
+    return () => { alive = false; clearInterval(id); };
+  }, [phase, route]);
 
   const load = useCallback(() => {
     apiFetch<Me>('/v1/me')
@@ -194,7 +213,7 @@ export default function App() {
                  onFollows={(mode) => setFollowList({ accountId: meId, mode })} />
       )}
 
-      <BottomNav route={route} onGo={go} />
+      <BottomNav route={route} onGo={go} unreadChats={unreadChats} />
 
       {postOverlay}
       {userOverlay}

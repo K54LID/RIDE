@@ -35,8 +35,10 @@ export default function StoryViewer({
   const [woofed, setWoofed] = useState(false);
   const [viewersOpen, setViewersOpen] = useState(false);
   const [viewers, setViewers] = useState<{
-    viewers: Array<{ viewer_id: string; display_name: string; woofed: boolean }>;
-    replies: Array<{ body: string; display_name: string }>;
+    viewers: Array<{ viewer_id: string; display_name: string; handle: string;
+                     avatar_media_id: string | null; woofed: boolean }>;
+    replies: Array<{ body: string; display_name: string; handle: string;
+                     sender_id: string; avatar_media_id: string | null }>;
   } | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -292,7 +294,7 @@ export default function StoryViewer({
         )}
       </div>
 
-      <Sheet open={viewersOpen} onClose={() => setViewersOpen(false)}>
+      <Sheet center open={viewersOpen} onClose={() => setViewersOpen(false)}>
         <h2 style={{ marginBottom: 12 }}>{t('story.viewers')}</h2>
         {!viewers ? <div className="skel" style={{ height: 60 }} /> : (
           <>
@@ -300,9 +302,17 @@ export default function StoryViewer({
               <>
                 <div className="eyebrow" style={{ marginBottom: 8 }}>{t('story.replies')}</div>
                 {viewers.replies.map((r, i) => (
-                  <div key={i} className="person" style={{ display: 'block' }}>
-                    <div className="person-name" style={{ fontSize: '0.9rem' }}>{r.display_name}</div>
-                    <div style={{ fontSize: '0.88rem', color: 'var(--muted)' }}>{r.body}</div>
+                  <div key={i} className="viewer-row">
+                    <button className="viewer-id"
+                            onClick={() => { setViewersOpen(false); onOpenUser?.(r.sender_id); }}>
+                      <Avatar name={r.display_name} mediaId={r.avatar_media_id} size={34} radius={17} />
+                      <span className="person-name num" style={{ fontSize: '0.88rem' }}>
+                        @{r.handle}
+                      </span>
+                    </button>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--muted)', flexBasis: '100%' }}>
+                      {r.body}
+                    </div>
                   </div>
                 ))}
               </>
@@ -313,10 +323,12 @@ export default function StoryViewer({
             {viewers.viewers.length === 0
               ? <p style={{ fontSize: '0.88rem' }}>{t('story.noViewers')}</p>
               : viewers.viewers.map((v) => (
-                <div key={v.viewer_id} className="person">
-                  <div className="person-main">
-                    <div className="person-name" style={{ fontSize: '0.92rem' }}>{v.display_name}</div>
-                  </div>
+                <div key={v.viewer_id} className="viewer-row">
+                  <button className="viewer-id"
+                          onClick={() => { setViewersOpen(false); onOpenUser?.(v.viewer_id); }}>
+                    <Avatar name={v.display_name} mediaId={v.avatar_media_id} size={34} radius={17} />
+                    <span className="person-name num" style={{ fontSize: '0.9rem' }}>@{v.handle}</span>
+                  </button>
                   {v.woofed ? <span>🐾</span> : null}
                 </div>
               ))}

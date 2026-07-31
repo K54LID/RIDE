@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch, ApiError, type Me } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
@@ -20,7 +20,6 @@ export default function EditProfile({ me, onSaved, onBack }: {
   onBack: () => void;
 }) {
   const t = useT();
-  useEffect(() => tg.backButton(onBack), [onBack]);
 
   const [displayName, setDisplayName] = useState(me.display_name);
   const [handle, setHandle] = useState(me.handle);
@@ -37,10 +36,75 @@ export default function EditProfile({ me, onSaved, onBack }: {
   const [weightKg, setWeightKg] = useState(me.weight_kg ? String(me.weight_kg) : '');
 
   const [busy, setBusy] = useState(false);
+  const [justSaved, setJustSaved] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   // A handle is required now — it is how everyone is addressed.
   const handleValid = /^[a-zA-Z0-9_]{3,24}$/.test(handle);
+
+  const payload = useCallback(() => ({
+    display_name: displayName.trim(),
+    handle,
+    bio: bio.trim() || undefined,
+    gender: gender ?? undefined,
+    pronouns: pronouns ?? undefined,
+    orientation: orientation ?? undefined,
+    relationship_status: status ?? undefined,
+    looking_for: looking,
+    tribes,
+    interests,
+    languages,
+    height_cm: heightCm ? Number(heightCm) : undefined,
+    weight_kg: weightKg ? Number(weightKg) : undefined,
+  }), [displayName, handle, bio, gender, pronouns, orientation, status,
+       looking, tribes, interests, languages, heightCm, weightKg]);
+
+  /**
+   * Autosave.
+   *
+   * Every edit persists on its own — a second after you stop typing,
+   * and again on the way out via the back button. There is no state
+   * where a change is visible on screen but not stored, which is the
+   * whole point: leaving the screen should never be how you lose work.
+   *
+   * `saved` is the last payload written. Comparing against it means a
+   * re-render with identical values does not fire another PATCH, and a
+   * failed save stays dirty so the next tick retries it.
+   */
+  const saved = useRef(JSON.stringify(payload()));
+  const inFlight = useRef(false);
+
+  const persist = useCallback(async (opts?: { silent?: boolean }) => {
+    const next = JSON.stringify(payload());
+    if (next === saved.current || inFlight.current) return;
+    // An invalid handle would be rejected; keep the edit on screen and
+    // wait rather than nagging on every keystroke.
+    if (!/^[a-zA-Z0-9_]{3,24}$/.test(handle)) return;
+
+    inFlight.current = true;
+    try {
+      await apiFetch('/v1/me', { method: 'PATCH', body: next });
+      saved.current = next;
+      setError(null);
+      if (!opts?.silent) setJustSaved(Date.now());
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'HANDLE_TAKEN') {
+        setError('That handle is taken. Try another.');
+      }
+    } finally {
+      inFlight.current = false;
+    }
+  }, [payload, handle]);
+
+  // Debounced: one write per pause, not one per keystroke.
+  useEffect(() => {
+    const id = setTimeout(() => { void persist(); }, 1000);
+    return () => clearTimeout(id);
+  }, [persist]);
+
+  // Back is a save, not a discard.
+  useEffect(() => tg.backButton(() => { void persist({ silent: true }).then(onBack); }),
+            [persist, onBack]);
 
   const save = async () => {
     setBusy(true);

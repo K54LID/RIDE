@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, type ReactNode } from 'react';
 import { tg } from '../lib/tg';
 
@@ -34,7 +35,19 @@ export default function Sheet({
    * a chat could put its buttons off the fold entirely. Centring with
    * flexbox inside a correctly-sized box can't drift.
    */
-  return (
+  /**
+   * Rendered into document.body via a portal.
+   *
+   * `position: fixed` is only relative to the viewport when no ancestor
+   * establishes a containing block — and `transform`, `filter`,
+   * `backdrop-filter`, `perspective`, `contain` and `will-change` all
+   * do. Screens here animate in with a transform and the nav uses
+   * backdrop-filter, so a sheet rendered inline was being positioned
+   * against whatever ancestor happened to qualify, which put it below
+   * the fold. A portal to body has no such ancestor, so "fixed" means
+   * fixed and the panel lands where the CSS says it does.
+   */
+  return createPortal(
     <>
       <div className="sheet-scrim" onClick={onClose} />
       <div className={`sheet-wrap ${center ? 'center' : ''}`}>
@@ -44,6 +57,7 @@ export default function Sheet({
           {children}
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }

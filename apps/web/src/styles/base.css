@@ -296,11 +296,10 @@ p { margin: 0; color: var(--muted); }
   height: calc(var(--tg-viewport-stable-height, 100dvh) - env(safe-area-inset-top));
   display: flex;
   justify-content: center;
-  align-items: flex-start;
   padding: 14px 12px calc(14px + env(safe-area-inset-bottom));
   pointer-events: none;
 }
-.sheet-wrap.center { align-items: center; }
+.sheet-wrap { align-items: center; }
 .sheet {
   pointer-events: auto;
   width: min(100%, 496px);
@@ -954,7 +953,13 @@ body.story-open .nav { display: none; }
    the shared primitives rather than each screen, so the change is
    consistent and reversible in one place.
    ===================================================================== */
-.screen { padding: 14px var(--pad) 96px; }
+/* Bottom padding must clear the nav plus the home indicator. A flat
+   96px did not: on a phone with a safe-area inset the last row of a
+   screen sat behind the nav bar, which is why "Delete account" — the
+   final row in Settings — could not be reached. Tighten the top only. */
+.screen {
+  padding: 14px var(--pad) calc(var(--nav-h) + 28px + env(safe-area-inset-bottom));
+}
 .head { margin-bottom: 14px; }
 h1 { font-size: 1.32rem; }
 h2 { font-size: 1.02rem; }
@@ -991,9 +996,14 @@ h2 { font-size: 1.02rem; }
   color: var(--muted);
 }
 .pro-counts { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); }
-.pro-counts div { text-align: center; }
-.pro-counts b { display: block; font-size: 1.12rem; font-weight: 700; }
-.pro-counts span { font-size: 0.7rem; color: var(--muted); }
+.pro-counts > * {
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  gap: 3px;
+  background: none; border: 0; padding: 0; margin: 0;
+  color: inherit; font-family: inherit; text-align: center;
+}
+.pro-counts b { font-size: 1.12rem; font-weight: 700; line-height: 1.1; }
+.pro-counts span { font-size: 0.7rem; font-weight: 400; color: var(--muted); line-height: 1.1; }
 .pro-name { font-weight: 700; font-size: 0.98rem; display: flex; gap: 8px; align-items: baseline; }
 .pro-age { font-family: var(--font-data); font-weight: 400; color: var(--muted); font-size: 0.85rem; }
 .pro-bio { font-size: 0.88rem; margin-top: 3px; color: var(--ink); }
@@ -1133,13 +1143,9 @@ h2 { font-size: 1.02rem; }
 }
 .notice-close:active { background: var(--raised); }
 
-/* Gifts is a real tab in the counts row now, so it needs to look and
-   press like one while matching its two plain siblings exactly. */
-.pro-count-btn {
-  background: none; border: 0; padding: 0; font: inherit; color: inherit;
-  display: flex; flex-direction: column; align-items: center;
-  transition: opacity 0.15s var(--ease);
-}
+/* Tappable counts share every visual rule with the plain ones above —
+   only the press feedback differs. */
+.pro-count-btn { transition: opacity 0.15s var(--ease); }
 .pro-count-btn:disabled { opacity: 1; }
 .pro-count-btn:not(:disabled):active { opacity: 0.6; }
 
@@ -1156,6 +1162,47 @@ h2 { font-size: 1.02rem; }
 .bubble-story-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .bubble-story-thumb .skel { width: 100%; height: 100%; }
 .bubble-story-label { font-size: 0.74rem; opacity: 0.75; }
+
+/* Unread-message count on the Chat tab. */
+.nav-icon { position: relative; display: inline-flex; }
+.nav-badge {
+  position: absolute; top: -5px; inset-inline-start: 11px;
+  min-width: 15px; height: 15px; padding: 0 4px;
+  display: grid; place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--pulse); color: #fff;
+  font-size: 0.58rem; font-weight: 700; line-height: 1;
+}
+
+/* Story viewers / repliers — a face and a handle you can tap through. */
+.viewer-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--hairline);
+}
+.viewer-row:last-child { border-bottom: 0; }
+.viewer-id {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px;
+  background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: start;
+}
+.viewer-id:active { opacity: 0.6; }
+
+/* ---- private album tile ---- */
+/* Sits at the end of the photo strip so a lock appears among the
+   photos: "there is more behind this", rather than a separate section
+   further down the page that reads as unrelated. */
+.photo-strip { display: flex; align-items: flex-start; gap: 8px; }
+.photo-strip > .photos { flex: 1; min-width: 0; }
+.album-tile {
+  flex: none; width: 92px; height: 118px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  border: 1px dashed var(--court); border-radius: var(--r-md);
+  background: rgba(201, 162, 39, 0.07);
+  color: var(--court-lit); font: inherit;
+}
+.album-tile:active { background: rgba(201, 162, 39, 0.15); }
+.album-tile.locked { border-style: solid; }
+.album-lock { font-size: 1.5rem; line-height: 1; }
+.album-count { font-size: 0.8rem; font-weight: 700; }
 
 /* ---- followers / following list ---- */
 .follow-row {
@@ -1411,7 +1458,7 @@ button.courted-by { width: 100%; color: var(--ink); font: inherit; text-align: s
 button.podium-col { border: 0; background: none; color: var(--ink); font: inherit; }
 
 /* ---- centred sheet (composer, verification, message actions) ---- */
-.sheet-wrap.center .sheet { animation: sheetPop 0.22s var(--ease); }
+.sheet { animation: sheetPop 0.2s var(--ease); }
 @keyframes sheetPop { from { opacity: 0; transform: scale(0.97); } }
 
 /* ---- rank chips on profiles ---- */

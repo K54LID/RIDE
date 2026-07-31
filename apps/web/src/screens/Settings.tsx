@@ -5,6 +5,7 @@ import { useI18n, LOCALES, type Locale } from '../i18n';
 import { Button, Skeleton } from '../components/ui';
 import Sheet from '../components/Sheet';
 import Page from '../components/Page';
+import Avatar from '../components/Avatar';
 import { useMediaUpload } from '../lib/useMediaUpload';
 
 type Vis = 'everyone' | 'members' | 'friends' | 'nobody';
@@ -18,7 +19,8 @@ interface SettingsState {
   ghost_mode: boolean;
   verification: 'none' | 'pending' | 'approved' | 'rejected';
   notifications: Record<string, boolean>;
-  blocked: Array<{ blocked_id: string; display_name: string; handle: string | null }>;
+  blocked: Array<{ blocked_id: string; display_name: string; handle: string;
+                   avatar_media_id: string | null }>;
   role: 'user' | 'moderator' | 'admin';
 }
 
@@ -256,22 +258,28 @@ export default function Settings({ onBack, onAdmin }: {
               {t('settings.blocked.empty')}
             </p>
           ) : (
-            <div className="set-list">
+            <div>
+              {/* Face and handle: a list of bare names is useless for
+                  deciding who you actually want to unblock. */}
               {s.blocked.map((b) => (
-                <Row key={b.blocked_id}
-                     label={`@${b.handle}`}
-                     right={
-                       <button className="chip" onClick={async () => {
-                         tg.tap('light');
-                         try {
-                           await apiFetch('/v1/settings/unblock', {
-                             method: 'POST', body: JSON.stringify({ account_id: b.blocked_id }),
-                           });
-                           tg.notify('success');
-                         } catch { tg.notify('error'); }
-                         load();
-                       }}>{t('settings.unblock')}</button>
-                     } />
+                <div key={b.blocked_id} className="follow-row">
+                  <div className="follow-id" style={{ cursor: 'default' }}>
+                    <Avatar name={b.display_name} mediaId={b.avatar_media_id} size={44} radius={22} />
+                    <span className="person-name num" style={{ fontSize: '0.9rem' }}>
+                      @{b.handle}
+                    </span>
+                  </div>
+                  <button className="chip" onClick={async () => {
+                    tg.tap('light');
+                    try {
+                      await apiFetch('/v1/settings/unblock', {
+                        method: 'POST', body: JSON.stringify({ account_id: b.blocked_id }),
+                      });
+                      tg.notify('success');
+                    } catch { tg.notify('error'); }
+                    load();
+                  }}>{t('settings.unblock')}</button>
+                </div>
               ))}
             </div>
           )}

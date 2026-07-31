@@ -250,6 +250,10 @@ const storyRoutes: FastifyPluginAsync = async (app) => {
 
     const viewers = await sql`
       SELECT v.viewer_id, v.viewed_at, p.display_name, p.handle,
+             (SELECT ph.media_id FROM profile_photos ph
+              WHERE ph.account_id = v.viewer_id AND ph.position = 0
+                AND NOT ph.is_private AND ph.media_id IS NOT NULL
+              LIMIT 1) AS avatar_media_id,
              (r.account_id IS NOT NULL) AS woofed
       FROM story_views v
       JOIN profiles p ON p.account_id = v.viewer_id
@@ -259,7 +263,11 @@ const storyRoutes: FastifyPluginAsync = async (app) => {
       LIMIT 200
     `;
     const replies = await sql`
-      SELECT rp.body, rp.created_at, p.display_name, p.handle
+      SELECT rp.body, rp.created_at, p.display_name, p.handle, rp.sender_id,
+             (SELECT ph.media_id FROM profile_photos ph
+              WHERE ph.account_id = rp.sender_id AND ph.position = 0
+                AND NOT ph.is_private AND ph.media_id IS NOT NULL
+              LIMIT 1) AS avatar_media_id
       FROM story_replies rp
       JOIN profiles p ON p.account_id = rp.sender_id
       WHERE rp.story_id = ${id}

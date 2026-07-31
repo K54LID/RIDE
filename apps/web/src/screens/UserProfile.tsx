@@ -37,6 +37,7 @@ export default function UserProfile({
   const [ranks, setRanks] = useState<RankEntryMini[]>([]);
   const [blockConfirm, setBlockConfirm] = useState(false);
   const [giftsOpen, setGiftsOpen] = useState(false);
+  const [albumOpen, setAlbumOpen] = useState(false);
 
   const load = useCallback(() => {
     apiFetch<Payload>(`/v1/users/${accountId}`).then(setData).catch(() => setFailed(true));
@@ -194,24 +195,27 @@ export default function UserProfile({
         </button>
       ) : null}
 
-      {photos.some((p) => !p.is_private) ? (
-        <>
-          <div className="eyebrow tight">{t('profile.photos')}</div>
+      <div className="photo-strip">
+        {photos.some((p) => !p.is_private) ? (
           <PhotoCarousel photos={photos.filter((p) => !p.is_private)} />
-        </>
-      ) : null}
+        ) : null}
 
       {/* The private album is its own section, not mixed in with the
           public photos. Anything in it is only here because this
           person unlocked it for you in chat; otherwise you get the
           count and a lock. */}
-      {photos.some((p) => p.is_private) || lockedCount > 0 ? (
-        <>
-          <div className="eyebrow tight">🔒 {t('profile.privateAlbum')}</div>
-          <PhotoCarousel photos={photos.filter((p) => p.is_private)} lockedCount={lockedCount} />
-          {lockedCount > 0 ? <p className="hint">{t('album.lockedHint')}</p> : null}
-        </>
-      ) : null}
+          {/* Tile at the end of the strip. Granted → opens the album;
+              not granted → the count of what is behind the lock. */}
+          {photos.some((p) => p.is_private) || lockedCount > 0 ? (
+            <button className={`album-tile ${lockedCount > 0 ? 'locked' : ''}`}
+                    onClick={() => { tg.tap('light'); setAlbumOpen(true); }}>
+              <span className="album-lock" aria-hidden="true">🔒</span>
+              <span className="album-count num">
+                {lockedCount > 0 ? lockedCount : photos.filter((p) => p.is_private).length}
+              </span>
+            </button>
+          ) : null}
+        </div>
 
       <div className="eyebrow tight">{t('profile.standingOther')}</div>
       <RankStandings ranks={ranks} />
@@ -232,6 +236,14 @@ export default function UserProfile({
       </button>
       </>
       )}
+
+      <Sheet center open={albumOpen} onClose={() => setAlbumOpen(false)}>
+        <h2 style={{ marginBottom: 4 }}>🔒 {t('profile.privateAlbum')}</h2>
+        {lockedCount > 0 ? (
+          <p className="hint" style={{ marginBottom: 12 }}>{t('album.lockedHint')}</p>
+        ) : null}
+        <PhotoCarousel photos={photos.filter((p) => p.is_private)} lockedCount={lockedCount} />
+      </Sheet>
 
       <Sheet center open={giftsOpen} onClose={() => setGiftsOpen(false)}>
         <h2 style={{ marginBottom: 12 }}>{t('profile.gifts')}</h2>
