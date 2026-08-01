@@ -39,6 +39,7 @@ const SETTING_FOR_KIND: Record<string, string> = {
   verification: 'woofs',
   verification_request: 'woofs',
   support_message: 'woofs',
+  support_handled: 'woofs',
 };
 
 /**
@@ -50,7 +51,11 @@ const SETTING_FOR_KIND: Record<string, string> = {
  * sitting unread for a week. They only ever go to staff, and staff
  * asked for the job.
  */
-const ALWAYS_DELIVER = new Set(['support_message', 'verification_request']);
+// A person who wrote in is waiting on an answer; that push is the
+// answer, so it is never subject to notification preferences.
+const ALWAYS_DELIVER = new Set([
+  'support_message', 'verification_request', 'support_handled',
+]);
 
 interface PendingRow {
   id: string;
@@ -100,6 +105,13 @@ function compose(kind: string, actor: string, lang: string, payload: Record<stri
                                                         ` и ${paid} монет зачислено на ваш баланс`,
                                                         ` ve bakiyene ${paid} coin eklendi`);
       return `${head}${value}${share}`;
+    }
+    case 'support_handled': {
+      const reply = typeof payload.reply === 'string' && payload.reply.trim() ? payload.reply.trim() : null;
+      const head = L('✅ Thanks for reaching out — your message has been handled.',
+                     '✅ Спасибо за обращение — ваше сообщение обработано.',
+                     '✅ Bize yazdığın için teşekkürler — mesajın ele alındı.');
+      return reply ? `${head}\n\n${reply}` : head;
     }
     case 'support_message': {
       const which = payload.support_kind === 'bug' ? 'Bug report' : 'Support message';

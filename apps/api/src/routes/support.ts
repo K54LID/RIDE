@@ -22,6 +22,8 @@ import { notify } from '../lib/notify.js';
 
 const SubmitSchema = z.object({
   kind: z.enum(['support', 'bug']),
+  /** Optional screenshot, uploaded through /v1/media first. */
+  media_id: z.string().uuid().optional(),
   message: z.string().trim().min(1).max(2000),
 });
 
@@ -40,7 +42,7 @@ const supportRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       throw new HttpError(400, 'INVALID_BODY', parsed.error.issues[0]?.message);
     }
-    const { kind, message } = parsed.data;
+    const { kind, message, media_id: mediaId } = parsed.data;
     const me = req.accountId!;
 
     /**
@@ -56,9 +58,23 @@ const supportRoutes: FastifyPluginAsync = async (app) => {
       'You already have messages waiting for a reply.');
 
     await sql.begin(async (tx) => {
+      /**
+       * The attachment must belong to the sender. Without this check a
+       * media id could be pasted in to surface someone else's private
+       * image in the admin panel.
+       */
+      let attachment: string | null = null;
+      if (mediaId) {
+        const [owned] = await tx<Array<{ id: string }>>`
+          SELECT id FROM media WHERE id = ${mediaId} AND owner_id = ${me}
+        `;
+        if (!owned) throw new HttpError(400, 'BAD_ATTACHMENT');
+        attachment = owned.id;
+      }
+
       await tx`
-        INSERT INTO support_messages (account_id, kind, body)
-        VALUES (${me}, ${kind}, ${message})
+        INSERT INTO support_messages (account_id, kind, body, media_id)
+        VALUES (${me}, ${kind}, ${message}, ${attachment})
       `;
 
       const [sender] = await tx<Array<{ handle: string | null; display_name: string }>>`
@@ -90,7 +106,7 @@ const supportRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/admin/support', { preHandler: [app.requireAuth, staffOnly] }, async () => {
     const rows = await sql`
       SELECT s.id::text AS id, s.kind, s.body, s.created_at,
-             s.account_id,
+             s.account_id, s.media_id, s.state, s.reply, s.handled_at,
              p.display_name, p.handle,
              (SELECT ph.media_id FROM profile_photos ph
               WHERE ph.account_id = s.account_id AND ph.position = 0
@@ -98,21 +114,46 @@ const supportRoutes: FastifyPluginAsync = async (app) => {
               LIMIT 1) AS avatar_media_id
       FROM support_messages s
       LEFT JOIN profiles p ON p.account_id = s.account_id
-      WHERE s.state = 'open'
-      ORDER BY s.created_at DESC
+      -- Open first, then recently handled: an admin needs to find a
+      -- thread they already replied to, not just the queue.
+      ORDER BY (s.state = 'open') DESC, s.created_at DESC
       LIMIT 100
     `;
     return { messages: rows };
   });
 
+  /**
+   * Mark handled, and tell the person.
+   *
+   * Resolving used to be silent, so from the sender's side a report and
+   * a black hole looked identical. Everyone gets the acknowledgement;
+   * an optional `reply` is appended when the admin wrote one.
+   */
   app.post('/v1/admin/support/:id/resolve',
            { preHandler: [app.requireAuth, staffOnly] }, async (req) => {
     const { id } = z.object({ id: z.coerce.number().int() }).parse(req.params);
-    await sql`
-      UPDATE support_messages
-      SET state = 'handled', handled_by = ${req.accountId}, handled_at = now()
-      WHERE id = ${id}
-    `;
+    const { reply } = z.object({
+      reply: z.string().trim().max(1000).optional(),
+    }).parse(req.body ?? {});
+
+    await sql.begin(async (tx) => {
+      const [row] = await tx<Array<{ account_id: string; kind: string }>>`
+        UPDATE support_messages
+        SET state = 'handled', handled_by = ${req.accountId}, handled_at = now(),
+            reply = ${reply ?? null}
+        WHERE id = ${id}
+        RETURNING account_id, kind
+      `;
+      if (!row) throw new HttpError(404, 'NOT_FOUND');
+
+      await notify(tx, {
+        accountId: row.account_id,
+        actorId: req.accountId!,
+        kind: 'support_handled',
+        payload: { support_kind: row.kind, reply: reply ?? null },
+      });
+    });
+
     return { ok: true };
   });
 };

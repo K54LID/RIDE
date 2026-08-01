@@ -4,6 +4,7 @@ import { tg } from '../lib/tg';
 import { useI18n, LOCALES, type Locale } from '../i18n';
 import { Button, Skeleton } from '../components/ui';
 import Sheet from '../components/Sheet';
+import { openInvoiceUrl } from '../lib/invoice';
 import Page from '../components/Page';
 import Avatar from '../components/Avatar';
 import Legal from './Legal';
@@ -63,6 +64,12 @@ export default function Settings({ onBack, onAdmin }: {
   const [faqOpen, setFaqOpen] = useState(false);
   /** Which support form is open, if any. */
   const [writing, setWriting] = useState<'support' | 'bug' | null>(null);
+  const [donateOpen, setDonateOpen] = useState(false);
+  const [donateStars, setDonateStars] = useState('');
+  const [donating, setDonating] = useState(false);
+  /** Optional screenshot on a support message or bug report. */
+  const [shot, setShot] = useState<{ id: string; name: string } | null>(null);
+  const shotInput = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -78,10 +85,26 @@ export default function Settings({ onBack, onAdmin }: {
   useEffect(load, [load]);
 
   /** Optimistic: toggles must feel instant; reconcile on failure. */
+  /**
+   * Every setting writes the moment it is flipped — there is no Save
+   * button here and never was. What was missing is any sign that it
+   * worked: a toggle that moves and silently fails looks identical to
+   * one that saved. `savedAt` drives a brief confirmation.
+   */
+  const [savedAt, setSavedAt] = useState(0);
+
+  // Declared here with the other hooks, above every early return.
+  useEffect(() => {
+    if (!savedAt) return undefined;
+    const id = setTimeout(() => setSavedAt(0), 1800);
+    return () => clearTimeout(id);
+  }, [savedAt]);
+
   const patch = async (body: Record<string, unknown>) => {
     setS((cur) => (cur ? { ...cur, ...body } as SettingsState : cur));
     try {
       await apiFetch('/v1/settings', { method: 'PATCH', body: JSON.stringify(body) });
+      setSavedAt(Date.now());
     } catch {
       tg.notify('error');
       load();
@@ -93,7 +116,8 @@ export default function Settings({ onBack, onAdmin }: {
     apiFetch('/v1/settings', {
       method: 'PATCH',
       body: JSON.stringify({ notifications: { [key]: value } }),
-    }).catch(() => { tg.notify('error'); load(); });
+    }).then(() => setSavedAt(Date.now()))
+      .catch(() => { tg.notify('error'); load(); });
   };
 
   /**
@@ -136,11 +160,12 @@ export default function Settings({ onBack, onAdmin }: {
     try {
       await apiFetch('/v1/support', {
         method: 'POST',
-        body: JSON.stringify({ kind: writing, message }),
+        body: JSON.stringify({ kind: writing, message, media_id: shot?.id }),
       });
       tg.notify('success');
       setWriting(null);
       setDraft('');
+      setShot(null);
       setSent(true);
     } catch (err) {
       tg.notify('error');
@@ -173,6 +198,7 @@ export default function Settings({ onBack, onAdmin }: {
 
   return (
     <div className="screen">
+      {savedAt ? <div className="saved-toast">✓ {t('profile.savedShort')}</div> : null}
       {/* Telegram's own back button is registered too, but it is not
           reliable to lean on alone: any overlay opened from this screen
           used to hide it on the way out and leave Settings with no way
@@ -286,6 +312,13 @@ export default function Settings({ onBack, onAdmin }: {
           <Row label={t('settings.bug')}
                onClick={() => { tg.tap('light'); setSendError(null); setWriting('bug'); }}
                right={<span style={{ color: 'var(--faint)' }}>›</span>} />
+          {/* Donations sit with support because that is where people
+              land when they want to do something for the app rather
+              than ask something of it. */}
+          <Row label={t('settings.donate')}
+               sub={t('settings.donate.sub')}
+               onClick={() => { tg.tap('light'); setDonateOpen(true); }}
+               right={<span style={{ color: 'var(--faint)' }}>›</span>} />
           {/* Above terms and privacy: far more people want to know how
               courting works than want the legal text. */}
           <Row label={t('settings.faq')}
@@ -362,11 +395,70 @@ export default function Settings({ onBack, onAdmin }: {
                     onChange={(e) => setDraft(e.target.value)} />
         </label>
         {sendError ? <p className="error">{sendError}</p> : null}
+        {/* A bug report without a screenshot is a description of a
+            screen nobody else can see. */}
+        <input ref={shotInput} type="file" accept="image/*" hidden
+               onChange={async (e) => {
+                 const file = e.target.files?.[0];
+                 e.target.value = '';
+                 if (!file) return;
+                 setSendError(null);
+                 try {
+                   const form = new FormData();
+                   form.append('file', file);
+                   const r = await apiFetch<{ id: string }>('/v1/media', {
+                     method: 'POST', body: form,
+                   });
+                   setShot({ id: r.id, name: file.name });
+                 } catch { setSendError(t('upload.failed')); }
+               }} />
+
+        {shot ? (
+          <div className="attach-row">
+            <span className="attach-name">📎 {shot.name}</span>
+            <button className="chip" onClick={() => setShot(null)}>{t('common.delete')}</button>
+          </div>
+        ) : (
+          <button className="chip" style={{ marginBottom: 12 }}
+                  onClick={() => { tg.tap('light'); shotInput.current?.click(); }}>
+            📎 {t('support.attach')}
+          </button>
+        )}
+
         <Button onClick={sendSupport} disabled={sending || draft.trim().length === 0}>
           {sending ? t('common.loading') : t('support.send')}
         </Button>
         <div style={{ height: 10 }} />
         <Button variant="ghost" onClick={() => setWriting(null)}>{t('common.cancel')}</Button>
+      </Sheet>
+
+      <Sheet center open={donateOpen} onClose={() => setDonateOpen(false)}>
+        <div className="sheet-head">
+          <h2 style={{ margin: 0 }}>⭐ {t('settings.donate')}</h2>
+          <button className="sheet-close" aria-label={t('common.close')}
+                  onClick={() => setDonateOpen(false)}>✕</button>
+        </div>
+        <p className="hint" style={{ marginBottom: 12 }}>{t('donate.hint')}</p>
+        <input className="input" inputMode="numeric" value={donateStars}
+               placeholder={t('donate.placeholder')}
+               onChange={(e) => setDonateStars(e.target.value.replace(/[^0-9]/g, ''))} />
+        <div style={{ height: 12 }} />
+        <Button
+          disabled={donating || !donateStars || Number(donateStars) < 1}
+          onClick={async () => {
+            setDonating(true);
+            try {
+              const r = await apiFetch<{ invoice_url: string }>('/v1/wallet/donate', {
+                method: 'POST', body: JSON.stringify({ stars: Number(donateStars) }),
+              });
+              openInvoiceUrl(r.invoice_url);
+              setDonateOpen(false);
+              setDonateStars('');
+            } catch { tg.notify('error'); }
+            setDonating(false);
+          }}>
+          {donating ? t('common.loading') : t('donate.send')}
+        </Button>
       </Sheet>
 
       <Sheet center open={sent} onClose={() => setSent(false)}>

@@ -30,6 +30,19 @@ export type Locale = keyof typeof LOCALES;
 export const RTL: ReadonlySet<Locale> = new Set<Locale>(['ar', 'fa']);
 
 const en = {
+  'settings.donate': 'Donate Stars',
+  'settings.donate.sub': 'Support the people who run RIDE',
+  'donate.hint': 'Choose any amount. Stars go to the team behind RIDE — this is a donation and adds no coins to your balance.',
+  'donate.placeholder': 'Number of Stars',
+  'donate.send': 'Donate',
+  'support.attach': 'Attach a screenshot',
+  'upload.failed': 'Upload failed',
+  'admin.reply': 'Reply',
+  'admin.replyPlaceholder': 'Write a reply (optional)',
+  'admin.handled': 'Handled',
+  'admin.support': 'Support',
+  'admin.noSupport': 'No messages waiting.',
+  'admin.viewShot': 'View screenshot',
   'album.unlockedNotice': 'unlocked their private album for you',
   'album.unlockedByYou': 'You unlocked your private album for them',
   'discover.noLocation.later': 'You can update your location any time with the 📍 button next to Filters.',
@@ -432,6 +445,19 @@ const en = {
 export type T = Record<keyof typeof en, string>;
 
 const tr: T = {
+  'settings.donate': 'Stars bağışla',
+  'settings.donate.sub': "RIDE'ı yürütenlere destek ol",
+  'donate.hint': 'İstediğin tutarı seç. Stars RIDE ekibine gider — bu bir bağıştır ve bakiyene coin eklemez.',
+  'donate.placeholder': 'Stars adedi',
+  'donate.send': 'Bağışla',
+  'support.attach': 'Ekran görüntüsü ekle',
+  'upload.failed': 'Yükleme başarısız',
+  'admin.reply': 'Yanıtla',
+  'admin.replyPlaceholder': 'Yanıt yaz (isteğe bağlı)',
+  'admin.handled': 'Çözüldü',
+  'admin.support': 'Destek',
+  'admin.noSupport': 'Bekleyen mesaj yok.',
+  'admin.viewShot': 'Ekran görüntüsünü gör',
   'album.unlockedNotice': 'özel albümünü sana açtı',
   'album.unlockedByYou': 'Özel albümünü ona açtın',
   'discover.noLocation.later': 'Konumunu istediğin zaman Filtreler yanındaki 📍 düğmesiyle güncelleyebilirsin.',
@@ -820,6 +846,19 @@ const tr: T = {
 };
 
 const ru: T = {
+  'settings.donate': 'Задонатить Stars',
+  'settings.donate.sub': 'Поддержать команду RIDE',
+  'donate.hint': 'Выберите любую сумму. Stars идут команде RIDE — это пожертвование, монеты на баланс не начисляются.',
+  'donate.placeholder': 'Количество Stars',
+  'donate.send': 'Отправить',
+  'support.attach': 'Прикрепить скриншот',
+  'upload.failed': 'Не удалось загрузить',
+  'admin.reply': 'Ответить',
+  'admin.replyPlaceholder': 'Написать ответ (необязательно)',
+  'admin.handled': 'Обработано',
+  'admin.support': 'Поддержка',
+  'admin.noSupport': 'Ожидающих сообщений нет.',
+  'admin.viewShot': 'Открыть скриншот',
   'album.unlockedNotice': 'открыл(а) для вас свой приватный альбом',
   'album.unlockedByYou': 'Вы открыли для него свой приватный альбом',
   'discover.noLocation.later': 'Геопозицию можно обновить в любой момент кнопкой 📍 рядом с фильтрами.',
@@ -1208,6 +1247,19 @@ const ru: T = {
 };
 
 const ar: T = {
+  'settings.donate': 'تبرّع بـ Stars',
+  'settings.donate.sub': 'ادعم من يديرون RIDE',
+  'donate.hint': 'اختر أي مبلغ. تذهب الـ Stars إلى فريق RIDE — هذا تبرّع ولا يضيف عملات إلى رصيدك.',
+  'donate.placeholder': 'عدد الـ Stars',
+  'donate.send': 'تبرّع',
+  'support.attach': 'أرفق لقطة شاشة',
+  'upload.failed': 'فشل الرفع',
+  'admin.reply': 'رد',
+  'admin.replyPlaceholder': 'اكتب ردًا (اختياري)',
+  'admin.handled': 'تمت المعالجة',
+  'admin.support': 'الدعم',
+  'admin.noSupport': 'لا رسائل بالانتظار.',
+  'admin.viewShot': 'عرض اللقطة',
   'album.unlockedNotice': 'فتح لك ألبومه الخاص',
   'album.unlockedByYou': 'فتحت له ألبومك الخاص',
   'discover.noLocation.later': 'يمكنك تحديث موقعك في أي وقت من زر 📍 بجانب الفلاتر.',
@@ -1596,6 +1648,19 @@ const ar: T = {
 };
 
 const az: T = {
+  'settings.donate': 'Stars bağışla',
+  'settings.donate.sub': 'RIDE-ı idarə edənlərə dəstək ol',
+  'donate.hint': 'İstədiyin məbləği seç. Stars RIDE komandasına gedir — bu bağışdır və balansına coin əlavə etmir.',
+  'donate.placeholder': 'Stars sayı',
+  'donate.send': 'Bağışla',
+  'support.attach': 'Ekran şəkli əlavə et',
+  'upload.failed': 'Yükləmə alınmadı',
+  'admin.reply': 'Cavab ver',
+  'admin.replyPlaceholder': 'Cavab yaz (istəyə bağlı)',
+  'admin.handled': 'Həll olundu',
+  'admin.support': 'Dəstək',
+  'admin.noSupport': 'Gözləyən mesaj yoxdur.',
+  'admin.viewShot': 'Ekran şəklinə bax',
   'album.unlockedNotice': 'şəxsi albomunu sənin üçün açdı',
   'album.unlockedByYou': 'Şəxsi albomunu onun üçün açdın',
   'discover.noLocation.later': 'Məkanını istənilən vaxt Filtrlərin yanındakı 📍 düyməsi ilə yeniləyə bilərsən.',
@@ -1984,6 +2049,19 @@ const az: T = {
 };
 
 const es: T = {
+  'settings.donate': 'Donar Stars',
+  'settings.donate.sub': 'Apoya a quienes mantienen RIDE',
+  'donate.hint': 'Elige la cantidad que quieras. Las Stars van al equipo de RIDE: es una donación y no añade monedas a tu saldo.',
+  'donate.placeholder': 'Número de Stars',
+  'donate.send': 'Donar',
+  'support.attach': 'Adjuntar captura',
+  'upload.failed': 'Error al subir',
+  'admin.reply': 'Responder',
+  'admin.replyPlaceholder': 'Escribe una respuesta (opcional)',
+  'admin.handled': 'Resuelto',
+  'admin.support': 'Soporte',
+  'admin.noSupport': 'No hay mensajes en espera.',
+  'admin.viewShot': 'Ver captura',
   'album.unlockedNotice': 'te ha abierto su álbum privado',
   'album.unlockedByYou': 'Le has abierto tu álbum privado',
   'discover.noLocation.later': 'Puedes actualizar tu ubicación cuando quieras con el botón 📍 junto a Filtros.',
@@ -2372,6 +2450,19 @@ const es: T = {
 };
 
 const de: T = {
+  'settings.donate': 'Stars spenden',
+  'settings.donate.sub': 'Unterstütze die Leute hinter RIDE',
+  'donate.hint': 'Wähle einen beliebigen Betrag. Die Stars gehen an das RIDE-Team — das ist eine Spende und bringt dir keine Coins.',
+  'donate.placeholder': 'Anzahl Stars',
+  'donate.send': 'Spenden',
+  'support.attach': 'Screenshot anhängen',
+  'upload.failed': 'Upload fehlgeschlagen',
+  'admin.reply': 'Antworten',
+  'admin.replyPlaceholder': 'Antwort schreiben (optional)',
+  'admin.handled': 'Erledigt',
+  'admin.support': 'Support',
+  'admin.noSupport': 'Keine wartenden Nachrichten.',
+  'admin.viewShot': 'Screenshot ansehen',
   'album.unlockedNotice': 'hat dir sein privates Album freigegeben',
   'album.unlockedByYou': 'Du hast ihm dein privates Album freigegeben',
   'discover.noLocation.later': 'Du kannst deinen Standort jederzeit mit dem 📍-Knopf neben den Filtern aktualisieren.',
@@ -2760,6 +2851,19 @@ const de: T = {
 };
 
 const fr: T = {
+  'settings.donate': 'Faire un don en Stars',
+  'settings.donate.sub': 'Soutiens ceux qui font tourner RIDE',
+  'donate.hint': 'Choisis le montant que tu veux. Les Stars vont à l’équipe de RIDE — c’est un don, et cela n’ajoute aucune pièce à ton solde.',
+  'donate.placeholder': 'Nombre de Stars',
+  'donate.send': 'Donner',
+  'support.attach': 'Joindre une capture',
+  'upload.failed': 'Échec de l’envoi',
+  'admin.reply': 'Répondre',
+  'admin.replyPlaceholder': 'Écrire une réponse (facultatif)',
+  'admin.handled': 'Traité',
+  'admin.support': 'Support',
+  'admin.noSupport': 'Aucun message en attente.',
+  'admin.viewShot': 'Voir la capture',
   'album.unlockedNotice': 't’a ouvert son album privé',
   'album.unlockedByYou': 'Tu lui as ouvert ton album privé',
   'discover.noLocation.later': 'Tu peux mettre à jour ta position quand tu veux avec le bouton 📍 à côté des Filtres.',
@@ -3148,6 +3252,19 @@ const fr: T = {
 };
 
 const it: T = {
+  'settings.donate': 'Dona Stars',
+  'settings.donate.sub': 'Sostieni chi manda avanti RIDE',
+  'donate.hint': 'Scegli l’importo che vuoi. Le Stars vanno al team di RIDE: è una donazione e non aggiunge monete al tuo saldo.',
+  'donate.placeholder': 'Numero di Stars',
+  'donate.send': 'Dona',
+  'support.attach': 'Allega uno screenshot',
+  'upload.failed': 'Caricamento non riuscito',
+  'admin.reply': 'Rispondi',
+  'admin.replyPlaceholder': 'Scrivi una risposta (facoltativo)',
+  'admin.handled': 'Gestito',
+  'admin.support': 'Supporto',
+  'admin.noSupport': 'Nessun messaggio in attesa.',
+  'admin.viewShot': 'Vedi screenshot',
   'album.unlockedNotice': 'ti ha aperto il suo album privato',
   'album.unlockedByYou': 'Gli hai aperto il tuo album privato',
   'discover.noLocation.later': 'Puoi aggiornare la posizione quando vuoi con il pulsante 📍 accanto ai Filtri.',
@@ -3536,6 +3653,19 @@ const it: T = {
 };
 
 const pt: T = {
+  'settings.donate': 'Doar Stars',
+  'settings.donate.sub': 'Apoie quem mantém o RIDE',
+  'donate.hint': 'Escolha o valor que quiser. As Stars vão para a equipe do RIDE — é uma doação e não adiciona moedas ao seu saldo.',
+  'donate.placeholder': 'Quantidade de Stars',
+  'donate.send': 'Doar',
+  'support.attach': 'Anexar captura',
+  'upload.failed': 'Falha no envio',
+  'admin.reply': 'Responder',
+  'admin.replyPlaceholder': 'Escreva uma resposta (opcional)',
+  'admin.handled': 'Resolvido',
+  'admin.support': 'Suporte',
+  'admin.noSupport': 'Nenhuma mensagem aguardando.',
+  'admin.viewShot': 'Ver captura',
   'album.unlockedNotice': 'abriu o álbum privado para você',
   'album.unlockedByYou': 'Você abriu seu álbum privado para ele',
   'discover.noLocation.later': 'Você pode atualizar sua localização quando quiser com o botão 📍 ao lado de Filtros.',
@@ -3928,6 +4058,19 @@ const pt: T = {
     most often translated; the rest fall back to English text
     rather than to a missing key. */
 const fa: T = {
+  'settings.donate': 'اهدای Stars',
+  'settings.donate.sub': 'از کسانی که RIDE را می‌گردانند حمایت کنید',
+  'donate.hint': 'هر مبلغی که بخواهید انتخاب کنید. Stars به تیم RIDE می‌رسد — این یک کمک مالی است و سکه‌ای به موجودی شما اضافه نمی‌کند.',
+  'donate.placeholder': 'تعداد Stars',
+  'donate.send': 'اهدا',
+  'support.attach': 'پیوست تصویر صفحه',
+  'upload.failed': 'بارگذاری ناموفق بود',
+  'admin.reply': 'پاسخ',
+  'admin.replyPlaceholder': 'پاسخ بنویسید (اختیاری)',
+  'admin.handled': 'رسیدگی شد',
+  'admin.support': 'پشتیبانی',
+  'admin.noSupport': 'پیامی در انتظار نیست.',
+  'admin.viewShot': 'دیدن تصویر صفحه',
   'album.unlockedNotice': 'آلبوم خصوصی خود را برای شما باز کرد',
   'album.unlockedByYou': 'آلبوم خصوصی خود را برای او باز کردید',
   'discover.noLocation.later': 'می‌توانید هر زمان با دکمه 📍 کنار فیلترها موقعیت خود را به‌روز کنید.',

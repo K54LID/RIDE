@@ -1295,6 +1295,32 @@ h2 { font-size: 1.02rem; }
   color: var(--muted); font-size: 0.76rem; text-align: center;
 }
 
+/* Brief confirmation that a setting was written. Fixed, so it does not
+   shift the row the person just tapped. */
+.saved-toast {
+  position: fixed; z-index: 320;
+  top: calc(12px + env(safe-area-inset-top)); left: 50%;
+  transform: translateX(-50%);
+  padding: 7px 14px; border-radius: var(--r-pill);
+  background: var(--surface); border: 1px solid var(--hairline);
+  color: var(--ink); font-size: 0.8rem; font-weight: 600;
+  animation: sheetUp 0.18s var(--ease);
+}
+
+/* Attachment row on a support form, and the thumbnail in the panel. */
+.attach-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.attach-name { flex: 1; min-width: 0; font-size: 0.8rem; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.support-shot {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 6px; margin-bottom: 8px;
+  background: var(--raised); border: 1px solid var(--hairline);
+  border-radius: var(--r-md); color: var(--muted); font: inherit; font-size: 0.78rem;
+}
+.support-shot img { width: 54px; height: 54px; object-fit: cover; border-radius: 8px; }
+.support-shot .skel { width: 54px; height: 54px; }
+.support-shot-label { text-align: start; }
+
 /* ---- FAQ accordion ---- */
 .faq-item { border-bottom: 1px solid var(--hairline); }
 .faq-item:last-child { border-bottom: 0; }

@@ -4,7 +4,8 @@ export type NotificationKind =
   | 'woof' | 'gift' | 'court' | 'follow' | 'friend_request' | 'friend_accepted'
   | 'comment' | 'post_like' | 'achievement' | 'referral' | 'featured'
   | 'message' | 'story_reply' | 'verification' | 'verification_request'
-  | 'support_message';
+  | 'support_message'
+  | 'support_handled';
 
 /**
  * Writes a notification inside the caller's transaction, so a

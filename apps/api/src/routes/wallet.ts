@@ -114,6 +114,39 @@ const walletRoutes: FastifyPluginAsync = async (app) => {
   });
 
   /**
+   * Donate Stars to whoever runs the app.
+   *
+   * Deliberately not a top-up: `coins_granted` is 0, so the payment
+   * handler credits nothing and the donor's balance is untouched. It
+   * reuses star_purchases because that table is already the record of
+   * every Star that came in — a donation is one of those, and giving it
+   * a separate table would split the revenue figure in the admin panel
+   * across two places.
+   */
+  app.post('/v1/wallet/donate', { preHandler: [app.requireAuth] }, async (req) => {
+    const { stars } = z.object({
+      stars: z.coerce.number().int().min(1).max(100000),
+    }).parse(req.body);
+    const payload = `donate:${randomUUID()}`;
+
+    await sql`
+      INSERT INTO star_purchases
+        (account_id, telegram_charge_id, stars_amount, coins_granted, payload)
+      VALUES (${req.accountId}, ${'pending:' + payload}, ${stars}, 0, ${payload})
+    `;
+
+    const res = await botApi('createInvoiceLink', {
+      title: 'Support RIDE',
+      description: `Donate ${stars} Stars to the people who run RIDE`,
+      payload,
+      currency: 'XTR',
+      prices: [{ label: `${stars} Stars`, amount: stars }],
+    });
+
+    return { invoice_url: res.result as string, stars };
+  });
+
+  /**
    * Health probe for the transport chooser: boot fetches this through
    * PUBLIC_API_URL to prove the public URL actually routes here before
    * pointing Telegram's webhook at it.

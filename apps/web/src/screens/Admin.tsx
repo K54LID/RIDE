@@ -43,6 +43,9 @@ interface SupportMessage {
   created_at: string;
   account_id: string;
   display_name: string | null;
+  media_id: string | null;
+  state: string;
+  reply: string | null;
   handle: string | null;
 }
 
@@ -54,6 +57,8 @@ export default function Admin({ onBack }: { onBack: () => void }) {
   const [verifs, setVerifs] = useState<VerificationReq[] | null>(null);
   const [reports, setReports] = useState<AdminReport[] | null>(null);
   const [support, setSupport] = useState<SupportMessage[] | null>(null);
+  const [replies, setReplies] = useState<Record<string, string>>({});
+  const [shotOpen, setShotOpen] = useState<string | null>(null);
   const [log, setLog] = useState<Array<Record<string, unknown>> | null>(null);
   const [q, setQ] = useState('');
   const [amounts, setAmounts] = useState<Record<string, string>>({});
@@ -341,28 +346,64 @@ export default function Admin({ onBack }: { onBack: () => void }) {
           place to clear them, not the only way to find out. */}
       {pane === 'support' && (
         support === null ? <Skeleton h={90} /> :
-        support.length === 0 ? <EmptyState title="Nothing waiting" body="" /> : (
+        support.length === 0 ? <EmptyState title={t('admin.noSupport')} body="" /> : (
           <>
             {support.map((m) => (
               <div key={m.id} className="card compact" style={{ marginBottom: 10 }}>
                 <div className="person-sub num" style={{ marginBottom: 4 }}>
                   {m.kind === 'bug' ? '🐞 bug' : '🛠 support'} · {new Date(m.created_at).toLocaleString()}
                 </div>
+                {/* Both name and handle: the handle identifies the
+                    account, the display name is how they'd introduce
+                    themselves. An admin needs both to answer a person. */}
                 <div className="person-name" style={{ fontSize: '0.95rem' }}>
-                  {m.handle ? `@${m.handle}` : m.display_name ?? 'Unknown'}
+                  {m.display_name ?? 'Unknown'}
+                  {m.handle ? <span className="num person-sub"> @{m.handle}</span> : null}
                 </div>
                 <p style={{ margin: '8px 0 12px', fontSize: '0.87rem', whiteSpace: 'pre-wrap' }}>
                   {m.body}
                 </p>
-                <div className="chips">
-                  <button className="chip" onClick={async () => {
-                    tg.tap('light');
-                    try {
-                      await apiFetch(`/v1/admin/support/${m.id}/resolve`, { method: 'POST' });
-                      setSupport((cur) => cur?.filter((x) => x.id !== m.id) ?? cur);
-                    } catch { tg.notify('error'); }
-                  }}>Mark handled</button>
-                </div>
+
+                {m.media_id ? (
+                  <button className="support-shot"
+                          onClick={() => { tg.tap('light'); setShotOpen(m.media_id!); }}>
+                    <Media id={m.media_id} kind="image" thumb />
+                    <span className="support-shot-label">{t('admin.viewShot')}</span>
+                  </button>
+                ) : null}
+
+                {m.state === 'handled' ? (
+                  <div className="person-sub" style={{ marginTop: 8 }}>
+                    ✅ {t('admin.handled')}
+                    {m.reply ? <span> · {m.reply}</span> : null}
+                  </div>
+                ) : (
+                  <>
+                    {/* The reply is optional but it is the difference
+                        between "someone read this" and silence. */}
+                    <textarea className="input" rows={2}
+                              placeholder={t('admin.replyPlaceholder')}
+                              value={replies[m.id] ?? ''}
+                              onChange={(e) =>
+                                setReplies((r) => ({ ...r, [m.id]: e.target.value }))} />
+                    <div className="chips" style={{ marginTop: 8 }}>
+                      <button className="chip" onClick={async () => {
+                        tg.tap('light');
+                        try {
+                          await apiFetch(`/v1/admin/support/${m.id}/resolve`, {
+                            method: 'POST',
+                            body: JSON.stringify({ reply: replies[m.id]?.trim() || undefined }),
+                          });
+                          tg.notify('success');
+                          setSupport((cur) => cur?.map((x) =>
+                            x.id === m.id
+                              ? { ...x, state: 'handled', reply: replies[m.id]?.trim() ?? null }
+                              : x) ?? cur);
+                        } catch { tg.notify('error'); }
+                      }}>{t('admin.handled')}</button>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </>
@@ -508,6 +549,15 @@ export default function Admin({ onBack }: { onBack: () => void }) {
           <button className="lightbox-close" aria-label={t('common.close')}
                   onClick={() => setSelfieView(null)}>✕</button>
           <Media id={selfieView} kind="image" />
+        </div>
+      ) : null}
+      {/* Full size, because a 100px thumbnail of a bug report is not
+          evidence of anything. */}
+      {shotOpen ? (
+        <div className="lightbox" onClick={() => setShotOpen(null)}>
+          <button className="lightbox-close" aria-label={t('common.close')}
+                  onClick={() => setShotOpen(null)}>✕</button>
+          <Media id={shotOpen} kind="image" />
         </div>
       ) : null}
     </div>

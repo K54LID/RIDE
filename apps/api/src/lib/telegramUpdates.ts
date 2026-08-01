@@ -107,6 +107,15 @@ export async function processTelegramUpdate(
     `;
     if (!purchase) return; // already processed, or unknown payload
 
+    /**
+     * A donation is recorded as a Star purchase granting zero coins, so
+     * the payment is captured in revenue without touching the balance.
+     * Skip the ledger entirely rather than writing a delta of 0: a
+     * zero-value row is noise in a person's wallet history and would
+     * read as a failed purchase.
+     */
+    if (purchase.coins_granted <= 0) return;
+
     await tx`
       INSERT INTO coin_ledger (account_id, delta, reason, ref_type, ref_id, idempotency_key)
       VALUES (${purchase.account_id}, ${purchase.coins_granted}, 'stars_purchase',

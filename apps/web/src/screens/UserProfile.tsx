@@ -39,6 +39,7 @@ export default function UserProfile({
   const [blockDone, setBlockDone] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [courtInfo, setCourtInfo] = useState(false);
+  const [avatarOpen, setAvatarOpen] = useState(false);
   const [giftsOpen, setGiftsOpen] = useState(false);
   const [albumOpen, setAlbumOpen] = useState(false);
 
@@ -134,11 +135,12 @@ export default function UserProfile({
   return (
     <Page title={`@${u.handle}`} onClose={onClose}>
       <div className="pro-head">
-        <div className="pro-avatar" style={{ pointerEvents: 'none' }}>
+        <button className="pro-avatar" disabled={!primary}
+                onClick={() => { tg.tap('light'); setAvatarOpen(true); }}>
           {primary
             ? <Media id={primary.media_id} kind="image" thumb />
             : <span className="pro-initial">{u.display_name.trim().charAt(0).toUpperCase()}</span>}
-        </div>
+        </button>
         {/* Gifts is a tab beside the other counts and opens the
             collection, rather than a loose showcase down the page. */}
         <div className="pro-counts">
@@ -153,6 +155,41 @@ export default function UserProfile({
           </button>
         </div>
       </div>
+
+      {court?.courter ? (
+        <button className="courted-by"
+                onClick={() => {
+                  tg.tap('light');
+                  onOpenUser(court.courter!.account_id);
+                }}>
+          <Avatar name={court.courter.display_name ?? '?'}
+                  mediaId={court.courter.avatar_media_id} size={38} radius={12} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div className="courted-by-label">♛ {t('court.courtedBy')}</div>
+            <div className="courted-by-name">
+              {court.courter.handle
+                ? <span className="num">@{court.courter.handle}</span>
+                : court.courter.display_name}
+            </div>
+            {court.courter.expires_at ? (
+              <div className="courted-by-days num">
+                {Math.max(0, Math.ceil(
+                  (new Date(court.courter.expires_at).getTime() - Date.now()) / 86400000,
+                ))} {t('court.daysLeft')}
+              </div>
+            ) : null}
+          </div>
+          <span style={{ color: 'var(--faint)' }}>›</span>
+        </button>
+      ) : null}
+
+      {/* Immediately under the courted-by panel — that is the moment the
+          question "what is this?" arises. Shown whether or not anyone
+          is currently courting them, since the answer explains the
+          empty case too. */}
+      <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
+        {t('court.howTitle')}
+      </button>
 
       <div className="pro-name">
         {u.display_name}
@@ -192,41 +229,6 @@ export default function UserProfile({
       {/* Who paid for this person's standing — with their face, and a
           tap opens their profile. The title lapses 30 days after the
           court unless someone pays again. */}
-      {court?.courter ? (
-        <button className="courted-by"
-                onClick={() => {
-                  tg.tap('light');
-                  onOpenUser(court.courter!.account_id);
-                }}>
-          <Avatar name={court.courter.display_name ?? '?'}
-                  mediaId={court.courter.avatar_media_id} size={38} radius={12} />
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div className="courted-by-label">♛ {t('court.courtedBy')}</div>
-            <div className="courted-by-name">
-              {court.courter.handle
-                ? <span className="num">@{court.courter.handle}</span>
-                : court.courter.display_name}
-            </div>
-            {court.courter.expires_at ? (
-              <div className="courted-by-days num">
-                {Math.max(0, Math.ceil(
-                  (new Date(court.courter.expires_at).getTime() - Date.now()) / 86400000,
-                ))} {t('court.daysLeft')}
-              </div>
-            ) : null}
-          </div>
-          <span style={{ color: 'var(--faint)' }}>›</span>
-        </button>
-      ) : null}
-
-      {/* Immediately under the courted-by panel — that is the moment the
-          question "what is this?" arises. Shown whether or not anyone
-          is currently courting them, since the answer explains the
-          empty case too. */}
-      <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
-        {t('court.howTitle')}
-      </button>
-
       {/* The album is the last cell of the same strip. Granted → it
           opens; not granted → it shows the count of what is behind the
           lock. Either way it lines up with the public photos instead of
@@ -299,6 +301,17 @@ export default function UserProfile({
         <div style={{ height: 10 }} />
         <Button variant="ghost" onClick={() => setBlockConfirm(false)}>{t('common.cancel')}</Button>
       </Sheet>
+
+      {/* Tapping a profile photo opens it full screen. The thumbnail is
+          a crop; the photo is the thing people actually want to look
+          at. Closed with the X or the back button. */}
+      {avatarOpen && primary ? (
+        <div className="lightbox" onClick={() => setAvatarOpen(false)}>
+          <button className="lightbox-close" aria-label={t('common.close')}
+                  onClick={() => setAvatarOpen(false)}>✕</button>
+          <Media id={primary.media_id} kind="image" />
+        </div>
+      ) : null}
     </Page>
   );
 }

@@ -52,6 +52,7 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
   const [albumOpen, setAlbumOpen] = useState(false);
   const [court, setCourt] = useState<CourtInfo | null>(null);
   const [courtInfo, setCourtInfo] = useState(false);
+  const [avatarOpen, setAvatarOpen] = useState(false);
 
   /** Remove a photo from the lightbox, without a trip through Edit profile. */
   const deletePhoto = async (photoId: string) => {
@@ -130,7 +131,9 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
 
       {/* Avatar and counts on one row — the unified header. */}
       <div className="pro-head">
-        <button className="pro-avatar" onClick={() => { tg.tap('light'); setEditingPhotos((v) => !v); }}>
+        <button className="pro-avatar"
+                onClick={() => { tg.tap('light');
+                                 if (primary) setAvatarOpen(true); else setEditingPhotos((v) => !v); }}>
           {primary
             ? <Media id={primary.media_id} kind="image" thumb />
             : <span className="pro-initial">{me.display_name.trim().charAt(0).toUpperCase() || '?'}</span>}
@@ -156,37 +159,10 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
           They are two different things — @k54lid is how people address
           you, "Khalid" is what you are called — so both belong on the
           profile, in that order. */}
-      <div className="pro-name">
-        {me.display_name}
-        {age !== null ? <span className="pro-age num">{age}</span> : null}
-      </div>
-      {me.bio ? <p className="pro-bio">{me.bio}</p> : null}
-
-      <div className="pro-actions">
-        <Button variant="ghost" onClick={onEdit}>{t('profile.edit')}</Button>
-        <Button variant="ghost" onClick={onSaved}>{t('saved.title')}</Button>
-      </div>
-
-      {editingPhotos ? (
-        <>
-          <div className="eyebrow tight">{t('profile.photos')}</div>
-          <PhotoManager />
-        </>
-      ) : (
-        /* The album is the last cell of the public strip, not a tile
-           beside it — same row, same square, same baseline, so the
-           lock reads as "there is more behind this" rather than as a
-           separate widget that happens to sit nearby. */
-        <PhotoCarousel photos={photos.filter((p) => !p.is_private)}
-                       lockedCount={privateCount}
-                       onLockedClick={() => setAlbumOpen(true)}
-                       onDeleted={deletePhoto} />
-      )}
-
       {/* Who is holding your standing, and how long is left before it
-          lapses back to 2. Rendered once, above the branch below —
-          it was duplicated into both arms of that conditional, so a
-          courted profile drew the panel twice. */}
+          lapses back to 2. Sits directly under the counts row: that
+          strip is already empty, and who is courting you belongs with
+          the other numbers about you rather than below the photos. */}
       {court?.courter ? (
         <button className="courted-by" style={{ marginBottom: 4 }}
                 onClick={() => { tg.tap('light'); onOpenUser(court.courter!.account_id); }}>
@@ -217,6 +193,33 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
       <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
         {t('court.howTitle')}
       </button>
+
+      <div className="pro-name">
+        {me.display_name}
+        {age !== null ? <span className="pro-age num">{age}</span> : null}
+      </div>
+      {me.bio ? <p className="pro-bio">{me.bio}</p> : null}
+
+      <div className="pro-actions">
+        <Button variant="ghost" onClick={onEdit}>{t('profile.edit')}</Button>
+        <Button variant="ghost" onClick={onSaved}>{t('saved.title')}</Button>
+      </div>
+
+      {editingPhotos ? (
+        <>
+          <div className="eyebrow tight">{t('profile.photos')}</div>
+          <PhotoManager />
+        </>
+      ) : (
+        /* The album is the last cell of the public strip, not a tile
+           beside it — same row, same square, same baseline, so the
+           lock reads as "there is more behind this" rather than as a
+           separate widget that happens to sit nearby. */
+        <PhotoCarousel photos={photos.filter((p) => !p.is_private)}
+                       lockedCount={privateCount}
+                       onLockedClick={() => setAlbumOpen(true)}
+                       onDeleted={deletePhoto} />
+      )}
 
       {shown.length > 0 ? (
         <>
@@ -269,6 +272,17 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
           ))}
         </div>
       </Sheet>
+
+      {/* Tapping a profile photo opens it full screen. The thumbnail is
+          a crop; the photo is the thing people actually want to look
+          at. Closed with the X or the back button. */}
+      {avatarOpen && primary ? (
+        <div className="lightbox" onClick={() => setAvatarOpen(false)}>
+          <button className="lightbox-close" aria-label={t('common.close')}
+                  onClick={() => setAvatarOpen(false)}>✕</button>
+          <Media id={primary.media_id} kind="image" />
+        </div>
+      ) : null}
     </div>
   );
 }
