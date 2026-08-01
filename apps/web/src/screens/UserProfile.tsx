@@ -141,19 +141,20 @@ export default function UserProfile({
             ? <Media id={primary.media_id} kind="image" thumb />
             : <span className="pro-initial">{u.display_name.trim().charAt(0).toUpperCase()}</span>}
         </button>
-        {/* Gifts is a tab beside the other counts and opens the
-            collection, rather than a loose showcase down the page. */}
-        <div className="pro-counts">
-          <button className="pro-count-btn"
-                  onClick={() => { tg.tap('light'); onFollows('followers'); }}>
-            <b className="num">{u.followers}</b><span>{t('profile.followers')}</span>
-          </button>
-          <div><b className="num">{u.woofs_received}</b><span>{t('profile.woofs')}</span></div>
-          <button className="pro-count-btn" disabled={data.gifts.length === 0}
-                  onClick={() => { tg.tap('light'); setGiftsOpen(true); }}>
+        {/* Counts and the courting panel share one column beside the
+            avatar, so the panel lands in the strip under the numbers. */}
+        <div className="pro-head-col">
+          <div className="pro-counts">
+            <button className="pro-count-btn"
+                    onClick={() => { tg.tap('light'); onFollows('followers'); }}>
+              <b className="num">{u.followers}</b><span>{t('profile.followers')}</span>
+            </button>
+            <div><b className="num">{u.woofs_received}</b><span>{t('profile.woofs')}</span></div>
+            <button className="pro-count-btn" disabled={data.gifts.length === 0}
+                    onClick={() => { tg.tap('light'); setGiftsOpen(true); }}>
             <b className="num">{u.gifts_received}</b><span>{t('profile.gifts')}</span>
-          </button>
-        </div>
+            </button>
+          </div>
           {court?.courter ? (
             <button className="courted-mini"
                     onClick={() => { tg.tap('light'); onOpenUser(court.courter!.account_id); }}>
@@ -175,6 +176,7 @@ export default function UserProfile({
               </span>
             </button>
           ) : null}
+        </div>
       </div>
 
       <div className="pro-name">

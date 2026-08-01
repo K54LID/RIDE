@@ -142,16 +142,45 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
         {/* Gifts is a tab here now, not a loose showcase further down
             the page — it sits with the other two counts and opens the
             collection. */}
-        <div className="pro-counts">
-          <button className="pro-count-btn"
-                  onClick={() => { tg.tap('light'); onFollows('followers'); }}>
-            <b className="num">{me.followers}</b><span>{t('profile.followers')}</span>
-          </button>
-          <div><b className="num">{me.woofs_received}</b><span>{t('profile.woofs')}</span></div>
-          <button className="pro-count-btn" disabled={gifts.length === 0}
-                  onClick={() => { tg.tap('light'); setGiftsOpen(true); }}>
-            <b className="num">{me.gifts_received}</b><span>{t('profile.gifts')}</span>
-          </button>
+        {/* Counts and the courting panel share one column beside the
+            avatar, so the panel lands in the strip under the numbers. */}
+        <div className="pro-head-col">
+          <div className="pro-counts">
+            <button className="pro-count-btn"
+                    onClick={() => { tg.tap('light'); onFollows('followers'); }}>
+              <b className="num">{me.followers}</b><span>{t('profile.followers')}</span>
+            </button>
+            <div><b className="num">{me.woofs_received}</b><span>{t('profile.woofs')}</span></div>
+            <button className="pro-count-btn" disabled={gifts.length === 0}
+                    onClick={() => { tg.tap('light'); setGiftsOpen(true); }}>
+              <b className="num">{me.gifts_received}</b><span>{t('profile.gifts')}</span>
+            </button>
+          </div>
+
+          {/* Compact, under the counts in the same column: it fills the
+              strip beside the avatar rather than taking a full-width
+              band further down the page. */}
+          {court?.courter ? (
+            <button className="courted-mini"
+                    onClick={() => { tg.tap('light'); onOpenUser(court.courter!.account_id); }}>
+              <Avatar name={court.courter.display_name ?? '?'}
+                      mediaId={court.courter.avatar_media_id} size={22} radius={11} />
+              <span className="courted-mini-text">
+                <span className="courted-mini-label">👑 {t('court.courtedBy')}</span>
+                <span className="num courted-mini-who">
+                  {court.courter.handle ? `@${court.courter.handle}` : court.courter.display_name}
+                  {court.courter.expires_at ? (
+                    <span className="courted-mini-days">
+                      {' · '}
+                      {Math.max(0, Math.ceil(
+                        (new Date(court.courter.expires_at).getTime() - Date.now()) / 86400000,
+                      ))}d
+                    </span>
+                  ) : null}
+                </span>
+              </span>
+            </button>
+          ) : null}
         </div>
       </div>
 
