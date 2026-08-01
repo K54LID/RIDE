@@ -30,13 +30,15 @@ function ageFrom(birth: string): number | null {
  * social app converged on because it answers "who is this and how do
  * they rate" in one glance.
  */
-export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onFollows }: {
+export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onFollows, onOpenUser }: {
   me: Me;
   onEdit: () => void;
   onWallet: () => void;
   onSettings: () => void;
   onSaved: () => void;
   onFollows: (mode: 'followers' | 'following') => void;
+  /** Opens whoever is courting you — their panel is a link, not a label. */
+  onOpenUser: (accountId: string) => void;
 }) {
   const t = useT();
   const age = ageFrom(me.birth_date);
@@ -49,6 +51,7 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
   const [giftsOpen, setGiftsOpen] = useState(false);
   const [albumOpen, setAlbumOpen] = useState(false);
   const [court, setCourt] = useState<CourtInfo | null>(null);
+  const [courtInfo, setCourtInfo] = useState(false);
 
   /** Remove a photo from the lightbox, without a trip through Edit profile. */
   const deletePhoto = async (photoId: string) => {
@@ -183,7 +186,8 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
       {shown.length > 0 ? (
         <>
           {court?.courter ? (
-        <div className="courted-by" style={{ marginBottom: 12 }}>
+        <button className="courted-by" style={{ marginBottom: 4 }}
+                onClick={() => { tg.tap('light'); onOpenUser(court.courter!.account_id); }}>
           <Avatar name={court.courter.display_name ?? '?'}
                   mediaId={court.courter.avatar_media_id} size={38} radius={12} />
           <div style={{ minWidth: 0, flex: 1 }}>
@@ -201,11 +205,16 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
               </div>
             ) : null}
           </div>
-        </div>
+          <span style={{ color: 'var(--faint)' }}>›</span>
+        </button>
       ) : court && court.court_value > 0 ? (
         // Value with no live courtship: it is running out on its own.
         <p className="hint" style={{ marginBottom: 12 }}>{t('court.lapsed')}</p>
       ) : null}
+
+      <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
+        {t('court.howTitle')}
+      </button>
 
       <div className="eyebrow tight">{t('profile.standing')}</div>
           <RankStandings ranks={ranks} />
@@ -222,7 +231,8 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
       ) : (
         <>
           {court?.courter ? (
-        <div className="courted-by" style={{ marginBottom: 12 }}>
+        <button className="courted-by" style={{ marginBottom: 4 }}
+                onClick={() => { tg.tap('light'); onOpenUser(court.courter!.account_id); }}>
           <Avatar name={court.courter.display_name ?? '?'}
                   mediaId={court.courter.avatar_media_id} size={38} radius={12} />
           <div style={{ minWidth: 0, flex: 1 }}>
@@ -240,16 +250,33 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
               </div>
             ) : null}
           </div>
-        </div>
+          <span style={{ color: 'var(--faint)' }}>›</span>
+        </button>
       ) : court && court.court_value > 0 ? (
         // Value with no live courtship: it is running out on its own.
         <p className="hint" style={{ marginBottom: 12 }}>{t('court.lapsed')}</p>
       ) : null}
 
+      <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
+        {t('court.howTitle')}
+      </button>
+
       <div className="eyebrow tight">{t('profile.standing')}</div>
           <RankStandings ranks={ranks} />
         </>
       )}
+
+      <Sheet center open={courtInfo} onClose={() => setCourtInfo(false)}>
+        <div className="sheet-head">
+          <h2 style={{ margin: 0 }}>♛ {t('court.howTitle')}</h2>
+          <button className="sheet-close" aria-label={t('common.close')}
+                  onClick={() => setCourtInfo(false)}>✕</button>
+        </div>
+        <p className="faq-a">{t('court.how.what')}</p>
+        <p className="faq-a">{t('court.how.cost')}</p>
+        <p className="faq-a">{t('court.how.expiry')}</p>
+        <p className="faq-a">{t('court.how.rank')}</p>
+      </Sheet>
 
       <Sheet center open={albumOpen} onClose={() => setAlbumOpen(false)}>
         <h2 style={{ marginBottom: 4 }}>🔒 {t('profile.privateAlbum')}</h2>

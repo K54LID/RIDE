@@ -389,3 +389,69 @@ typecheck · hook guard · web build · **web Dockerfile replayed line for
 line** · API build · jsdom smoke test (mounts and renders) · all 15
 migrations on Postgres 16 + PostGIS · court expiry, hard delete and
 album grant/revoke each exercised against a real database.
+
+---
+
+# Round 7
+
+## Two bugs that made buttons look dead
+
+**Block did nothing.** Both `Sheet` and `Page` portal to `document.body`,
+so a confirm sheet is a *sibling* of a full-screen page, not a child.
+`.page` is z-index 150 and `.sheet` was 101 — every confirm opened from
+a profile, the follow list or a settings page rendered **behind** the
+page that opened it. The endpoint was always fine. Sheets are 300/301
+now; the lightbox and crop editor moved to 310/320 so the private album
+(which opens inside a sheet) can still open a photo above it.
+
+**Daily streak never counted.** `last_claim_on` is a Postgres `date`,
+and postgres.js decodes dates as JavaScript `Date` objects — never
+strings. Every comparison was `row.last_claim_on === '2026-08-01'`,
+a Date-vs-string test that is always false. So "claimed today" never
+registered and the streak reset to 1 every day. Dates are normalised
+through one helper now.
+
+## Court value floors at 2
+
+Lapsing to 0 would have broken the economy: a court costs double the
+current value, so 0 makes every future court free. Lapsed values now
+return to 2, the starting value, and the leaderboard lists
+`court_value > 2` so anyone lapsed drops off it. Verified: a 31-day-old
+courtship falls to 2 and leaves the board while a live one at 8 stays.
+
+The FAQ, the leaderboard explainer and the court explainer all say "back
+to 2" rather than "to zero".
+
+## Followers count vs list
+
+"3 followers" opening onto one person: the count counted every `follows`
+row while the list filtered to active, non-ghosted, non-blocked people.
+Both use the same rules now.
+
+## Video
+
+**Telegram was re-encoding every upload.** `sendVideo` hands the file to
+Telegram's transcoder, which re-encodes and may rescale — the changed
+sizes in the storage channel. Video now goes through `sendDocument`,
+which stores bytes exactly as given, with the client-captured frame
+attached as the document thumbnail. Photos still use `sendPhoto`
+deliberately: its size ladder is what the avatars and grid tiles rely on.
+
+**Playback failed on anything over 20 MB.** The upload cap was 45 MB but
+the Bot API refuses to *download* files above 20 MB, so a 30 MB clip
+uploaded fine, appeared in the channel, and could never be played back.
+The cap is 19 MB now, rejected at upload with a clear reason, and a
+failed load says "Video unavailable" instead of spinning. Clips already
+uploaded above that size cannot be recovered — they must be re-uploaded.
+
+## Layout
+
+- The location note was printed twice; the duplicate under the button is
+  gone.
+- "How courting works" moved under the courted-by panel on both
+  profiles, and courted-by is now tappable on your own profile too.
+- Block matches the Chat button exactly — same padding, radius, size and
+  weight, differing only in colour.
+- Photo tools moved from floating discs over the image to a row beneath
+  it. Overlaid, they covered the subject's face, so you could not see
+  what you were about to crop or delete.

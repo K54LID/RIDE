@@ -280,7 +280,13 @@ p { margin: 0; color: var(--muted); }
 
 /* ---- bottom sheet ---- */
 .sheet-scrim {
-  position: fixed; inset: 0; z-index: 100;
+  /* Above .page (150). Both portal to document.body, so the sheet is a
+     sibling of any full-screen page rather than a child of it — at
+     z-index 100 every confirm opened from a profile, the follow list or
+     a settings page rendered *behind* that page. Tapping Block did
+     nothing visible, which is exactly what "the block button doesn't
+     work" looked like. */
+  position: fixed; inset: 0; z-index: 300;
   background: rgba(4, 2, 10, 0.68);
   backdrop-filter: blur(3px);
   animation: fade 0.2s var(--ease);
@@ -290,7 +296,7 @@ p { margin: 0; color: var(--muted); }
   /* A fixed box the exact size of what the person can actually see.
      Everything inside is laid out against this, so no sheet can render
      below the fold regardless of how tall the webview thinks it is. */
-  position: fixed; z-index: 101;
+  position: fixed; z-index: 301;
   left: 0; right: 0;
   top: env(safe-area-inset-top);
   height: calc(var(--tg-viewport-stable-height, 100dvh) - env(safe-area-inset-top));
@@ -944,25 +950,24 @@ body.story-open .nav { display: none; }
   background: rgba(6,3,14,0.78); color: var(--court-lit);
   padding: 3px 7px; border-radius: var(--r-pill);
 }
-/* Centred over the photo, not tucked into a corner.
-   Crowded into the bottom-right the four controls overlapped each other
-   and the cell edge, and on a round avatar they sat half outside the
-   circle. Centring them puts every one fully on the image, evenly
-   spaced, at a size a thumb can actually hit. */
+/* A row beneath the photo rather than discs floating on top of it.
+   Overlaid, they covered the subject's face — you could not see what
+   you were about to crop or delete — and on a square cell three circles
+   plus a "PRIMARY" tag left nothing visible. Below the image they are
+   always legible and never hide the thing they act on. */
+.photo-cell { display: flex; flex-direction: column; }
+.photo-cell > img, .photo-cell > .skel, .photo-cell > video,
+.photo-cell > .video-poster { flex: 1; min-height: 0; object-fit: cover; }
 .photo-tools {
-  position: absolute; inset: 0;
+  flex: none;
   display: flex; align-items: center; justify-content: center;
-  gap: 6px; flex-wrap: wrap; padding: 6px;
-  background: rgba(6, 3, 14, 0.35);
-  opacity: 0; transition: opacity 0.15s var(--ease);
+  gap: 6px; padding: 5px 4px;
+  background: rgba(6, 3, 14, 0.72);
+  border-top: 1px solid var(--hairline);
 }
-.photo-cell:hover .photo-tools,
-.photo-cell:focus-within .photo-tools { opacity: 1; }
-/* Touch has no hover, so on a phone they are simply always visible. */
-@media (hover: none) { .photo-tools { opacity: 1; background: transparent; } }
 .photo-tools button {
-  width: 30px; height: 30px; border-radius: 50%; border: 0;
-  background: rgba(6,3,14,0.82); color: #fff; font-size: 0.82rem;
+  width: 26px; height: 26px; border-radius: 50%; border: 0;
+  background: rgba(255,255,255,0.10); color: #fff; font-size: 0.75rem;
   display: grid; place-items: center;
 }
 .photo-tools button:active { transform: scale(0.9); }
@@ -1274,6 +1279,12 @@ h2 { font-size: 1.02rem; }
 .locate-body { margin: 0 0 6px; color: var(--muted); font-size: 0.87rem; line-height: 1.5; }
 .locate-hint { margin-top: 2px; }
 
+.video-failed {
+  position: absolute; inset-inline: 0; bottom: 10px;
+  text-align: center; color: #fff; font-size: 0.72rem;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+
 /* ---- FAQ accordion ---- */
 .faq-item { border-bottom: 1px solid var(--hairline); }
 .faq-item:last-child { border-bottom: 0; }
@@ -1490,7 +1501,9 @@ h2 { font-size: 1.02rem; }
 
 /* Tap a thumbnail → the photo alone, full screen. */
 .lightbox {
-  position: fixed; inset: 0; z-index: 210;
+  /* Above sheets (301): the private album opens inside a sheet, and
+     tapping one of its photos must not put the photo behind it. */
+  position: fixed; inset: 0; z-index: 310;
   height: var(--tg-viewport-stable-height, 100dvh);
   background: rgba(4, 2, 10, 0.96);
   display: grid; place-items: center;
@@ -1615,17 +1628,29 @@ button.podium-col { border: 0; background: none; color: var(--ink); font: inheri
 /* ---- block row on profiles ---- */
 /* Sits directly under Chat as a full-width action, so it reads as a
    deliberate choice rather than a link hidden at the foot of the page. */
+/* Same box as the Chat button directly above it — same padding, same
+   radius, same weight — so the pair reads as two actions of equal
+   standing rather than a button and a warning label. Only the colour
+   differs. */
+/* Identical geometry to .btn (the Chat button above it): same padding,
+   radius, size and weight, so the two read as a matched pair of actions
+   rather than a button and a warning label. Only the colour differs. */
 .block-row {
-  width: 100%; margin-top: 8px; padding: 11px;
-  background: var(--danger-dim); border: 1px solid var(--danger);
+  width: 100%; margin-top: 8px;
   border-radius: var(--r-md);
-  color: var(--danger); font: inherit; font-size: 0.85rem; font-weight: 600;
+  padding: 15px;
+  font-family: var(--font-body); font-size: 1rem; font-weight: 700;
+  background: var(--danger-dim); border: 1px solid var(--danger);
+  color: var(--danger);
+  transition: transform 0.14s var(--ease);
 }
+.block-row:active { transform: scale(0.975); }
 .block-row:active { background: rgba(244, 69, 61, 0.2); }
 
 /* ---- crop editor ---- */
 .crop-overlay {
-  position: fixed; inset: 0; z-index: 220;
+  /* Topmost: the crop editor is always the last thing opened. */
+  position: fixed; inset: 0; z-index: 320;
   height: var(--tg-viewport-stable-height, 100dvh);
   background: var(--void);
   display: flex; flex-direction: column; align-items: center; justify-content: center;

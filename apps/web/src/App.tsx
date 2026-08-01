@@ -234,7 +234,8 @@ export default function App() {
       {tab === 'you' && me && (
         <Profile me={me} onEdit={() => go('edit')} onWallet={() => go('wallet')}
                  onSettings={() => go('settings')} onSaved={() => go('saved')}
-                 onFollows={(mode) => push({ kind: 'follows', accountId: meId, mode })} />
+                 onFollows={(mode) => push({ kind: 'follows', accountId: meId, mode })}
+                 onOpenUser={openUser} />
       )}
 
       <BottomNav route={route} onGo={go} unreadChats={unreadChats} />

@@ -100,13 +100,6 @@ export default function PersonActions({
         </button>
       </div>
 
-      {/* Courting costs real coins and is the least self-explanatory
-          thing on the screen, so the rules are one tap away rather than
-          buried in the FAQ. */}
-      <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
-        {t('court.howTitle')}
-      </button>
-
       {error ? <p className="error">{error}</p> : null}
 
       <Sheet center open={courtInfo} onClose={() => setCourtInfo(false)}>

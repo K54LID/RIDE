@@ -376,6 +376,23 @@ const economyRoutes: FastifyPluginAsync = async (app) => {
 
   // ---- daily login ----
 
+  /**
+   * `last_claim_on` is a Postgres `date`, and postgres.js decodes dates
+   * into JavaScript Date objects — never strings. Every comparison here
+   * was `row.last_claim_on === today` against a 'YYYY-MM-DD' string,
+   * which is a Date-vs-string comparison and therefore always false.
+   *
+   * The visible effects: "claimed today" never registered, so the
+   * button stayed live and a second claim was rejected only by the
+   * ledger's idempotency key; and the streak never saw yesterday, so it
+   * reset to 1 every single day and never counted up.
+   */
+  const asDay = (v: unknown): string | null => {
+    if (!v) return null;
+    if (v instanceof Date) return v.toISOString().slice(0, 10);
+    return String(v).slice(0, 10);
+  };
+
   app.get('/v1/daily', { preHandler: [app.requireAuth] }, async (req) => {
     const [row] = await sql<{ current_streak: number; last_claim_on: string | null }[]>`
       SELECT COALESCE(current_streak, 0)::int AS current_streak, last_claim_on
@@ -384,7 +401,7 @@ const economyRoutes: FastifyPluginAsync = async (app) => {
     const today = new Date().toISOString().slice(0, 10);
     return {
       streak: row?.current_streak ?? 0,
-      claimed_today: row?.last_claim_on === today,
+      claimed_today: asDay(row?.last_claim_on) === today,
       next_reward: Math.min(DAILY_MAX, DAILY_BASE + (row?.current_streak ?? 0) * DAILY_STREAK_BONUS),
     };
   });
@@ -399,11 +416,12 @@ const economyRoutes: FastifyPluginAsync = async (app) => {
         ON CONFLICT (account_id) DO UPDATE SET account_id = EXCLUDED.account_id
         RETURNING current_streak::int, longest_streak::int, last_claim_on
       `;
-      if (row!.last_claim_on === today) throw new HttpError(409, 'ALREADY_CLAIMED');
+      const last = asDay(row!.last_claim_on);
+      if (last === today) throw new HttpError(409, 'ALREADY_CLAIMED');
 
       // A gap of exactly one day continues the streak; anything else resets.
       const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-      const streak = row!.last_claim_on === yesterday ? row!.current_streak + 1 : 1;
+      const streak = last === yesterday ? row!.current_streak + 1 : 1;
       const reward = Math.min(DAILY_MAX, DAILY_BASE + (streak - 1) * DAILY_STREAK_BONUS);
 
       await tx`

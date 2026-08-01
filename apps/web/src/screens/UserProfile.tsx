@@ -38,6 +38,7 @@ export default function UserProfile({
   const [blockConfirm, setBlockConfirm] = useState(false);
   const [blockDone, setBlockDone] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [courtInfo, setCourtInfo] = useState(false);
   const [giftsOpen, setGiftsOpen] = useState(false);
   const [albumOpen, setAlbumOpen] = useState(false);
 
@@ -227,6 +228,12 @@ export default function UserProfile({
         lockedCount={lockedCount > 0 ? lockedCount : photos.filter((p) => p.is_private).length}
         onLockedClick={() => setAlbumOpen(true)} />
 
+      {/* Directly under the courted-by panel: this is the moment the
+          question "what is this?" actually arises. */}
+      <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
+        {t('court.howTitle')}
+      </button>
+
       <div className="eyebrow tight">{t('profile.standingOther')}</div>
       <RankStandings ranks={ranks} />
 
@@ -251,6 +258,18 @@ export default function UserProfile({
         ) : null}
         <PhotoCarousel photos={photos.filter((p) => p.is_private)}
                        lockedCount={lockedCount} hideLocks />
+      </Sheet>
+
+      <Sheet center open={courtInfo} onClose={() => setCourtInfo(false)}>
+        <div className="sheet-head">
+          <h2 style={{ margin: 0 }}>♛ {t('court.howTitle')}</h2>
+          <button className="sheet-close" aria-label={t('common.close')}
+                  onClick={() => setCourtInfo(false)}>✕</button>
+        </div>
+        <p className="faq-a">{t('court.how.what')}</p>
+        <p className="faq-a">{t('court.how.cost')}</p>
+        <p className="faq-a">{t('court.how.expiry')}</p>
+        <p className="faq-a">{t('court.how.rank')}</p>
       </Sheet>
 
       <Sheet center open={giftsOpen} onClose={() => setGiftsOpen(false)}>

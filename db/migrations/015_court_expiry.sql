@@ -2,8 +2,13 @@
 --
 -- `court_value` was permanent: pay once and you sat at the top of the
 -- board forever. The rule asked for is a standing you have to keep:
--- 30 days from the last court, then the value falls to zero. Courting
--- again resets the clock to a full 30 days.
+-- 30 days from the last court, then the value falls back to the
+-- starting value of 2. Courting again resets the clock to a full 30
+-- days.
+--
+-- It resets to 2 rather than 0 because a court costs double the current
+-- value. At 0 the next court would cost nothing and every subsequent
+-- one would too, so the whole economy would collapse to free.
 --
 -- Two things are needed for that.
 
@@ -46,13 +51,13 @@ INSERT INTO court_expiries (account_id, value_before)
 SELECT c.target_id, p.court_value
 FROM courtships c
 JOIN profiles p ON p.account_id = c.target_id
-WHERE c.expires_at <= now() AND p.court_value > 0;
+WHERE c.expires_at <= now() AND p.court_value > 2;
 
 UPDATE profiles p
-SET court_value = 0, updated_at = now()
+SET court_value = 2, updated_at = now()
 FROM courtships c
 WHERE c.target_id = p.account_id
   AND c.expires_at <= now()
-  AND p.court_value > 0;
+  AND p.court_value > 2;
 
 DELETE FROM courtships WHERE expires_at <= now();

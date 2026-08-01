@@ -37,6 +37,7 @@ export default function Media({ id, kind, alt = '', thumb = false }: {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [loadingVideo, setLoadingVideo] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -76,7 +77,9 @@ export default function Media({ id, kind, alt = '', thumb = false }: {
       setVideoUrl(u);
       requestAnimationFrame(() => { void videoRef.current?.play().catch(() => undefined); });
     } catch {
-      setFailed(true);
+      // Most often a clip stored before the 19 MB limit existed:
+      // uploaded fine, but the Bot API will not download it back.
+      setVideoError(true);
     } finally {
       setLoadingVideo(false);
     }
@@ -99,6 +102,7 @@ export default function Media({ id, kind, alt = '', thumb = false }: {
                placeholder beats a blank rectangle. */
             <div className="video-blank" style={{ aspectRatio: '4/3' }} />
           )}
+        {videoError ? <span className="video-failed">Video unavailable</span> : null}
         <span className={`video-play ${loadingVideo ? 'loading' : ''}`} aria-hidden="true">
           {loadingVideo ? (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"

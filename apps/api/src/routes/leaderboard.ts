@@ -170,7 +170,10 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
                    p.court_value::int AS score
             FROM profiles p
             JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
-            WHERE NOT p.ghost_mode AND p.court_value > 1
+            -- > 2 rather than > 1: a lapsed court value resets to 2,
+            -- so anyone at 2 has no live courtship and should not be
+            -- on the board at all.
+            WHERE NOT p.ghost_mode AND p.court_value > 2
             ORDER BY score DESC
             LIMIT ${limit}
           `;

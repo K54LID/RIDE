@@ -4,7 +4,17 @@ import { HttpError } from '../lib/errors.js';
 import { uploadToTelegram, resolveFileUrl } from '../lib/telegramStorage.js';
 
 const MAX_IMAGE = 10 * 1024 * 1024;
-const MAX_VIDEO = 45 * 1024 * 1024;
+/**
+ * 19 MB, not 45.
+ *
+ * The Bot API accepts uploads up to 50 MB but will only *download*
+ * files up to 20 MB — getFile refuses anything larger. A 30 MB clip
+ * therefore uploaded successfully, appeared in the storage channel, and
+ * then failed forever on playback: poster visible, tap play, nothing
+ * loads. Rejecting it at upload with a clear message is the only honest
+ * option, because we cannot serve those bytes back afterwards.
+ */
+const MAX_VIDEO = 19 * 1024 * 1024;
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
@@ -98,12 +108,16 @@ const mediaRoutes: FastifyPluginAsync = async (app) => {
     const limit = isImage ? MAX_IMAGE : MAX_VIDEO;
     if (buffer.byteLength > limit) {
       throw new HttpError(413, 'FILE_TOO_LARGE',
-        `Max ${Math.round(limit / 1024 / 1024)} MB for this type`);
+        isImage
+          ? `Max ${Math.round(limit / 1024 / 1024)} MB for photos`
+          : `Videos must be under ${Math.round(limit / 1024 / 1024)} MB. `
+            + 'Longer clips cannot be played back afterwards.');
     }
 
     let stored;
     try {
-      stored = await uploadToTelegram(buffer, filename, mimetype, isImage ? 'image' : 'video');
+      stored = await uploadToTelegram(buffer, filename, mimetype,
+                                      isImage ? 'image' : 'video', posterBuffer);
     } catch (err) {
       req.log.error({ err }, 'media upload failed');
       throw new HttpError(502, 'UPLOAD_FAILED', 'Storage rejected the file');
@@ -131,6 +145,7 @@ const mediaRoutes: FastifyPluginAsync = async (app) => {
      * bytes are already stored.
      */
     if (!isImage && !stored.thumbId && posterBuffer) {
+      // Reached only if attaching the poster to the document failed.
       try {
         const poster = await uploadToTelegram(
           posterBuffer, 'poster.jpg', 'image/jpeg', 'image');

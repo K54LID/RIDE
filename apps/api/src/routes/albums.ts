@@ -152,8 +152,21 @@ const albumRoutes: FastifyPluginAsync = async (app) => {
                   THEN (a.last_seen_at > now() - interval '5 minutes') END AS online,
              (SELECT count(*)::int FROM woofs w WHERE w.target_id = p.account_id
                 AND w.created_at > COALESCE(p.stats_reset_at, 'epoch')) AS woofs_received,
-             (SELECT count(*)::int FROM follows f WHERE f.followee_id = p.account_id
-                AND f.created_at > COALESCE(p.stats_reset_at, 'epoch')) AS followers,
+             -- Counts the same people the followers list will actually
+             -- show: active accounts, not ghosted, not blocked either
+             -- way. A count that disagrees with its own list is worse
+             -- than a smaller number.
+             (SELECT count(*)::int FROM follows f
+               JOIN profiles fp ON fp.account_id = f.follower_id
+               JOIN accounts fa ON fa.id = f.follower_id AND fa.status = 'active'
+              WHERE f.followee_id = p.account_id
+                AND f.created_at > COALESCE(p.stats_reset_at, 'epoch')
+                AND NOT fp.ghost_mode
+                AND NOT EXISTS (
+                  SELECT 1 FROM blocks b
+                  WHERE (b.blocker_id = ${me} AND b.blocked_id = f.follower_id)
+                     OR (b.blocker_id = f.follower_id AND b.blocked_id = ${me})
+                )) AS followers,
              (SELECT count(*)::int FROM gift_transfers g WHERE g.receiver_id = p.account_id
                 AND g.created_at > COALESCE(p.stats_reset_at, 'epoch')) AS gifts_received,
              EXISTS (SELECT 1 FROM blocks b

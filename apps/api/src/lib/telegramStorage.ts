@@ -45,9 +45,25 @@ export async function uploadToTelegram(
   filename: string,
   mime: string,
   kind: 'image' | 'video',
+  /** Optional poster frame, used as the document thumbnail for video. */
+  poster?: Buffer | null,
 ): Promise<StoredFile> {
-  const method = kind === 'image' ? 'sendPhoto' : 'sendVideo';
-  const field = kind === 'image' ? 'photo' : 'video';
+  /**
+   * Video goes through sendDocument, not sendVideo.
+   *
+   * sendVideo hands the file to Telegram's transcoder: it re-encodes,
+   * may re-scale, and returns a different file from the one that was
+   * uploaded — which is why clips came back with changed dimensions and
+   * sizes in the storage channel. sendDocument stores the bytes exactly
+   * as given and returns them byte-for-byte on download.
+   *
+   * Photos still use sendPhoto deliberately: its compression is what
+   * gives us the multiple sizes the avatar and grid thumbnails rely on
+   * (see the size-picking below), and an original-quality photo is not
+   * worth a separate full-size fetch on every tile.
+   */
+  const method = kind === 'image' ? 'sendPhoto' : 'sendDocument';
+  const field = kind === 'image' ? 'photo' : 'document';
 
   const form = new FormData();
   form.append('chat_id', config.TELEGRAM_STORAGE_CHAT_ID);
@@ -56,6 +72,15 @@ export async function uploadToTelegram(
   // accepted and copies nothing.
   form.append(field, new Blob([new Uint8Array(buffer)], { type: mime }), filename);
   form.append('disable_notification', 'true');
+  /**
+   * sendDocument does not generate its own thumbnail, so the frame the
+   * client captured is attached here. Without it a video stored as a
+   * document has no poster at all.
+   */
+  if (poster && kind === 'video') {
+    form.append('thumbnail', new Blob([new Uint8Array(poster)], { type: 'image/jpeg' }),
+                'poster.jpg');
+  }
 
   /**
    * A deadline, because without one this request can hang indefinitely.
@@ -73,6 +98,9 @@ export async function uploadToTelegram(
     description?: string;
     result?: {
       photo?: PhotoSize[];
+      document?: { file_id: string; file_size?: number; mime_type?: string;
+                   thumbnail?: { file_id: string; width?: number; height?: number };
+                   thumb?: { file_id: string; width?: number; height?: number } };
       video?: { file_id: string; width: number; height: number; duration: number; file_size?: number;
                 /**
                  * Bot API 7.0 renamed `thumb` to `thumbnail`. Which one
@@ -113,6 +141,22 @@ export async function uploadToTelegram(
       height: largest.height,
       durationMs: null,
       bytes: largest.file_size ?? null,
+    };
+  }
+
+  // sendDocument answers with `document`; sendVideo (older rows, and
+  // any client still using it) answers with `video`. Accept either.
+  const d = json.result.document;
+  if (d) {
+    return {
+      fileId: d.file_id,
+      thumbId: d.thumbnail?.file_id ?? d.thumb?.file_id ?? null,
+      // A document carries no dimensions. The client already knows them
+      // and the player reads them from the file itself.
+      width: d.thumbnail?.width ?? 0,
+      height: d.thumbnail?.height ?? 0,
+      durationMs: null,
+      bytes: d.file_size ?? null,
     };
   }
 

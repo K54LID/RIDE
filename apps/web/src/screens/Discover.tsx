@@ -204,7 +204,6 @@ export default function Discover({ onOpenUser }: {
           <Button onClick={requestLocation} disabled={locating}>
             {locating ? t('common.loading') : t('discover.shareLocation')}
           </Button>
-          <p className="hint locate-hint">{t('discover.noLocation.later')}</p>
         </div>
       ) : null}
 

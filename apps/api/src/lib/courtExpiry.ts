@@ -4,9 +4,13 @@ import { sql } from './db.js';
  * Court value decays.
  *
  * A courtship lasts 30 days from the last time someone paid. When it
- * lapses the person's court value falls to zero, which is what makes
- * the board a standing you have to keep rather than a purchase you made
- * once. Courting again resets the full 30 days.
+ * lapses the person's court value falls back to the starting value of
+ * 2, which is what makes the board a standing you have to keep rather
+ * than a purchase you made once. Courting again resets the full 30
+ * days.
+ *
+ * Back to 2, not 0: a court costs double the current value, so a value
+ * of 0 would make every future court free.
  *
  * This runs on a timer rather than being computed on read. Court value
  * is read by the leaderboard, discover's sort, both profiles, posts and
@@ -21,6 +25,9 @@ import { sql } from './db.js';
  */
 
 const INTERVAL_MS = 5 * 60 * 1000;
+
+/** Where a lapsed court value lands. Must stay above 0 — see above. */
+const BASE_COURT_VALUE = 2;
 
 export async function expireCourtships(): Promise<number> {
   return sql.begin(async (tx) => {
@@ -37,7 +44,7 @@ export async function expireCourtships(): Promise<number> {
 
     // History first, while the old value is still readable.
     for (const row of expired) {
-      if (Number(row.before) > 0) {
+      if (Number(row.before) > BASE_COURT_VALUE) {
         await tx`
           INSERT INTO court_expiries (account_id, value_before)
           VALUES (${row.target_id}, ${row.before})
@@ -46,8 +53,8 @@ export async function expireCourtships(): Promise<number> {
     }
 
     await tx`
-      UPDATE profiles SET court_value = 0, updated_at = now()
-      WHERE account_id = ANY(${ids}) AND court_value > 0
+      UPDATE profiles SET court_value = ${BASE_COURT_VALUE}, updated_at = now()
+      WHERE account_id = ANY(${ids}) AND court_value > ${BASE_COURT_VALUE}
     `;
     await tx`DELETE FROM courtships WHERE target_id = ANY(${ids})`;
 

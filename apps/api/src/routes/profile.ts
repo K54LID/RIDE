@@ -15,7 +15,12 @@ const selectMe = (accountId: string) => sql`
          p.vip_until, p.ghost_mode,
          COALESCE(b.balance, 0)::int AS coin_balance,
          (SELECT count(*)::int FROM woofs w WHERE w.target_id = p.account_id) AS woofs_received,
-         (SELECT count(*)::int FROM follows f WHERE f.followee_id = p.account_id) AS followers,
+         -- Must match what /v1/users/:id/followers lists, or the count
+         -- opens onto a shorter list.
+         (SELECT count(*)::int FROM follows f
+           JOIN profiles fp ON fp.account_id = f.follower_id
+           JOIN accounts fa ON fa.id = f.follower_id AND fa.status = 'active'
+          WHERE f.followee_id = p.account_id AND NOT fp.ghost_mode) AS followers,
          (SELECT count(*)::int FROM follows f WHERE f.follower_id = p.account_id) AS following,
          (SELECT COALESCE(sum(g.quantity), 0)::int
             FROM gift_collections g WHERE g.account_id = p.account_id) AS gifts_received,
