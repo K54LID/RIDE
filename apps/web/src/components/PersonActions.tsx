@@ -92,7 +92,7 @@ export default function PersonActions({
           <span className="act-label">{t('action.gift')}</span>
         </button>
         <button className="act act-court" onClick={() => { tg.tap('heavy'); court(); }} disabled={busy}>
-          <span className="act-glyph">♛</span>
+          <span className="act-glyph">👑</span>
           <span className="act-label">
             {t('action.court')}
             <b className="num act-cost">{courtCost}</b>
@@ -104,7 +104,7 @@ export default function PersonActions({
 
       <Sheet center open={courtInfo} onClose={() => setCourtInfo(false)}>
         <div className="sheet-head">
-          <h2 style={{ margin: 0 }}>♛ {t('court.howTitle')}</h2>
+          <h2 style={{ margin: 0 }}>👑 {t('court.howTitle')}</h2>
           <button className="sheet-close" aria-label={t('common.close')}
                   onClick={() => setCourtInfo(false)}>✕</button>
         </div>

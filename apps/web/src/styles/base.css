@@ -1259,12 +1259,6 @@ h2 { font-size: 1.02rem; }
 
 .pro-age { color: var(--muted); font-weight: 400; margin-inline-start: 6px; }
 
-.court-info {
-  width: 100%; margin-top: 8px; padding: 8px;
-  background: none; border: 0; color: var(--muted);
-  font: inherit; font-size: 0.75rem; text-decoration: underline;
-  text-underline-offset: 3px;
-}
 
 /* Grid with no location: this is the tab, not a banner on top of it. */
 .locate-cta {
@@ -1322,7 +1316,12 @@ h2 { font-size: 1.02rem; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .courted-mini-days { font-weight: 400; color: var(--muted); }
-.pro-actions .court-info { grid-column: 1 / -1; margin: 0; padding: 2px; }
+.court-info {
+  display: block; width: 100%; margin: 2px 0 14px; padding: 4px;
+  background: none; border: 0; color: var(--muted);
+  font: inherit; font-size: 0.78rem; text-align: center;
+  text-decoration: underline; text-underline-offset: 3px;
+}
 
 /* Brief confirmation that a setting was written. Fixed, so it does not
    shift the row the person just tapped. */
@@ -1424,23 +1423,21 @@ h2 { font-size: 1.02rem; }
 /* Story header: the author's face beside their handle. */
 .story-name-btn { display: flex; align-items: center; gap: 8px; }
 
-/* ---- profile rank standings ---- */
-.standings { padding: 4px 12px; }
-.standing-row {
-  display: flex; align-items: center; gap: 9px;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--hairline);
-  font-size: 0.87rem;
+/* ---- profile rank strip ---- */
+/* One line, five positions. The glyph is the board and the number is
+   the standing; the score lives in the title attribute rather than
+   costing a second column. */
+.rank-strip {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 6px; flex-wrap: wrap;
+  padding: 11px 12px;
+  background: var(--raised); border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
 }
-.standing-row:last-child { border-bottom: 0; }
-.standing-glyph { flex: none; width: 20px; text-align: center; font-size: 0.95rem; }
-.standing-label { flex: 1; min-width: 0; color: var(--muted); }
-.standing-score { font-weight: 700; }
-.standing-rank {
-  flex: none; min-width: 44px; text-align: end;
-  color: var(--muted); font-weight: 700;
-}
-.standing-rank.top { color: var(--court-lit); }
+.rank-pill { display: inline-flex; align-items: center; gap: 5px; }
+.rank-pill-glyph { font-size: 0.95rem; line-height: 1; }
+.rank-pill-num { font-size: 0.92rem; font-weight: 700; color: var(--muted); }
+.rank-pill-num.top { color: var(--court-lit); }
 
 /* ---- chat header ---- */
 .chat-head {

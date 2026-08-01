@@ -95,9 +95,9 @@ function compose(kind: string, actor: string, lang: string, payload: Record<stri
        */
       const v = typeof payload.value_after === 'number' ? payload.value_after : null;
       const paid = typeof payload.payout === 'number' ? payload.payout : null;
-      const head = L(`♛ ${actor} courted you`,
-                     `♛ ${actor} поухаживал за вами`,
-                     `♛ ${actor} sana kur yaptı`);
+      const head = L(`👑 ${actor} courted you`,
+                     `👑 ${actor} поухаживал за вами`,
+                     `👑 ${actor} sana kur yaptı`);
       const value = v === null ? '' : L(` — your value is now ${v} coins`,
                                         ` — ваша ценность теперь ${v} монет`,
                                         ` — değerin şimdi ${v} coin`);

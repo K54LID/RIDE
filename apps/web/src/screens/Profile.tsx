@@ -167,13 +167,14 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
 
       <div className="pro-actions">
         <Button variant="ghost" onClick={onEdit}>{t('profile.edit')}</Button>
-        {/* Between the two buttons, on its own line: it explains the
-            panel above it and is not itself an action of equal weight. */}
-        <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
-          {t('court.howTitle')}
-        </button>
         <Button variant="ghost" onClick={onSaved}>{t('saved.title')}</Button>
       </div>
+
+      {/* Centred on its own line under both buttons — it explains the
+          panel above and is not an action of equal weight. */}
+      <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
+        {t('court.howTitle')}
+      </button>
 
       {editingPhotos ? (
         <>
@@ -214,7 +215,7 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
 
       <Sheet center open={courtInfo} onClose={() => setCourtInfo(false)}>
         <div className="sheet-head">
-          <h2 style={{ margin: 0 }}>♛ {t('court.howTitle')}</h2>
+          <h2 style={{ margin: 0 }}>👑 {t('court.howTitle')}</h2>
           <button className="sheet-close" aria-label={t('common.close')}
                   onClick={() => setCourtInfo(false)}>✕</button>
         </div>

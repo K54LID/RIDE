@@ -7,7 +7,7 @@ import Media from '../components/Media';
 import Avatar from '../components/Avatar';
 
 const GLYPH: Record<string, string> = {
-  woof: '🐾', gift: '🎁', court: '♛', follow: '👤',
+  woof: '🐾', gift: '🎁', court: '👑', follow: '👤',
   friend_request: '🤝', friend_accepted: '🤝', comment: '💬',
   post_like: '❤️', achievement: '🏆', referral: '🎟️', featured: '⭐',
   message: '✉️', story_reply: '💬',

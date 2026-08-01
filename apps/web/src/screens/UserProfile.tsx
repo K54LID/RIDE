@@ -160,7 +160,7 @@ export default function UserProfile({
               <Avatar name={court.courter.display_name ?? '?'}
                       mediaId={court.courter.avatar_media_id} size={22} radius={11} />
               <span className="courted-mini-text">
-                <span className="courted-mini-label">♛ {t('court.courtedBy')}</span>
+                <span className="courted-mini-label">👑 {t('court.courtedBy')}</span>
                 <span className="num courted-mini-who">
                   {court.courter.handle ? `@${court.courter.handle}` : court.courter.display_name}
                   {court.courter.expires_at ? (
@@ -205,16 +205,16 @@ export default function UserProfile({
         onChange={() => { load(); onBalanceChange(); }}
       />
 
-      <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
-        {t('court.howTitle')}
-      </button>
-
       <Button variant="ghost" onClick={openChat}>{t('chats.title')}</Button>
 
       <button className="block-row" onClick={() => { tg.tap('light'); setBlockConfirm(true); }}>
         {t('profile.block')}
       </button>
       {actionError ? <p className="error">{actionError}</p> : null}
+
+      <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
+        {t('court.howTitle')}
+      </button>
 
       {/* Who paid for this person's standing — with their face, and a
           tap opens their profile. The title lapses 30 days after the
@@ -257,7 +257,7 @@ export default function UserProfile({
 
       <Sheet center open={courtInfo} onClose={() => setCourtInfo(false)}>
         <div className="sheet-head">
-          <h2 style={{ margin: 0 }}>♛ {t('court.howTitle')}</h2>
+          <h2 style={{ margin: 0 }}>👑 {t('court.howTitle')}</h2>
           <button className="sheet-close" aria-label={t('common.close')}
                   onClick={() => setCourtInfo(false)}>✕</button>
         </div>
