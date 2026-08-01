@@ -4,6 +4,7 @@ import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import { EmptyState, Skeleton } from '../components/ui';
 import Media from '../components/Media';
+import Avatar from '../components/Avatar';
 
 const GLYPH: Record<string, string> = {
   woof: '🐾', gift: '🎁', court: '♛', follow: '👤',
@@ -110,7 +111,18 @@ export default function Alerts({ onBack, onOpenUser, onOpenPost, onOpenChat }: {
               <button key={n.id} className="notif-btn" data-unread={n.read_at === null}
                       disabled={!go}
                       onClick={() => { if (go) { tg.tap('light'); go(); } }}>
-                <span className="notif-glyph">{GLYPH[n.kind] ?? '•'}</span>
+                {/* Face plus the kind-glyph as a small badge, rather
+                    than a glyph alone — you should be able to tell who
+                    it was without reading the sentence. */}
+                {n.actor_id ? (
+                  <span className="notif-face">
+                    <Avatar name={n.actor_name ?? '?'}
+                            mediaId={n.actor_avatar_media_id} size={38} radius={19} />
+                    <span className="notif-badge">{GLYPH[n.kind] ?? '•'}</span>
+                  </span>
+                ) : (
+                  <span className="notif-glyph">{GLYPH[n.kind] ?? '•'}</span>
+                )}
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span className="notif-text">{line(n)}</span>
                   {n.post_id && !n.post_media_id && n.post_excerpt ? (

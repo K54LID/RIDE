@@ -10,7 +10,7 @@ import Sheet from '../components/Sheet';
 import CommentSheet from '../components/CommentSheet';
 import StoriesRail from '../components/StoriesRail';
 import StoryViewer from '../components/StoryViewer';
-import { botUrl } from '../lib/appInfo';
+import { botUrl, botStartUrl } from '../lib/appInfo';
 
 function timeAgo(iso: string): string {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -187,7 +187,11 @@ export default function Home({ meId, meName, meAvatar, onCompose, onAlerts, onOp
   const share = (p: Post) => {
     tg.tap('light');
     setMenuPost(null);
-    const text = `${p.author_name} on RIDE: ${(p.body ?? '').slice(0, 120)}`;
+    // "Check out @user 's post on <bot link>" — the link has to be a
+    // link to the bot, not bare text, or nobody can act on the share.
+    const link = botStartUrl();
+    const text = `Check out @${p.author_handle} 's post on ${link}\n\n`
+      + `${p.author_name} on RIDE: ${(p.body ?? '').slice(0, 120)}`;
     // The bot link opens RIDE inside Telegram. The old website URL sent
     // people to a web page that is not the app.
     window.open(

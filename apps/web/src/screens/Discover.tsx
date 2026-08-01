@@ -192,19 +192,24 @@ export default function Discover({ onOpenUser }: {
           found the 📍 button on their own. Say it plainly, put the
           button in the sentence, and point at where it lives for next
           time. */}
+      {/* Without a location the Grid has nothing to show, so this is
+          the whole tab rather than a note above an empty one — a card
+          the person scrolls past does not get read, and there is
+          nothing underneath it to look at anyway. */}
       {!hasLocation && view === 'grid' && !locationSent ? (
-        <div className="card compact" style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: '0.9rem', marginBottom: 4 }}>
-            {t('discover.noLocation')}
-          </div>
-          <p className="hint" style={{ marginBottom: 12 }}>{t('discover.noLocation.body')}</p>
+        <div className="locate-cta">
+          <span className="locate-glyph" aria-hidden="true">📍</span>
+          <h2 className="locate-title">{t('discover.noLocation')}</h2>
+          <p className="locate-body">{t('discover.noLocation.body')}</p>
           <Button onClick={requestLocation} disabled={locating}>
-            {t('discover.shareLocation')}
+            {locating ? t('common.loading') : t('discover.shareLocation')}
           </Button>
+          <p className="hint locate-hint">{t('discover.noLocation.later')}</p>
         </div>
       ) : null}
 
-      {failed ? (
+      {!hasLocation && view === 'grid' && !locationSent ? null
+        : failed ? (
         <EmptyState title={t('common.offline')} body={t('common.offline.body')}
                     action={<Button onClick={load}>{t('common.retry')}</Button>} />
       ) : people === null ? (

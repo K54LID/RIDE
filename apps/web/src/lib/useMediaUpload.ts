@@ -1,3 +1,4 @@
+import { captureVideoPoster } from './videoPoster';
 import { useCallback, useRef, useState } from 'react';
 import { tg } from './tg';
 
@@ -36,9 +37,18 @@ export function useMediaUpload(max = 10) {
       setItems((cur) => [...cur, { localId, previewUrl, kind, mediaId: null, error: null }]);
 
       try {
+        // Captured before the XHR: a Promise executor cannot be async,
+        // and this must not be fire-and-forget or the frame would race
+        // the request it is meant to travel with. Returns null for
+        // images and for anything it fails to decode.
+        const poster = await captureVideoPoster(file);
+
         const mediaId = await new Promise<string>((resolve, reject) => {
           const form = new FormData();
           form.append('file', file);
+          // Used only if Telegram returns no thumbnail of its own, so a
+          // video cannot end up posterless in the feed.
+          if (poster) form.append('poster', poster, 'poster.jpg');
           const xhr = new XMLHttpRequest();
           xhr.open('POST', `${BASE}/v1/media`);
           xhr.setRequestHeader('Authorization', `tma ${tg.initData()}`);

@@ -13,6 +13,13 @@ const notificationRoutes: FastifyPluginAsync = async (app) => {
       SELECT n.id::text AS id, n.kind, n.payload, n.read_at, n.created_at,
              n.actor_id,
              p.display_name AS actor_name, p.handle AS actor_handle,
+             -- The face belongs on the row: "@someone woofed you" with
+             -- no picture is a line of text you have to read, not a
+             -- person you recognise.
+             (SELECT ph.media_id FROM profile_photos ph
+              WHERE ph.account_id = n.actor_id AND ph.position = 0
+                AND NOT ph.is_private AND ph.media_id IS NOT NULL
+              LIMIT 1) AS actor_avatar_media_id,
              (p.verification = 'approved') AS actor_verified,
              po.id AS post_id,
              left(po.body, 90) AS post_excerpt,

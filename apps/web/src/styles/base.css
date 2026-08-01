@@ -944,12 +944,28 @@ body.story-open .nav { display: none; }
   background: rgba(6,3,14,0.78); color: var(--court-lit);
   padding: 3px 7px; border-radius: var(--r-pill);
 }
-.photo-tools { position: absolute; bottom: 5px; inset-inline-end: 5px; display: flex; gap: 4px; }
+/* Centred over the photo, not tucked into a corner.
+   Crowded into the bottom-right the four controls overlapped each other
+   and the cell edge, and on a round avatar they sat half outside the
+   circle. Centring them puts every one fully on the image, evenly
+   spaced, at a size a thumb can actually hit. */
+.photo-tools {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; flex-wrap: wrap; padding: 6px;
+  background: rgba(6, 3, 14, 0.35);
+  opacity: 0; transition: opacity 0.15s var(--ease);
+}
+.photo-cell:hover .photo-tools,
+.photo-cell:focus-within .photo-tools { opacity: 1; }
+/* Touch has no hover, so on a phone they are simply always visible. */
+@media (hover: none) { .photo-tools { opacity: 1; background: transparent; } }
 .photo-tools button {
-  width: 24px; height: 24px; border-radius: 50%; border: 0;
-  background: rgba(6,3,14,0.82); color: #fff; font-size: 0.75rem;
+  width: 30px; height: 30px; border-radius: 50%; border: 0;
+  background: rgba(6,3,14,0.82); color: #fff; font-size: 0.82rem;
   display: grid; place-items: center;
 }
+.photo-tools button:active { transform: scale(0.9); }
 
 /* =====================================================================
    DENSITY PASS
@@ -1235,6 +1251,53 @@ h2 { font-size: 1.02rem; }
 }
 .lightbox-del:active { transform: scale(0.92); }
 .chip.danger { border-color: var(--pulse); color: var(--pulse); }
+
+.pro-age { color: var(--muted); font-weight: 400; margin-inline-start: 6px; }
+
+.court-info {
+  width: 100%; margin-top: 8px; padding: 8px;
+  background: none; border: 0; color: var(--muted);
+  font: inherit; font-size: 0.75rem; text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Grid with no location: this is the tab, not a banner on top of it. */
+.locate-cta {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; text-align: center;
+  padding: 34px 20px;
+  border: 1px dashed var(--hairline); border-radius: var(--r-lg);
+  background: var(--raised);
+}
+.locate-glyph { font-size: 2.2rem; line-height: 1; }
+.locate-title { margin: 4px 0 0; font-size: 1.02rem; }
+.locate-body { margin: 0 0 6px; color: var(--muted); font-size: 0.87rem; line-height: 1.5; }
+.locate-hint { margin-top: 2px; }
+
+/* ---- FAQ accordion ---- */
+.faq-item { border-bottom: 1px solid var(--hairline); }
+.faq-item:last-child { border-bottom: 0; }
+.faq-q {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 13px 0;
+  background: none; border: 0; color: var(--ink);
+  font: inherit; font-size: 0.9rem; font-weight: 600; text-align: start;
+}
+.faq-caret { flex: none; color: var(--muted); font-size: 1.05rem; }
+.faq-a {
+  margin: 0 0 14px; padding-inline-end: 24px;
+  color: var(--muted); font-size: 0.86rem; line-height: 1.6;
+}
+
+/* Alert rows lead with the sender's face. */
+.notif-face { position: relative; flex: none; }
+.notif-badge {
+  position: absolute; bottom: -2px; inset-inline-end: -2px;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--surface); border: 1px solid var(--hairline);
+  font-size: 0.62rem; line-height: 1;
+}
 
 /* Unread-message count on the Chat tab. */
 .nav-icon { position: relative; display: inline-flex; }

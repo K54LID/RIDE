@@ -149,6 +149,7 @@ export interface NotificationItem {
   read_at: string | null; created_at: string;
   actor_id: string | null;
   actor_name: string | null; actor_handle: string | null; actor_verified: boolean;
+  actor_avatar_media_id: string | null;
   post_id: string | null; post_excerpt: string | null; post_media_id: string | null;
 }
 

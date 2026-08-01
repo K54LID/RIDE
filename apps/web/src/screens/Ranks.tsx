@@ -69,7 +69,13 @@ export default function Ranks({ onOpenUser }: { onOpenUser: (accountId: string) 
   // see — who is climbing right now, not the all-time standing that
   // barely moves day to day.
   const [board, setBoard] = useState<Board>('court');
-  const [period, setPeriod] = useState<Period>('day');
+  const [period, setPeriod] = useState<Period>('all');
+
+  // Switching to the court board forces All time, since it is the only
+  // period that board has.
+  useEffect(() => {
+    if (board === 'court' && period !== 'all') setPeriod('all');
+  }, [board, period]);
   const [howOpen, setHowOpen] = useState(false);
   const [entries, setEntries] = useState<RankEntry[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -128,7 +134,11 @@ export default function Ranks({ onOpenUser }: { onOpenUser: (accountId: string) 
         ))}
       </div>
       <div className="seg tight">
-        {PERIODS.map(([p, key]) => (
+        {/* Court value has no periods. It is a live standing that
+            expires 30 days after the last court, not a tally of events
+            inside a window — "court value this week" would be a
+            different number with no meaning behind it. */}
+        {(board === 'court' ? PERIODS.filter(([p]) => p === 'all') : PERIODS).map(([p, key]) => (
           <button key={p} aria-pressed={period === p}
                   onClick={() => { tg.select(); setPeriod(p); }}>{t(key)}</button>
         ))}

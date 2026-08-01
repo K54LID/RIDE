@@ -7,6 +7,7 @@ import Sheet from '../components/Sheet';
 import Page from '../components/Page';
 import Avatar from '../components/Avatar';
 import Legal from './Legal';
+import Faq from './Faq';
 import { useMediaUpload } from '../lib/useMediaUpload';
 
 type Vis = 'everyone' | 'members' | 'friends' | 'nobody';
@@ -59,6 +60,7 @@ export default function Settings({ onBack, onAdmin }: {
   const [blockedOpen, setBlockedOpen] = useState(false);
   const [verifySent, setVerifySent] = useState(false);
   const [legal, setLegal] = useState<'terms' | 'privacy' | null>(null);
+  const [faqOpen, setFaqOpen] = useState(false);
   /** Which support form is open, if any. */
   const [writing, setWriting] = useState<'support' | 'bug' | null>(null);
   const [draft, setDraft] = useState('');
@@ -284,6 +286,11 @@ export default function Settings({ onBack, onAdmin }: {
           <Row label={t('settings.bug')}
                onClick={() => { tg.tap('light'); setSendError(null); setWriting('bug'); }}
                right={<span style={{ color: 'var(--faint)' }}>›</span>} />
+          {/* Above terms and privacy: far more people want to know how
+              courting works than want the legal text. */}
+          <Row label={t('settings.faq')}
+               onClick={() => { tg.tap('light'); setFaqOpen(true); }}
+               right={<span style={{ color: 'var(--faint)' }}>›</span>} />
           <Row label={t('settings.terms')}
                onClick={() => { tg.tap('light'); setLegal('terms'); }}
                right={<span style={{ color: 'var(--faint)' }}>›</span>} />
@@ -339,6 +346,8 @@ export default function Settings({ onBack, onAdmin }: {
           )}
         </Page>
       ) : null}
+
+      {faqOpen ? <Faq onClose={() => setFaqOpen(false)} /> : null}
 
       {legal ? <Legal kind={legal} onClose={() => setLegal(null)} /> : null}
 

@@ -3,6 +3,7 @@ import { apiFetch, ApiError } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import Page from './Page';
+import Sheet from './Sheet';
 import GiftShop from './GiftShop';
 
 /**
@@ -28,6 +29,7 @@ export default function PersonActions({
   const [woofed, setWoofed] = useState(initialWoofed);
   const [following, setFollowing] = useState(initialFollowing);
   const [giftOpen, setGiftOpen] = useState(false);
+  const [courtInfo, setCourtInfo] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -98,7 +100,26 @@ export default function PersonActions({
         </button>
       </div>
 
+      {/* Courting costs real coins and is the least self-explanatory
+          thing on the screen, so the rules are one tap away rather than
+          buried in the FAQ. */}
+      <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
+        {t('court.howTitle')}
+      </button>
+
       {error ? <p className="error">{error}</p> : null}
+
+      <Sheet center open={courtInfo} onClose={() => setCourtInfo(false)}>
+        <div className="sheet-head">
+          <h2 style={{ margin: 0 }}>♛ {t('court.howTitle')}</h2>
+          <button className="sheet-close" aria-label={t('common.close')}
+                  onClick={() => setCourtInfo(false)}>✕</button>
+        </div>
+        <p className="faq-a">{t('court.how.what')}</p>
+        <p className="faq-a">{t('court.how.cost')}</p>
+        <p className="faq-a">{t('court.how.expiry')}</p>
+        <p className="faq-a">{t('court.how.rank')}</p>
+      </Sheet>
 
       {giftOpen ? (
         <Page

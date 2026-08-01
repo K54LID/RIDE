@@ -22,6 +22,7 @@ import economyRoutes from './routes/economy.js';
 import notificationRoutes from './routes/notifications.js';
 import albumRoutes from './routes/albums.js';
 import supportRoutes from './routes/support.js';
+import { startCourtExpiryWorker } from './lib/courtExpiry.js';
 import { startNotificationWorker } from './lib/telegramNotify.js';
 import { startTelegramTransport } from './lib/telegramUpdates.js';
 import storyRoutes from './routes/stories.js';
@@ -140,6 +141,9 @@ await app.listen({ port: config.PORT, host: '0.0.0.0' });
 // Outbound Telegram pushes are delivered by a background worker; see
 // lib/telegramNotify.ts for why this is an outbox rather than an inline send.
 startNotificationWorker(app.log.info.bind(app.log));
+// Court value lapses 30 days after the last court; this is what makes
+// it fall to zero rather than sitting at the top of the board forever.
+startCourtExpiryWorker(app.log.info.bind(app.log));
 
 // Bot transport: webhook when PUBLIC_API_URL provably routes here,
 // getUpdates polling otherwise — so /start works even with no or a

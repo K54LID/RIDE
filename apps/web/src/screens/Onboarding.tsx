@@ -185,13 +185,13 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
       {step === 0 && (
         <>
           <h1>Who are you here as?</h1>
-          <p style={{ marginBottom: 26 }}>Your handle is how people see you across RIDE. Your name shows on your profile and in Discover. Neither is your Telegram username.</p>
+          <p style={{ marginBottom: 26 }}>Your username is how people see you across RIDE. Your name shows on your profile and in Discover. Neither is your Telegram username.</p>
           <Field label="Display name">
             <input value={displayName} maxLength={50} placeholder="What people call you"
                    onChange={(e) => setDisplayName(e.target.value)} />
           </Field>
           <Field
-            label="Handle"
+            label="Username"
             hint={
               !handleValid ? 'Required. Letters, numbers and underscores only, 3–24 characters.'
               : handleState === 'checking' ? 'Checking availability…'

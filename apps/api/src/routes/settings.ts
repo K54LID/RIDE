@@ -134,29 +134,48 @@ const settingsRoutes: FastifyPluginAsync = async (app) => {
 
   /** Irreversible. Soft-delete keeps referential integrity for other
       people's conversations while removing the person from the app. */
+  /**
+   * Delete the account and everything belonging to it.
+   *
+   * This used to be a soft delete: status flipped to 'deleted', the
+   * display name was overwritten and the handle released, but the
+   * profile row, photos, posts, comments, messages and media all
+   * stayed. That is not deletion, it is hiding, and it is not what
+   * someone pressing "Delete account" is asking for.
+   *
+   * Almost every table referencing accounts is ON DELETE CASCADE, so
+   * removing the account row removes the rest. Four are not:
+   * verification_requests, reports, moderation_actions and
+   * moderator_permissions are NO ACTION, because moderation history is
+   * deliberately hard to erase by accident. They have to go first or
+   * the delete fails outright — a foreign key violation would leave the
+   * person still fully present with an error on screen.
+   *
+   * Telegram identity goes first and separately: if anything later
+   * throws, the transaction rolls back and the person is intact, which
+   * is the safer failure. Nothing here is recoverable afterwards.
+   */
   app.post('/v1/settings/delete-account', { preHandler: [app.requireAuth] }, async (req) => {
+    const me = req.accountId!;
+
     await sql.begin(async (tx) => {
-      await tx`UPDATE accounts SET status = 'deleted', deleted_at = now() WHERE id = ${req.accountId}`;
-      /**
-       * handle is NOT NULL as of migration 012, so it cannot simply be
-       * cleared here any more — that would abort the whole transaction
-       * and make account deletion fail outright. Replace it with a
-       * unique, obviously-dead value instead: the account stays
-       * addressable for referential integrity, the old handle is
-       * released for someone else to claim, and nothing is left that
-       * identifies the person.
-       */
-      await tx`
-        UPDATE profiles
-        SET display_name = 'Deleted account',
-            bio = NULL,
-            handle = 'deleted_' || substring(replace(account_id::text, '-', '') from 1 for 12)
-        WHERE account_id = ${req.accountId}
-      `;
-      await tx`DELETE FROM telegram_identities WHERE account_id = ${req.accountId}`;
-      await tx`DELETE FROM user_locations WHERE account_id = ${req.accountId}`;
+      // Moderation rows: NO ACTION, so they block the cascade.
+      await tx`DELETE FROM moderation_actions WHERE actor_id = ${me} OR target_id = ${me}`;
+      await tx`DELETE FROM moderator_permissions WHERE account_id = ${me} OR granted_by = ${me}`;
+      await tx`DELETE FROM verification_requests WHERE account_id = ${me} OR reviewed_by = ${me}`;
+      await tx`DELETE FROM reports WHERE reporter_id = ${me} OR handled_by = ${me}`;
+
+      // Reports *about* this person, whatever the subject type. Their
+      // subject_id is text, not a foreign key, so nothing cascades it.
+      await tx`DELETE FROM reports WHERE subject_type = 'account' AND subject_id = ${me}`;
+
+      // Everything else — profile, photos, posts, comments, likes,
+      // messages, media, coins, gifts, stories, follows, blocks,
+      // notifications, support messages — is CASCADE from here.
+      await tx`DELETE FROM accounts WHERE id = ${me}`;
     });
-    return { ok: true };
+
+    return { ok: true, deleted: true };
   });
 };
 

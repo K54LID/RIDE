@@ -74,7 +74,15 @@ export async function uploadToTelegram(
     result?: {
       photo?: PhotoSize[];
       video?: { file_id: string; width: number; height: number; duration: number; file_size?: number;
-                thumbnail?: { file_id: string } };
+                /**
+                 * Bot API 7.0 renamed `thumb` to `thumbnail`. Which one
+                 * comes back depends on the Telegram server answering,
+                 * and reading only the new name silently produced a
+                 * null thumb — which is exactly how a video ends up
+                 * with no poster in the feed. Accept both.
+                 */
+                thumbnail?: { file_id: string };
+                thumb?: { file_id: string } };
     };
   };
 
@@ -112,7 +120,7 @@ export async function uploadToTelegram(
   if (!v) throw new Error('Telegram returned no video');
   return {
     fileId: v.file_id,
-    thumbId: v.thumbnail?.file_id ?? null,
+    thumbId: v.thumbnail?.file_id ?? v.thumb?.file_id ?? null,
     width: v.width,
     height: v.height,
     durationMs: v.duration * 1000,

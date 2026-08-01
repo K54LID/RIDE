@@ -7,7 +7,7 @@ import Sheet from '../components/Sheet';
 import CommentSheet from '../components/CommentSheet';
 import { Button, Skeleton } from '../components/ui';
 import { PostCard } from './Home';
-import { botUrl } from '../lib/appInfo';
+import { botUrl, botStartUrl } from '../lib/appInfo';
 
 /**
  * One post, full screen — the destination when someone taps "X liked
@@ -57,7 +57,11 @@ export default function PostView({ postId, meId, onClose, onOpenUser }: {
     if (!post) return;
     tg.tap('light');
     setMenuOpen(false);
-    const text = `${post.author_name} on RIDE: ${(post.body ?? '').slice(0, 120)}`;
+    // "Check out @user 's post on <bot link>" — the link has to be a
+    // link to the bot, not bare text, or nobody can act on the share.
+    const link = botStartUrl();
+    const text = `Check out @${post.author_handle} 's post on ${link}\n\n`
+      + `${post.author_name} on RIDE: ${(post.body ?? '').slice(0, 120)}`;
     window.open(
       `https://t.me/share/url?url=${encodeURIComponent(botUrl())}&text=${encodeURIComponent(text)}`,
       '_blank');

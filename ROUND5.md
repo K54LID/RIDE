@@ -292,3 +292,100 @@ changelog. All twenty present.
   call `app.verifyTma(req)`, so it is gated behind a valid Telegram
   signature rather than open to the internet. That is the right call:
   without it the endpoint would let anyone enumerate which handles exist.
+
+---
+
+# Round 6 — courting lifecycle, deletion, FAQ, Farsi
+
+## Courting now expires
+
+Court value was permanent: pay once, sit at the top forever. It is a
+standing you keep now.
+
+- Migration `015_court_expiry.sql` adds `courtships.expires_at`.
+- Every court sets `expires_at = now() + 30 days`, so courting again
+  genuinely resets the clock rather than extending from the first court.
+- `lib/courtExpiry.ts` sweeps every 5 minutes and once at boot. Lapsed
+  courtships zero the person's court value and are deleted.
+
+**A bug this caught before shipping.** The first version logged expiries
+into `court_events`. That table has `courter_id NOT NULL` and
+`CHECK (courter_id <> target_id)` — it models "X courted Y", and an
+expiry has no X. Every sweep would have thrown and rolled back, so court
+value would never have decayed at all. Expiries now go to their own
+`court_expiries` table.
+
+Verified against Postgres: a 31-day-old courtship zeroes and logs its
+old value of 64; one with 12 days left is untouched at 8.
+
+Court value is also **All time only** on the leaderboard now — periods
+make no sense for a live standing that expires — and your own profile
+shows who is courting you and how many days remain before it hits zero.
+
+## Account deletion actually deletes
+
+It was a soft delete: status flipped, display name overwritten, and the
+profile, photos, posts, comments and messages all stayed. That is
+hiding, not deleting.
+
+Now a hard delete. Four tables (`moderation_actions`,
+`moderator_permissions`, `verification_requests`, `reports`) have
+`NO ACTION` foreign keys and would have aborted the whole transaction,
+so they are cleared first; everything else cascades from `accounts`.
+Verified with a fully populated account: profile, posts, follows, coins,
+blocks and reports all return zero rows.
+
+## FAQ and a courting explainer
+
+`Settings → How RIDE works`: 17 entries covering what RIDE is, username
+vs display name, woofs, courting, cost and payout, coins, gifts, the
+boards, Grid vs Global, location and the 500 m grid-snap, private
+albums, stories, verification, ghost mode, blocking, reporting and
+deletion. Accordion, because 17 answers in a column is something people
+scroll past.
+
+Courting also has its own "How courting works" tap under the action
+tiles — it costs real coins and is the least self-explanatory thing on
+the screen.
+
+## Video posters
+
+Two independent causes, both fixed:
+
+- Bot API 7.0 renamed `thumb` to `thumbnail`. The code read only the new
+  name, so depending on which Telegram server answered, the thumbnail
+  was silently dropped. Both are read now.
+- Telegram does not always return one at all. The client now captures
+  its own frame (~1 s in, to avoid the black first frame of a phone
+  recording), sends it with the upload, and the server uses it **only**
+  if Telegram returned nothing.
+
+## Everything else
+
+- **Display name above the bio** on both profiles. It had been removed
+  from your own as a "duplicate" of the username — it is not: `@k54lid`
+  is how people address you, "Khalid" is what you are called.
+- **"Handle" → "Username"** in every locale and the onboarding form.
+- **Farsi**, registered and marked RTL alongside Arabic. Cloned from
+  English with the high-traffic strings translated, so a missing key is
+  impossible; the long-tail falls back to readable English rather than a
+  blank. Worth a native pass before leaning on it.
+- **Alerts lead with the sender's photo**, kind-glyph as a badge.
+- **Grid with no location is now the whole tab** rather than a banner
+  above an empty grid, and says the 📍 button next to Filters updates it
+  later.
+- **Private album verified end to end** — no grant: 1 photo; unlocked
+  in chat: 2; locked again: 1.
+- **Block/unblock failures now surface an error.** Silent failure was
+  indistinguishable from a dead button.
+- **Photo tools centred** over the image instead of overlapping in the
+  corner.
+- **Share text** is now `Check out @user 's post on <bot link>` with a
+  real `?start=` link.
+
+## Verified before packaging
+
+typecheck · hook guard · web build · **web Dockerfile replayed line for
+line** · API build · jsdom smoke test (mounts and renders) · all 15
+migrations on Postgres 16 + PostGIS · court expiry, hard delete and
+album grant/revoke each exercised against a real database.

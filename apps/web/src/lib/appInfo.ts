@@ -23,3 +23,16 @@ export function setBotUrl(url: string): void {
 export function botUrl(): string {
   return bot || window.location.origin;
 }
+
+/**
+ * The bot link with a `/start` payload, used in shared text.
+ *
+ * A share that reads "…on https://t.me/RideThatBot" is a link someone
+ * can tap; the same sentence without one is a dead string they would
+ * have to retype. The payload rides along so the app can eventually
+ * tell an arrival from a share apart from a cold open.
+ */
+export function botStartUrl(payload = '1'): string {
+  const base = botUrl();
+  return base.startsWith('https://t.me/') ? `${base}?start=${payload}` : base;
+}

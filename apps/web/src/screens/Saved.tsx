@@ -6,7 +6,7 @@ import { EmptyState, Skeleton } from '../components/ui';
 import Sheet from '../components/Sheet';
 import CommentSheet from '../components/CommentSheet';
 import { PostCard } from './Home';
-import { botUrl } from '../lib/appInfo';
+import { botUrl, botStartUrl } from '../lib/appInfo';
 
 export default function Saved({ meId, onBack, onOpenUser }: {
   meId: string; onBack: () => void; onOpenUser: (accountId: string) => void;
@@ -42,7 +42,11 @@ export default function Saved({ meId, onBack, onOpenUser }: {
   const share = (p: Post) => {
     tg.tap('light');
     setMenuPost(null);
-    const text = `${p.author_name} on RIDE: ${(p.body ?? '').slice(0, 120)}`;
+    // "Check out @user 's post on <bot link>" — the link has to be a
+    // link to the bot, not bare text, or nobody can act on the share.
+    const link = botStartUrl();
+    const text = `Check out @${p.author_handle} 's post on ${link}\n\n`
+      + `${p.author_name} on RIDE: ${(p.body ?? '').slice(0, 120)}`;
     window.open(
       `https://t.me/share/url?url=${encodeURIComponent(botUrl())}&text=${encodeURIComponent(text)}`,
       '_blank');

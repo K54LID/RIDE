@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { apiFetch, type Me, type OwnedGift, type ProfilePhoto, type RankEntryMini } from '../lib/api';
+import { apiFetch, type Me, type OwnedGift, type ProfilePhoto, type RankEntryMini , type CourtInfo } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import PhotoManager from '../components/PhotoManager';
 import PhotoCarousel from '../components/PhotoCarousel';
 import RankStandings from '../components/RankStandings';
 import Media from '../components/Media';
+import Avatar from '../components/Avatar';
 import { VerifiedMark } from '../components/VerifiedMark';
 import { Button } from '../components/ui';
 import Sheet from '../components/Sheet';
@@ -47,6 +48,7 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
   const [editingPhotos, setEditingPhotos] = useState(false);
   const [giftsOpen, setGiftsOpen] = useState(false);
   const [albumOpen, setAlbumOpen] = useState(false);
+  const [court, setCourt] = useState<CourtInfo | null>(null);
 
   /** Remove a photo from the lightbox, without a trip through Edit profile. */
   const deletePhoto = async (photoId: string) => {
@@ -61,6 +63,12 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
       .then((r) => setRanks(r.ranks)).catch(() => undefined);
     apiFetch<{ photos: ProfilePhoto[] }>('/v1/me/photos')
       .then((r) => setPhotos(r.photos)).catch(() => undefined);
+    // Your own standing: who is holding it and how long you have before
+    // it lapses to zero. Knowing it expires is the only way the
+    // "keep being courted" mechanic can mean anything to the person it
+    // happens to.
+    apiFetch<CourtInfo>(`/v1/users/${me.account_id}/court`)
+      .then(setCourt).catch(() => undefined);
   }, [editingPhotos]);
 
   const primary = photos.find((p) => p.position === 0 && !p.is_private) ?? photos.find((p) => !p.is_private);
@@ -141,9 +149,14 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
         </div>
       </div>
 
-      {/* The handle is already in the header; repeating the display
-          name here was the duplicate. Only age and bio remain. */}
-      {age !== null ? <div className="pro-age-row num">{age}</div> : null}
+      {/* Username in the header, display name here above the bio.
+          They are two different things — @k54lid is how people address
+          you, "Khalid" is what you are called — so both belong on the
+          profile, in that order. */}
+      <div className="pro-name">
+        {me.display_name}
+        {age !== null ? <span className="pro-age num">{age}</span> : null}
+      </div>
       {me.bio ? <p className="pro-bio">{me.bio}</p> : null}
 
       <div className="pro-actions">
@@ -169,7 +182,32 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
 
       {shown.length > 0 ? (
         <>
-          <div className="eyebrow tight">{t('profile.standing')}</div>
+          {court?.courter ? (
+        <div className="courted-by" style={{ marginBottom: 12 }}>
+          <Avatar name={court.courter.display_name ?? '?'}
+                  mediaId={court.courter.avatar_media_id} size={38} radius={12} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div className="courted-by-label">♛ {t('court.courtedBy')}</div>
+            <div className="courted-by-name">
+              {court.courter.handle
+                ? <span className="num">@{court.courter.handle}</span>
+                : court.courter.display_name}
+            </div>
+            {court.courter.expires_at ? (
+              <div className="courted-by-days num">
+                {Math.max(0, Math.ceil(
+                  (new Date(court.courter.expires_at).getTime() - Date.now()) / 86400000,
+                ))} {t('court.daysLeft')} · {t('court.thenZero')}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : court && court.court_value > 0 ? (
+        // Value with no live courtship: it is running out on its own.
+        <p className="hint" style={{ marginBottom: 12 }}>{t('court.lapsed')}</p>
+      ) : null}
+
+      <div className="eyebrow tight">{t('profile.standing')}</div>
           <RankStandings ranks={ranks} />
 
           <div className="eyebrow tight">{t('profile.details')}</div>
@@ -183,7 +221,32 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
         </>
       ) : (
         <>
-          <div className="eyebrow tight">{t('profile.standing')}</div>
+          {court?.courter ? (
+        <div className="courted-by" style={{ marginBottom: 12 }}>
+          <Avatar name={court.courter.display_name ?? '?'}
+                  mediaId={court.courter.avatar_media_id} size={38} radius={12} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div className="courted-by-label">♛ {t('court.courtedBy')}</div>
+            <div className="courted-by-name">
+              {court.courter.handle
+                ? <span className="num">@{court.courter.handle}</span>
+                : court.courter.display_name}
+            </div>
+            {court.courter.expires_at ? (
+              <div className="courted-by-days num">
+                {Math.max(0, Math.ceil(
+                  (new Date(court.courter.expires_at).getTime() - Date.now()) / 86400000,
+                ))} {t('court.daysLeft')} · {t('court.thenZero')}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : court && court.court_value > 0 ? (
+        // Value with no live courtship: it is running out on its own.
+        <p className="hint" style={{ marginBottom: 12 }}>{t('court.lapsed')}</p>
+      ) : null}
+
+      <div className="eyebrow tight">{t('profile.standing')}</div>
           <RankStandings ranks={ranks} />
         </>
       )}

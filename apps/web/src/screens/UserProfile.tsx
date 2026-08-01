@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiFetch, type PublicUser, type ProfilePhoto, type CourtInfo, type RankEntryMini } from '../lib/api';
+import { apiFetch, ApiError, type PublicUser, type ProfilePhoto, type CourtInfo, type RankEntryMini } from '../lib/api';
 import { tg } from '../lib/tg';
 import { useT } from '../i18n';
 import Page from '../components/Page';
@@ -37,6 +37,7 @@ export default function UserProfile({
   const [ranks, setRanks] = useState<RankEntryMini[]>([]);
   const [blockConfirm, setBlockConfirm] = useState(false);
   const [blockDone, setBlockDone] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [giftsOpen, setGiftsOpen] = useState(false);
   const [albumOpen, setAlbumOpen] = useState(false);
 
@@ -57,12 +58,18 @@ export default function UserProfile({
     try {
       await apiFetch(`/v1/users/${accountId}/block`, { method: 'POST' });
       tg.notify('success');
+      setActionError(null);
       // "Blocked" on its own leaves people wondering whether it stuck
       // and whether it can be undone. Say where they went and how to
       // reverse it, then reload so the profile shows its blocked state.
       setBlockDone(true);
       load();
-    } catch { tg.notify('error'); }
+    } catch (err) {
+      // A silent failure is indistinguishable from a button that does
+      // nothing, which is exactly what it looked like. Say so.
+      tg.notify('error');
+      setActionError(err instanceof ApiError ? err.message : t('common.offline'));
+    }
   };
 
   const unblock = async () => {
@@ -72,8 +79,12 @@ export default function UserProfile({
         method: 'POST', body: JSON.stringify({ account_id: accountId }),
       });
       tg.notify('success');
+      setActionError(null);
       load();
-    } catch { tg.notify('error'); }
+    } catch (err) {
+      tg.notify('error');
+      setActionError(err instanceof ApiError ? err.message : t('common.offline'));
+    }
   };
 
   const openChat = async () => {
@@ -144,6 +155,8 @@ export default function UserProfile({
 
       <div className="pro-name">
         {u.display_name}
+        {u.age !== null && u.age !== undefined
+          ? <span className="pro-age num">{u.age}</span> : null}
         {u.verified ? <VerifiedMark size={15} /> : null}
         {u.vip ? <span className="vip-chip">VIP</span> : null}
         {u.online ? <span className="online-dot" /> : null}
@@ -173,6 +186,7 @@ export default function UserProfile({
       <button className="block-row" onClick={() => { tg.tap('light'); setBlockConfirm(true); }}>
         {t('profile.block')}
       </button>
+      {actionError ? <p className="error">{actionError}</p> : null}
 
       {/* Who paid for this person's standing — with their face, and a
           tap opens their profile. The title lapses 30 days after the

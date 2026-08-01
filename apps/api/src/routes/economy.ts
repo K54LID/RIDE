@@ -155,12 +155,19 @@ const economyRoutes: FastifyPluginAsync = async (app) => {
       `;
       // Current holder of the courtship — this is what renders on the
       // courted person's profile as "courted by".
+      /**
+       * Courting resets the clock. A fresh 30 days from *now*, not 30
+       * days from whenever the first court happened — so staying at the
+       * top means being courted again before the window closes, which
+       * is the whole point of the mechanic.
+       */
       await tx`
-        INSERT INTO courtships (target_id, courter_id, coin_cost, court_value)
-        VALUES (${id}, ${me}, ${cost}, ${after})
+        INSERT INTO courtships (target_id, courter_id, coin_cost, court_value, expires_at)
+        VALUES (${id}, ${me}, ${cost}, ${after}, now() + interval '30 days')
         ON CONFLICT (target_id) DO UPDATE
           SET courter_id = ${me}, coin_cost = ${cost},
-              court_value = ${after}, created_at = now()
+              court_value = ${after}, created_at = now(),
+              expires_at = now() + interval '30 days'
       `;
       await notify(tx, {
         accountId: id, actorId: me, kind: 'court',
@@ -192,7 +199,7 @@ const economyRoutes: FastifyPluginAsync = async (app) => {
     }>>`
       SELECT p.court_value::int AS court_value,
              c.courter_id, c.created_at AS courted_at,
-             (c.created_at + interval '30 days') AS expires_at,
+             c.expires_at,
              cp.display_name AS courter_name, cp.handle AS courter_handle,
              (SELECT ph.media_id FROM profile_photos ph
               WHERE ph.account_id = c.courter_id AND ph.position = 0
@@ -200,7 +207,7 @@ const economyRoutes: FastifyPluginAsync = async (app) => {
               LIMIT 1) AS courter_avatar_media_id
       FROM profiles p
       LEFT JOIN courtships c ON c.target_id = p.account_id
-        AND c.created_at > now() - interval '30 days'
+        AND c.expires_at > now()
       LEFT JOIN profiles cp  ON cp.account_id = c.courter_id
       WHERE p.account_id = ${id}
     `;

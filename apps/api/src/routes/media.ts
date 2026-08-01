@@ -22,7 +22,7 @@ const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
 async function readUpload(
   body: unknown,
   contentType: string | undefined,
-): Promise<{ buffer: Buffer; filename: string; mimetype: string }> {
+): Promise<{ buffer: Buffer; filename: string; mimetype: string; poster: Buffer | null }> {
   if (!Buffer.isBuffer(body)) throw new HttpError(400, 'NO_FILE');
   if (!contentType?.startsWith('multipart/form-data')) {
     throw new HttpError(415, 'EXPECTED_MULTIPART');
@@ -39,12 +39,20 @@ async function readUpload(
     throw new HttpError(400, 'MALFORMED_MULTIPART');
   }
 
+  // An optional poster frame the client captured from a video. Read it
+  // before the fallback scan below, or that scan would happily treat
+  // the poster as the upload itself.
+  const posterField = form.get('poster');
+  const poster = posterField instanceof File
+    ? Buffer.from(await posterField.arrayBuffer())
+    : null;
+
   // Accept the conventional field name, or the first file in the form —
   // clients disagree about naming and this costs nothing to tolerate.
   let file = form.get('file');
   if (!(file instanceof File)) {
-    for (const value of form.values()) {
-      if (value instanceof File) { file = value; break; }
+    for (const [name, value] of form.entries()) {
+      if (name !== 'poster' && value instanceof File) { file = value; break; }
     }
   }
   if (!(file instanceof File)) throw new HttpError(400, 'NO_FILE');
@@ -53,6 +61,7 @@ async function readUpload(
     buffer: Buffer.from(await file.arrayBuffer()),
     filename: file.name || 'upload',
     mimetype: file.type || 'application/octet-stream',
+    poster,
   };
 }
 
@@ -75,7 +84,7 @@ const mediaRoutes: FastifyPluginAsync = async (app) => {
    * rather than a half-created post.
    */
   app.post('/v1/media', { preHandler: [app.requireAuth] }, async (req, reply) => {
-    const { buffer, filename, mimetype } = await readUpload(
+    const { buffer, filename, mimetype, poster: posterBuffer } = await readUpload(
       req.body,
       req.headers['content-type'],
     );
@@ -108,6 +117,28 @@ const mediaRoutes: FastifyPluginAsync = async (app) => {
               ${stored.width}, ${stored.height}, ${stored.durationMs}, ${stored.bytes})
       RETURNING id
     `;
+
+    /**
+     * A video with no poster shows as a blank tile in the feed, and
+     * whether Telegram returns one depends on the codec and container
+     * it was handed. The client sends a frame it captured itself as a
+     * fallback, and it is used only when Telegram gave us nothing —
+     * Telegram's own is already the right aspect and costs no extra
+     * upload.
+     *
+     * Failure here is not fatal: a video without a poster is worse than
+     * one with, but far better than an upload that errors after the
+     * bytes are already stored.
+     */
+    if (!isImage && !stored.thumbId && posterBuffer) {
+      try {
+        const poster = await uploadToTelegram(
+          posterBuffer, 'poster.jpg', 'image/jpeg', 'image');
+        await sql`UPDATE media SET thumb_ref = ${poster.fileId} WHERE id = ${row!.id}`;
+      } catch (err) {
+        req.log.warn({ err }, 'poster upload failed; video will have no thumbnail');
+      }
+    }
 
     reply.code(201);
     return {
