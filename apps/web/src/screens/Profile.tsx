@@ -159,41 +159,6 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
           They are two different things — @k54lid is how people address
           you, "Khalid" is what you are called — so both belong on the
           profile, in that order. */}
-      {/* Who is holding your standing, and how long is left before it
-          lapses back to 2. Sits directly under the counts row: that
-          strip is already empty, and who is courting you belongs with
-          the other numbers about you rather than below the photos. */}
-      {court?.courter ? (
-        <button className="courted-by" style={{ marginBottom: 4 }}
-                onClick={() => { tg.tap('light'); onOpenUser(court.courter!.account_id); }}>
-          <Avatar name={court.courter.display_name ?? '?'}
-                  mediaId={court.courter.avatar_media_id} size={38} radius={12} />
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div className="courted-by-label">♛ {t('court.courtedBy')}</div>
-            <div className="courted-by-name">
-              {court.courter.handle
-                ? <span className="num">@{court.courter.handle}</span>
-                : court.courter.display_name}
-            </div>
-            {court.courter.expires_at ? (
-              <div className="courted-by-days num">
-                {Math.max(0, Math.ceil(
-                  (new Date(court.courter.expires_at).getTime() - Date.now()) / 86400000,
-                ))} {t('court.daysLeft')} · {t('court.thenZero')}
-              </div>
-            ) : null}
-          </div>
-          <span style={{ color: 'var(--faint)' }}>›</span>
-        </button>
-      ) : court && court.court_value > 0 ? (
-        <p className="hint" style={{ marginBottom: 4 }}>{t('court.lapsed')}</p>
-      ) : null}
-
-      {/* Directly under the panel, where the question arises. */}
-      <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
-        {t('court.howTitle')}
-      </button>
-
       <div className="pro-name">
         {me.display_name}
         {age !== null ? <span className="pro-age num">{age}</span> : null}
@@ -202,6 +167,11 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
 
       <div className="pro-actions">
         <Button variant="ghost" onClick={onEdit}>{t('profile.edit')}</Button>
+        {/* Between the two buttons, on its own line: it explains the
+            panel above it and is not itself an action of equal weight. */}
+        <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
+          {t('court.howTitle')}
+        </button>
         <Button variant="ghost" onClick={onSaved}>{t('saved.title')}</Button>
       </div>
 
@@ -216,7 +186,7 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
            lock reads as "there is more behind this" rather than as a
            separate widget that happens to sit nearby. */
         <PhotoCarousel photos={photos.filter((p) => !p.is_private)}
-                       lockedCount={privateCount}
+                       albumOpenCount={privateCount}
                        onLockedClick={() => setAlbumOpen(true)}
                        onDeleted={deletePhoto} />
       )}

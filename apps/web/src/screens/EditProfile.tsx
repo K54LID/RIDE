@@ -234,7 +234,13 @@ export default function EditProfile({ me, onSaved, onBack }: {
         {busy ? t('common.loading') : t('common.save')}
       </Button>
       <div style={{ height: 10 }} />
-      <Button variant="ghost" onClick={onBack}>{t('common.cancel')}</Button>
+      {/* Leaving saves. This used to be Cancel, which discarded — but
+          the screen autosaves as you type, so "cancel" was a promise it
+          could not keep. It writes anything still pending and exits. */}
+      <Button variant="ghost"
+              onClick={() => { void persist({ silent: true }).then(onBack); }}>
+        {t('common.back')}
+      </Button>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { LOCALES, RTL, TABLES, type Locale, type T } from './strings';
+import { LOCALES, TABLES, type Locale, type T } from './strings';
 
 export { LOCALES, type Locale };
 
@@ -39,7 +39,18 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   // left-to-right with mirrored punctuation.
   useEffect(() => {
     document.documentElement.lang = locale;
-    document.documentElement.dir = RTL.has(locale) ? 'rtl' : 'ltr';
+    /**
+     * Language changes the words, not the layout.
+     *
+     * Setting dir=rtl mirrors the entire interface — nav order, icon
+     * sides, every inset-inline — which is a different app, not a
+     * translated one. Arabic and Persian text still renders
+     * right-to-left inside its own box because the browser applies the
+     * Unicode bidi algorithm per run; only the page-level mirroring is
+     * suppressed. `lang` is still set so hyphenation, fonts and
+     * screen readers behave.
+     */
+    document.documentElement.dir = 'ltr';
   }, [locale]);
 
   const value = useMemo<Ctx>(() => {

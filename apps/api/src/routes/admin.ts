@@ -95,7 +95,11 @@ const adminRoutes: FastifyPluginAsync = async (app) => {
       FROM accounts a
       JOIN profiles p ON p.account_id = a.id
       LEFT JOIN coin_balances b ON b.account_id = a.id
-      ${q ? sql`WHERE p.display_name ILIKE ${'%' + q + '%'} OR p.handle ILIKE ${'%' + q + '%'}` : sql``}
+      -- Deleted accounts are erased outright now, but a stale row must
+      -- never appear here regardless: listing an account someone asked
+      -- to delete is the whole complaint.
+      WHERE a.status <> 'deleted'
+        ${q ? sql`AND (p.display_name ILIKE ${'%' + q + '%'} OR p.handle ILIKE ${'%' + q + '%'})` : sql``}
       ORDER BY a.last_seen_at DESC
       LIMIT 50
     `;

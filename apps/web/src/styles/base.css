@@ -1295,6 +1295,35 @@ h2 { font-size: 1.02rem; }
   color: var(--muted); font-size: 0.76rem; text-align: center;
 }
 
+/* Unlocked album: gold and open, so it is obviously enterable rather
+   than a padlock that reads as still shut. */
+.pstrip-cell.album-open {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; border-color: var(--court); background: rgba(201,162,39,0.10);
+  color: var(--court-lit); font-size: 1.4rem;
+}
+.pstrip-cell.album-open .num { font-size: 0.78rem; font-weight: 700; }
+
+/* Compact courted-by, sized to sit in the strip under the counts row
+   rather than as a full-width band of its own. */
+.courted-mini {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; margin-top: 10px; padding: 6px 9px;
+  background: rgba(201, 162, 39, 0.08);
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  border-radius: var(--r-md);
+  color: var(--court-lit); font: inherit; text-align: start;
+}
+.courted-mini:active { background: rgba(201, 162, 39, 0.16); }
+.courted-mini-text { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.courted-mini-label { font-size: 0.6rem; color: var(--muted); letter-spacing: 0.04em; }
+.courted-mini-who {
+  font-size: 0.78rem; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.courted-mini-days { font-weight: 400; color: var(--muted); }
+.pro-actions .court-info { grid-column: 1 / -1; margin: 0; padding: 2px; }
+
 /* Brief confirmation that a setting was written. Fixed, so it does not
    shift the row the person just tapped. */
 .saved-toast {

@@ -17,7 +17,7 @@ import { useT } from '../i18n';
  * Telegram's back button) to close.
  */
 export default function PhotoCarousel({
-  photos, lockedCount = 0, hideLocks = false, onLockedClick, onDeleted,
+  photos, lockedCount = 0, albumOpenCount = 0, hideLocks = false, onLockedClick, onDeleted,
 }: {
   photos: ProfilePhoto[];
   /**
@@ -26,6 +26,13 @@ export default function PhotoCarousel({
    * them with its own size and baseline.
    */
   lockedCount?: number;
+  /**
+   * Private photos this viewer *can* see. Drives an open-album tile
+   * rather than a padlock: once access is granted the strip was still
+   * drawing a closed lock, which reads as "still locked" and is why
+   * unlocked albums looked like they had never opened.
+   */
+  albumOpenCount?: number;
   /**
    * Suppress the per-thumbnail 🔒 badge. Inside the private album sheet
    * every photo is private and the sheet's title already says so, so a
@@ -53,7 +60,7 @@ export default function PhotoCarousel({
     return tg.backButton(() => { setConfirming(false); setOpenId(null); });
   }, [openId]);
 
-  if (photos.length === 0 && lockedCount === 0) return null;
+  if (photos.length === 0 && lockedCount === 0 && albumOpenCount === 0) return null;
 
   const open = photos.find((p) => p.id === openId) ?? null;
 
@@ -72,6 +79,15 @@ export default function PhotoCarousel({
             photos exactly: same square, same radius, same baseline. As a
             sibling of the strip it sat a few pixels high and a size
             apart, which read as a different kind of thing entirely. */}
+        {lockedCount === 0 && albumOpenCount > 0 && onLockedClick ? (
+          <button className="pstrip-cell album-open" role="listitem"
+                  aria-label={t('profile.privateAlbum')}
+                  onClick={() => { tg.tap('light'); onLockedClick(); }}>
+            <span>🔓</span>
+            <span className="num">{albumOpenCount}</span>
+          </button>
+        ) : null}
+
         {lockedCount > 0 ? (
           onLockedClick ? (
             <button className="pstrip-cell locked" role="listitem"
