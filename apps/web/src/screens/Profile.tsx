@@ -183,9 +183,11 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
                        onDeleted={deletePhoto} />
       )}
 
-      {shown.length > 0 ? (
-        <>
-          {court?.courter ? (
+      {/* Who is holding your standing, and how long is left before it
+          lapses back to 2. Rendered once, above the branch below —
+          it was duplicated into both arms of that conditional, so a
+          courted profile drew the panel twice. */}
+      {court?.courter ? (
         <button className="courted-by" style={{ marginBottom: 4 }}
                 onClick={() => { tg.tap('light'); onOpenUser(court.courter!.account_id); }}>
           <Avatar name={court.courter.display_name ?? '?'}
@@ -208,15 +210,17 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
           <span style={{ color: 'var(--faint)' }}>›</span>
         </button>
       ) : court && court.court_value > 0 ? (
-        // Value with no live courtship: it is running out on its own.
-        <p className="hint" style={{ marginBottom: 12 }}>{t('court.lapsed')}</p>
+        <p className="hint" style={{ marginBottom: 4 }}>{t('court.lapsed')}</p>
       ) : null}
 
+      {/* Directly under the panel, where the question arises. */}
       <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
         {t('court.howTitle')}
       </button>
 
-      <div className="eyebrow tight">{t('profile.standing')}</div>
+      {shown.length > 0 ? (
+        <>
+          <div className="eyebrow tight">{t('profile.standing')}</div>
           <RankStandings ranks={ranks} />
 
           <div className="eyebrow tight">{t('profile.details')}</div>
@@ -230,38 +234,7 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
         </>
       ) : (
         <>
-          {court?.courter ? (
-        <button className="courted-by" style={{ marginBottom: 4 }}
-                onClick={() => { tg.tap('light'); onOpenUser(court.courter!.account_id); }}>
-          <Avatar name={court.courter.display_name ?? '?'}
-                  mediaId={court.courter.avatar_media_id} size={38} radius={12} />
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div className="courted-by-label">♛ {t('court.courtedBy')}</div>
-            <div className="courted-by-name">
-              {court.courter.handle
-                ? <span className="num">@{court.courter.handle}</span>
-                : court.courter.display_name}
-            </div>
-            {court.courter.expires_at ? (
-              <div className="courted-by-days num">
-                {Math.max(0, Math.ceil(
-                  (new Date(court.courter.expires_at).getTime() - Date.now()) / 86400000,
-                ))} {t('court.daysLeft')} · {t('court.thenZero')}
-              </div>
-            ) : null}
-          </div>
-          <span style={{ color: 'var(--faint)' }}>›</span>
-        </button>
-      ) : court && court.court_value > 0 ? (
-        // Value with no live courtship: it is running out on its own.
-        <p className="hint" style={{ marginBottom: 12 }}>{t('court.lapsed')}</p>
-      ) : null}
-
-      <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
-        {t('court.howTitle')}
-      </button>
-
-      <div className="eyebrow tight">{t('profile.standing')}</div>
+          <div className="eyebrow tight">{t('profile.standing')}</div>
           <RankStandings ranks={ranks} />
         </>
       )}

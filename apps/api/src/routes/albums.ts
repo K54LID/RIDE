@@ -70,10 +70,71 @@ const albumRoutes: FastifyPluginAsync = async (app) => {
     `;
     if (blocked.length > 0) throw new HttpError(403, 'BLOCKED');
 
-    await sql`
+    const inserted = await sql`
       INSERT INTO album_grants (owner_id, viewer_id) VALUES (${me}, ${account_id})
       ON CONFLICT DO NOTHING
+      RETURNING owner_id
     `;
+
+    /**
+     * Tell them, in the chat, that the album is open.
+     *
+     * Unlocking is silent otherwise: the photos simply become visible
+     * on a profile they may not revisit for days. A line in the
+     * conversation is where they will actually see it, and it is the
+     * same place the lock lives.
+     *
+     * Only on a real insert — ON CONFLICT DO NOTHING means re-granting
+     * an existing key returns no row, and re-announcing it every time
+     * the button is tapped would be noise.
+     */
+    if (inserted.length > 0) {
+      try {
+        await sql.begin(async (tx) => {
+          const [existing] = await tx<Array<{ id: string }>>`
+            SELECT cm.conversation_id AS id
+            FROM conversation_members cm
+            JOIN conversation_members other
+              ON other.conversation_id = cm.conversation_id
+             AND other.account_id = ${account_id}
+            WHERE cm.account_id = ${me}
+              AND (SELECT count(*) FROM conversation_members x
+                   WHERE x.conversation_id = cm.conversation_id) = 2
+            LIMIT 1
+          `;
+          let convId = existing?.id;
+          if (!convId) {
+            const [created] = await tx<Array<{ id: string }>>`
+              INSERT INTO conversations DEFAULT VALUES RETURNING id
+            `;
+            convId = created!.id;
+            await tx`
+              INSERT INTO conversation_members (conversation_id, account_id)
+              VALUES (${convId}, ${me}), (${convId}, ${account_id})
+            `;
+          } else {
+            await tx`
+              UPDATE conversation_members SET is_archived = false
+              WHERE conversation_id = ${convId} AND is_archived
+            `;
+          }
+          await tx`
+            -- 'system' with a marker body, rather than a new enum
+            -- value: ALTER TYPE on message_kind would mean another
+            -- migration on a live table for one line of text, and the
+            -- client localises the marker anyway.
+            INSERT INTO messages (conversation_id, sender_id, kind, body)
+            VALUES (${convId}, ${me}, 'system', 'album_unlocked')
+          `;
+          await tx`UPDATE conversations SET last_message_at = now() WHERE id = ${convId}`;
+        });
+      } catch (err) {
+        // The key is already granted; failing to announce it must not
+        // undo that or surface as an error on the lock button.
+        req.log.warn({ err }, 'album unlock notice failed');
+      }
+    }
+
     return { granted: true };
   });
 

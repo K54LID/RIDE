@@ -86,7 +86,11 @@ export default function App() {
         .catch(() => undefined);
     };
     tick();
-    const id = setInterval(tick, 20000);
+    // 6s, not 20s. This is the only signal that a message has arrived
+    // while you are anywhere other than the chat list, and a badge that
+    // takes twenty seconds reads as "nothing happened" — which is why
+    // messages appeared only after a manual refresh.
+    const id = setInterval(tick, 6000);
     return () => { alive = false; clearInterval(id); };
   }, [phase, route]);
 

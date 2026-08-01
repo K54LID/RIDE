@@ -1285,6 +1285,16 @@ h2 { font-size: 1.02rem; }
   text-shadow: 0 1px 3px rgba(0,0,0,0.8);
 }
 
+/* Centred system notice in a conversation — not from either person,
+   so it is deliberately not a bubble. */
+.chat-system {
+  align-self: center; max-width: 80%;
+  margin: 6px auto; padding: 6px 12px;
+  border-radius: var(--r-pill);
+  background: var(--raised); border: 1px solid var(--hairline);
+  color: var(--muted); font-size: 0.76rem; text-align: center;
+}
+
 /* ---- FAQ accordion ---- */
 .faq-item { border-bottom: 1px solid var(--hairline); }
 .faq-item:last-child { border-bottom: 0; }

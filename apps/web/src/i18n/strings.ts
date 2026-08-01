@@ -30,6 +30,8 @@ export type Locale = keyof typeof LOCALES;
 export const RTL: ReadonlySet<Locale> = new Set<Locale>(['ar', 'fa']);
 
 const en = {
+  'album.unlockedNotice': 'unlocked their private album for you',
+  'album.unlockedByYou': 'You unlocked your private album for them',
   'discover.noLocation.later': 'You can update your location any time with the 📍 button next to Filters.',
   'court.howTitle': 'How courting works',
   'court.how.what': 'Courting is paying coins to raise someone standing. Your name shows on their profile as the person courting them, and their court value goes up by what you paid.',
@@ -67,9 +69,9 @@ const en = {
   'faq.verify.q': 'What does the blue check mean?',
   'faq.verify.a': 'That the person sent a photo matching a pose we asked for, and a human approved it. It means the account is a real person, not that it is important.',
   'faq.ghost.q': 'What is ghost mode?',
-  'faq.ghost.a': 'It hides you from Discover and from every leaderboard. People who already have your profile open can still see it, and your posts still exist — it removes you from browsing, not from the app.',
+  'faq.ghost.a': 'It hides you from Discover so people cannot browse to you. Your posts, your profile and your leaderboard positions are unaffected — anyone with your profile open can still see it.',
   'faq.block.q': 'What happens when I block someone?',
-  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
+  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They still appear on the leaderboards, because a rank is earned and blocking is not a way to remove someone from it. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
   'faq.report.q': 'What happens when I report something?',
   'faq.report.a': 'It goes to the moderators with what you wrote. They can delete the post or ban the account. You will not be told the outcome, but action is taken when it is warranted.',
   'faq.delete.q': 'What happens if I delete my account?',
@@ -430,6 +432,8 @@ const en = {
 export type T = Record<keyof typeof en, string>;
 
 const tr: T = {
+  'album.unlockedNotice': 'unlocked their private album for you',
+  'album.unlockedByYou': 'You unlocked your private album for them',
   'discover.noLocation.later': 'You can update your location any time with the 📍 button next to Filters.',
   'court.howTitle': 'How courting works',
   'court.how.what': 'Courting is paying coins to raise someone standing. Your name shows on their profile as the person courting them, and their court value goes up by what you paid.',
@@ -467,9 +471,9 @@ const tr: T = {
   'faq.verify.q': 'What does the blue check mean?',
   'faq.verify.a': 'That the person sent a photo matching a pose we asked for, and a human approved it. It means the account is a real person, not that it is important.',
   'faq.ghost.q': 'What is ghost mode?',
-  'faq.ghost.a': 'It hides you from Discover and from every leaderboard. People who already have your profile open can still see it, and your posts still exist — it removes you from browsing, not from the app.',
+  'faq.ghost.a': 'It hides you from Discover so people cannot browse to you. Your posts, your profile and your leaderboard positions are unaffected — anyone with your profile open can still see it.',
   'faq.block.q': 'What happens when I block someone?',
-  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
+  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They still appear on the leaderboards, because a rank is earned and blocking is not a way to remove someone from it. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
   'faq.report.q': 'What happens when I report something?',
   'faq.report.a': 'It goes to the moderators with what you wrote. They can delete the post or ban the account. You will not be told the outcome, but action is taken when it is warranted.',
   'faq.delete.q': 'What happens if I delete my account?',
@@ -708,6 +712,8 @@ const tr: T = {
 };
 
 const ru: T = {
+  'album.unlockedNotice': 'unlocked their private album for you',
+  'album.unlockedByYou': 'You unlocked your private album for them',
   'discover.noLocation.later': 'You can update your location any time with the 📍 button next to Filters.',
   'court.howTitle': 'How courting works',
   'court.how.what': 'Courting is paying coins to raise someone standing. Your name shows on their profile as the person courting them, and their court value goes up by what you paid.',
@@ -745,9 +751,9 @@ const ru: T = {
   'faq.verify.q': 'What does the blue check mean?',
   'faq.verify.a': 'That the person sent a photo matching a pose we asked for, and a human approved it. It means the account is a real person, not that it is important.',
   'faq.ghost.q': 'What is ghost mode?',
-  'faq.ghost.a': 'It hides you from Discover and from every leaderboard. People who already have your profile open can still see it, and your posts still exist — it removes you from browsing, not from the app.',
+  'faq.ghost.a': 'It hides you from Discover so people cannot browse to you. Your posts, your profile and your leaderboard positions are unaffected — anyone with your profile open can still see it.',
   'faq.block.q': 'What happens when I block someone?',
-  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
+  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They still appear on the leaderboards, because a rank is earned and blocking is not a way to remove someone from it. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
   'faq.report.q': 'What happens when I report something?',
   'faq.report.a': 'It goes to the moderators with what you wrote. They can delete the post or ban the account. You will not be told the outcome, but action is taken when it is warranted.',
   'faq.delete.q': 'What happens if I delete my account?',
@@ -986,6 +992,8 @@ const ru: T = {
 };
 
 const ar: T = {
+  'album.unlockedNotice': 'unlocked their private album for you',
+  'album.unlockedByYou': 'You unlocked your private album for them',
   'discover.noLocation.later': 'You can update your location any time with the 📍 button next to Filters.',
   'court.howTitle': 'How courting works',
   'court.how.what': 'Courting is paying coins to raise someone standing. Your name shows on their profile as the person courting them, and their court value goes up by what you paid.',
@@ -1023,9 +1031,9 @@ const ar: T = {
   'faq.verify.q': 'What does the blue check mean?',
   'faq.verify.a': 'That the person sent a photo matching a pose we asked for, and a human approved it. It means the account is a real person, not that it is important.',
   'faq.ghost.q': 'What is ghost mode?',
-  'faq.ghost.a': 'It hides you from Discover and from every leaderboard. People who already have your profile open can still see it, and your posts still exist — it removes you from browsing, not from the app.',
+  'faq.ghost.a': 'It hides you from Discover so people cannot browse to you. Your posts, your profile and your leaderboard positions are unaffected — anyone with your profile open can still see it.',
   'faq.block.q': 'What happens when I block someone?',
-  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
+  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They still appear on the leaderboards, because a rank is earned and blocking is not a way to remove someone from it. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
   'faq.report.q': 'What happens when I report something?',
   'faq.report.a': 'It goes to the moderators with what you wrote. They can delete the post or ban the account. You will not be told the outcome, but action is taken when it is warranted.',
   'faq.delete.q': 'What happens if I delete my account?',
@@ -1264,6 +1272,8 @@ const ar: T = {
 };
 
 const az: T = {
+  'album.unlockedNotice': 'unlocked their private album for you',
+  'album.unlockedByYou': 'You unlocked your private album for them',
   'discover.noLocation.later': 'You can update your location any time with the 📍 button next to Filters.',
   'court.howTitle': 'How courting works',
   'court.how.what': 'Courting is paying coins to raise someone standing. Your name shows on their profile as the person courting them, and their court value goes up by what you paid.',
@@ -1301,9 +1311,9 @@ const az: T = {
   'faq.verify.q': 'What does the blue check mean?',
   'faq.verify.a': 'That the person sent a photo matching a pose we asked for, and a human approved it. It means the account is a real person, not that it is important.',
   'faq.ghost.q': 'What is ghost mode?',
-  'faq.ghost.a': 'It hides you from Discover and from every leaderboard. People who already have your profile open can still see it, and your posts still exist — it removes you from browsing, not from the app.',
+  'faq.ghost.a': 'It hides you from Discover so people cannot browse to you. Your posts, your profile and your leaderboard positions are unaffected — anyone with your profile open can still see it.',
   'faq.block.q': 'What happens when I block someone?',
-  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
+  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They still appear on the leaderboards, because a rank is earned and blocking is not a way to remove someone from it. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
   'faq.report.q': 'What happens when I report something?',
   'faq.report.a': 'It goes to the moderators with what you wrote. They can delete the post or ban the account. You will not be told the outcome, but action is taken when it is warranted.',
   'faq.delete.q': 'What happens if I delete my account?',
@@ -1542,6 +1552,8 @@ const az: T = {
 };
 
 const es: T = {
+  'album.unlockedNotice': 'unlocked their private album for you',
+  'album.unlockedByYou': 'You unlocked your private album for them',
   'discover.noLocation.later': 'You can update your location any time with the 📍 button next to Filters.',
   'court.howTitle': 'How courting works',
   'court.how.what': 'Courting is paying coins to raise someone standing. Your name shows on their profile as the person courting them, and their court value goes up by what you paid.',
@@ -1579,9 +1591,9 @@ const es: T = {
   'faq.verify.q': 'What does the blue check mean?',
   'faq.verify.a': 'That the person sent a photo matching a pose we asked for, and a human approved it. It means the account is a real person, not that it is important.',
   'faq.ghost.q': 'What is ghost mode?',
-  'faq.ghost.a': 'It hides you from Discover and from every leaderboard. People who already have your profile open can still see it, and your posts still exist — it removes you from browsing, not from the app.',
+  'faq.ghost.a': 'It hides you from Discover so people cannot browse to you. Your posts, your profile and your leaderboard positions are unaffected — anyone with your profile open can still see it.',
   'faq.block.q': 'What happens when I block someone?',
-  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
+  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They still appear on the leaderboards, because a rank is earned and blocking is not a way to remove someone from it. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
   'faq.report.q': 'What happens when I report something?',
   'faq.report.a': 'It goes to the moderators with what you wrote. They can delete the post or ban the account. You will not be told the outcome, but action is taken when it is warranted.',
   'faq.delete.q': 'What happens if I delete my account?',
@@ -1820,6 +1832,8 @@ const es: T = {
 };
 
 const de: T = {
+  'album.unlockedNotice': 'unlocked their private album for you',
+  'album.unlockedByYou': 'You unlocked your private album for them',
   'discover.noLocation.later': 'You can update your location any time with the 📍 button next to Filters.',
   'court.howTitle': 'How courting works',
   'court.how.what': 'Courting is paying coins to raise someone standing. Your name shows on their profile as the person courting them, and their court value goes up by what you paid.',
@@ -1857,9 +1871,9 @@ const de: T = {
   'faq.verify.q': 'What does the blue check mean?',
   'faq.verify.a': 'That the person sent a photo matching a pose we asked for, and a human approved it. It means the account is a real person, not that it is important.',
   'faq.ghost.q': 'What is ghost mode?',
-  'faq.ghost.a': 'It hides you from Discover and from every leaderboard. People who already have your profile open can still see it, and your posts still exist — it removes you from browsing, not from the app.',
+  'faq.ghost.a': 'It hides you from Discover so people cannot browse to you. Your posts, your profile and your leaderboard positions are unaffected — anyone with your profile open can still see it.',
   'faq.block.q': 'What happens when I block someone?',
-  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
+  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They still appear on the leaderboards, because a rank is earned and blocking is not a way to remove someone from it. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
   'faq.report.q': 'What happens when I report something?',
   'faq.report.a': 'It goes to the moderators with what you wrote. They can delete the post or ban the account. You will not be told the outcome, but action is taken when it is warranted.',
   'faq.delete.q': 'What happens if I delete my account?',
@@ -2098,6 +2112,8 @@ const de: T = {
 };
 
 const fr: T = {
+  'album.unlockedNotice': 'unlocked their private album for you',
+  'album.unlockedByYou': 'You unlocked your private album for them',
   'discover.noLocation.later': 'You can update your location any time with the 📍 button next to Filters.',
   'court.howTitle': 'How courting works',
   'court.how.what': 'Courting is paying coins to raise someone standing. Your name shows on their profile as the person courting them, and their court value goes up by what you paid.',
@@ -2135,9 +2151,9 @@ const fr: T = {
   'faq.verify.q': 'What does the blue check mean?',
   'faq.verify.a': 'That the person sent a photo matching a pose we asked for, and a human approved it. It means the account is a real person, not that it is important.',
   'faq.ghost.q': 'What is ghost mode?',
-  'faq.ghost.a': 'It hides you from Discover and from every leaderboard. People who already have your profile open can still see it, and your posts still exist — it removes you from browsing, not from the app.',
+  'faq.ghost.a': 'It hides you from Discover so people cannot browse to you. Your posts, your profile and your leaderboard positions are unaffected — anyone with your profile open can still see it.',
   'faq.block.q': 'What happens when I block someone?',
-  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
+  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They still appear on the leaderboards, because a rank is earned and blocking is not a way to remove someone from it. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
   'faq.report.q': 'What happens when I report something?',
   'faq.report.a': 'It goes to the moderators with what you wrote. They can delete the post or ban the account. You will not be told the outcome, but action is taken when it is warranted.',
   'faq.delete.q': 'What happens if I delete my account?',
@@ -2376,6 +2392,8 @@ const fr: T = {
 };
 
 const it: T = {
+  'album.unlockedNotice': 'unlocked their private album for you',
+  'album.unlockedByYou': 'You unlocked your private album for them',
   'discover.noLocation.later': 'You can update your location any time with the 📍 button next to Filters.',
   'court.howTitle': 'How courting works',
   'court.how.what': 'Courting is paying coins to raise someone standing. Your name shows on their profile as the person courting them, and their court value goes up by what you paid.',
@@ -2413,9 +2431,9 @@ const it: T = {
   'faq.verify.q': 'What does the blue check mean?',
   'faq.verify.a': 'That the person sent a photo matching a pose we asked for, and a human approved it. It means the account is a real person, not that it is important.',
   'faq.ghost.q': 'What is ghost mode?',
-  'faq.ghost.a': 'It hides you from Discover and from every leaderboard. People who already have your profile open can still see it, and your posts still exist — it removes you from browsing, not from the app.',
+  'faq.ghost.a': 'It hides you from Discover so people cannot browse to you. Your posts, your profile and your leaderboard positions are unaffected — anyone with your profile open can still see it.',
   'faq.block.q': 'What happens when I block someone?',
-  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
+  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They still appear on the leaderboards, because a rank is earned and blocking is not a way to remove someone from it. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
   'faq.report.q': 'What happens when I report something?',
   'faq.report.a': 'It goes to the moderators with what you wrote. They can delete the post or ban the account. You will not be told the outcome, but action is taken when it is warranted.',
   'faq.delete.q': 'What happens if I delete my account?',
@@ -2654,6 +2672,8 @@ const it: T = {
 };
 
 const pt: T = {
+  'album.unlockedNotice': 'unlocked their private album for you',
+  'album.unlockedByYou': 'You unlocked your private album for them',
   'discover.noLocation.later': 'You can update your location any time with the 📍 button next to Filters.',
   'court.howTitle': 'How courting works',
   'court.how.what': 'Courting is paying coins to raise someone standing. Your name shows on their profile as the person courting them, and their court value goes up by what you paid.',
@@ -2691,9 +2711,9 @@ const pt: T = {
   'faq.verify.q': 'What does the blue check mean?',
   'faq.verify.a': 'That the person sent a photo matching a pose we asked for, and a human approved it. It means the account is a real person, not that it is important.',
   'faq.ghost.q': 'What is ghost mode?',
-  'faq.ghost.a': 'It hides you from Discover and from every leaderboard. People who already have your profile open can still see it, and your posts still exist — it removes you from browsing, not from the app.',
+  'faq.ghost.a': 'It hides you from Discover so people cannot browse to you. Your posts, your profile and your leaderboard positions are unaffected — anyone with your profile open can still see it.',
   'faq.block.q': 'What happens when I block someone?',
-  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
+  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They still appear on the leaderboards, because a rank is earned and blocking is not a way to remove someone from it. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
   'faq.report.q': 'What happens when I report something?',
   'faq.report.a': 'It goes to the moderators with what you wrote. They can delete the post or ban the account. You will not be told the outcome, but action is taken when it is warranted.',
   'faq.delete.q': 'What happens if I delete my account?',
@@ -2936,6 +2956,8 @@ const pt: T = {
     most often translated; the rest fall back to English text
     rather than to a missing key. */
 const fa: T = {
+  'album.unlockedNotice': 'آلبوم خصوصی خود را برای شما باز کرد',
+  'album.unlockedByYou': 'آلبوم خصوصی خود را برای او باز کردید',
   'discover.noLocation.later': 'می‌توانید هر زمان با دکمه 📍 کنار فیلترها موقعیت خود را به‌روز کنید.',
   'court.howTitle': 'دربار چگونه کار می‌کند',
   'court.how.what': 'دربار یعنی پرداخت سکه برای بالا بردن جایگاه کسی. نام شما در پروفایل او دیده می‌شود و ارزش دربار او افزایش می‌یابد.',
@@ -2973,9 +2995,9 @@ const fa: T = {
   'faq.verify.q': 'What does the blue check mean?',
   'faq.verify.a': 'That the person sent a photo matching a pose we asked for, and a human approved it. It means the account is a real person, not that it is important.',
   'faq.ghost.q': 'What is ghost mode?',
-  'faq.ghost.a': 'It hides you from Discover and from every leaderboard. People who already have your profile open can still see it, and your posts still exist — it removes you from browsing, not from the app.',
+  'faq.ghost.a': 'It hides you from Discover so people cannot browse to you. Your posts, your profile and your leaderboard positions are unaffected — anyone with your profile open can still see it.',
   'faq.block.q': 'What happens when I block someone?',
-  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
+  'faq.block.a': 'They cannot message you, see your posts, stories or profile, and your conversation disappears for both of you. They are not told. They still appear on the leaderboards, because a rank is earned and blocking is not a way to remove someone from it. They appear in Settings under Blocked users, and you can unblock them there or from their profile.',
   'faq.report.q': 'What happens when I report something?',
   'faq.report.a': 'It goes to the moderators with what you wrote. They can delete the post or ban the account. You will not be told the outcome, but action is taken when it is warranted.',
   'faq.delete.q': 'What happens if I delete my account?',

@@ -133,6 +133,23 @@ export default function Home({ meId, meName, meAvatar, onCompose, onAlerts, onOp
       .catch(() => undefined);
   }, []);
 
+  /**
+   * Stories refresh on their own; the feed deliberately does not.
+   *
+   * A story is a "right now" thing and should appear without being
+   * asked for. Reordering the feed under someone mid-scroll is the
+   * opposite — that stays on pull-to-refresh.
+   */
+  useEffect(() => {
+    const id = setInterval(loadStories, 15000);
+    const onVisible = () => { if (!document.hidden) loadStories(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [loadStories]);
+
   const load = useCallback(() => {
     setFailed(false);
     apiFetch<{ posts: Post[]; next_cursor: string | null }>('/v1/feed')

@@ -88,7 +88,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
         LEFT JOIN woofs w ON w.target_id = p.account_id
           AND w.created_at > COALESCE(p.stats_reset_at, 'epoch')
           ${since ? sql`AND w.created_at > ${since}` : sql``}
-        WHERE NOT p.ghost_mode
+        WHERE true
         GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
         HAVING count(w.id) > 0
         ORDER BY score DESC, p.court_value DESC
@@ -104,7 +104,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
         LEFT JOIN gift_transfers g ON g.receiver_id = p.account_id
           AND g.created_at > COALESCE(p.stats_reset_at, 'epoch')
           ${since ? sql`AND g.created_at > ${since}` : sql``}
-        WHERE NOT p.ghost_mode
+        WHERE true
         GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
         HAVING count(g.id) > 0
         ORDER BY score DESC
@@ -124,7 +124,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
         JOIN post_likes pl ON pl.post_id = po.id
           AND pl.created_at > COALESCE(p.stats_reset_at, 'epoch')
           ${since ? sql`AND pl.created_at > ${since}` : sql``}
-        WHERE NOT p.ghost_mode
+        WHERE true
         GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
         HAVING count(pl.post_id) > 0
         ORDER BY score DESC
@@ -140,7 +140,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
         LEFT JOIN follows f ON f.followee_id = p.account_id
           AND f.created_at > COALESCE(p.stats_reset_at, 'epoch')
           ${since ? sql`AND f.created_at > ${since}` : sql``}
-        WHERE NOT p.ghost_mode
+        WHERE true
         GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
         HAVING count(f.follower_id) > 0
         ORDER BY score DESC
@@ -159,7 +159,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
             JOIN court_events c ON c.target_id = p.account_id
               AND c.created_at > COALESCE(p.stats_reset_at, 'epoch')
               AND c.created_at > ${since}
-            WHERE NOT p.ghost_mode
+            WHERE true
             GROUP BY p.account_id, p.display_name, p.handle, p.court_value, p.verification
             ORDER BY score DESC
             LIMIT ${limit}
@@ -173,7 +173,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
             -- > 2 rather than > 1: a lapsed court value resets to 2,
             -- so anyone at 2 has no live courtship and should not be
             -- on the board at all.
-            WHERE NOT p.ghost_mode AND p.court_value > 2
+            WHERE true AND p.court_value > 2
             ORDER BY score DESC
             LIMIT ${limit}
           `;
@@ -238,7 +238,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
       SELECT s.court_score, s.woofs_score, s.likes_score, s.gifts_score, s.followers_score,
         (SELECT 1 + count(*)::int FROM profiles p2
          JOIN accounts a2 ON a2.id = p2.account_id AND a2.status = 'active'
-         WHERE NOT p2.ghost_mode AND p2.court_value > s.court_score) AS court_rank,
+         WHERE p2.court_value > s.court_score) AS court_rank,
         (SELECT 1 + count(*)::int FROM (
            SELECT w.target_id FROM woofs w
            JOIN profiles p2 ON p2.account_id = w.target_id

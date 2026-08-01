@@ -219,6 +219,14 @@ export default function UserProfile({
         </button>
       ) : null}
 
+      {/* Immediately under the courted-by panel — that is the moment the
+          question "what is this?" arises. Shown whether or not anyone
+          is currently courting them, since the answer explains the
+          empty case too. */}
+      <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
+        {t('court.howTitle')}
+      </button>
+
       {/* The album is the last cell of the same strip. Granted → it
           opens; not granted → it shows the count of what is behind the
           lock. Either way it lines up with the public photos instead of
@@ -227,12 +235,6 @@ export default function UserProfile({
         photos={photos.filter((p) => !p.is_private)}
         lockedCount={lockedCount > 0 ? lockedCount : photos.filter((p) => p.is_private).length}
         onLockedClick={() => setAlbumOpen(true)} />
-
-      {/* Directly under the courted-by panel: this is the moment the
-          question "what is this?" actually arises. */}
-      <button className="court-info" onClick={() => { tg.tap('light'); setCourtInfo(true); }}>
-        {t('court.howTitle')}
-      </button>
 
       <div className="eyebrow tight">{t('profile.standingOther')}</div>
       <RankStandings ranks={ranks} />

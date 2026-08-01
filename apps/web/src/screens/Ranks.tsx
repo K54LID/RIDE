@@ -144,13 +144,18 @@ export default function Ranks({ onOpenUser }: { onOpenUser: (accountId: string) 
         ))}
       </div>
 
-      {/* All time has no countdown because it never resets — saying so
-          is the point, otherwise the absence of a timer reads as a bug. */}
-      <div className="rank-reset">
-        {countdown
-          ? <>{t('ranks.resetsIn')} <b className="num">{countdown}</b></>
-          : t('ranks.neverResets')}
-      </div>
+      {/* "All-time standings never reset" is true of the tallies —
+          woofs, likes, gifts, followers accumulate forever. It is false
+          of court value, which is a live standing that lapses back to 2
+          after 30 days. Saying it there would contradict the board's
+          own explanation directly above the numbers. */}
+      {board === 'court' ? null : (
+        <div className="rank-reset">
+          {countdown
+            ? <>{t('ranks.resetsIn')} <b className="num">{countdown}</b></>
+            : t('ranks.neverResets')}
+        </div>
+      )}
 
       <button className="rank-how" onClick={() => { tg.tap('light'); setHowOpen((v) => !v); }}
               aria-expanded={howOpen}>
@@ -160,8 +165,11 @@ export default function Ranks({ onOpenUser }: { onOpenUser: (accountId: string) 
       {howOpen ? (
         <div className="card compact rank-how-body">
           <p>{t(EXPLAIN[board])}</p>
-          <p className="hint" style={{ marginTop: 8 }}>{t('ranks.how.period')}</p>
-          <p className="hint" style={{ marginTop: 6 }}>{t('ranks.how.fair')}</p>
+          {/* Court value has no Today/Week/Month, so the period note
+              would be describing controls that are not on screen. */}
+          {board === 'court' ? null : (
+            <p className="hint" style={{ marginTop: 8 }}>{t('ranks.how.period')}</p>
+          )}
         </div>
       ) : null}
 

@@ -279,6 +279,16 @@ export default function ChatThread({ conversationId, meId, onBack, onOpenUser }:
           <p className="chat-hint">{t('chat.start')}</p>
         ) : messages.map((m) => {
           const mine = m.sender_id === meId;
+
+          // Album unlock notice: a centred system line, not a bubble.
+          if (m.kind === 'system' && m.body === 'album_unlocked') {
+            return (
+              <div key={m.id} className="chat-system">
+                🔓 {mine ? t('album.unlockedByYou') : t('album.unlockedNotice')}
+              </div>
+            );
+          }
+
           return (
             <div key={m.id} className={`bubble-row ${mine ? 'mine' : ''}`}>
               <div
