@@ -286,15 +286,9 @@ export default function EditProfile({ me, onSaved, onBack }: {
                onChange={(e) => setBirthDate(e.target.value)} />
       </Field>
 
-      <Field label={t('profile.gender')}><ChipPick options={GENDERS} value={gender} onChange={setGender} /></Field>
-      <Field label={t('profile.pronouns')}><ChipPick options={PRONOUNS} value={pronouns} onChange={setPronouns} /></Field>
-      <Field label={t('profile.orientation')}><ChipPick options={ORIENTATIONS} value={orientation} onChange={setOrientation} /></Field>
-      <Field label={t('profile.relationship')}><ChipPick options={STATUS} value={status} onChange={setStatus} /></Field>
-      <Field label={t('profile.lookingFor')}><ChipGroup options={LOOKING} selected={looking} onChange={setLooking} /></Field>
-      <Field label={t('profile.tribes')}><ChipGroup options={TRIBES} selected={tribes} onChange={setTribes} max={4} /></Field>
-      <Field label={t('profile.interests')}><ChipGroup options={INTERESTS} selected={interests} onChange={setInterests} max={8} /></Field>
-      <Field label={t('profile.languages')}><ChipGroup options={LANGS} selected={languages} onChange={setLanguages} /></Field>
-
+      {/* Height and weight sit with age: they are the three numbers
+          about your body, and separating them by every chip list on
+          the form made the pair feel like an afterthought. */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <Field label={t('profile.height')}>
           <input type="number" inputMode="numeric" min={100} max={250} value={heightCm}
@@ -305,6 +299,16 @@ export default function EditProfile({ me, onSaved, onBack }: {
                  placeholder="—" onChange={(e) => setWeightKg(e.target.value)} />
         </Field>
       </div>
+
+      <Field label={t('profile.gender')}><ChipPick options={GENDERS} value={gender} onChange={setGender} /></Field>
+      <Field label={t('profile.pronouns')}><ChipPick options={PRONOUNS} value={pronouns} onChange={setPronouns} /></Field>
+      <Field label={t('profile.orientation')}><ChipPick options={ORIENTATIONS} value={orientation} onChange={setOrientation} /></Field>
+      <Field label={t('profile.relationship')}><ChipPick options={STATUS} value={status} onChange={setStatus} /></Field>
+      <Field label={t('profile.lookingFor')}><ChipGroup options={LOOKING} selected={looking} onChange={setLooking} /></Field>
+      <Field label={t('profile.tribes')}><ChipGroup options={TRIBES} selected={tribes} onChange={setTribes} max={4} /></Field>
+      <Field label={t('profile.interests')}><ChipGroup options={INTERESTS} selected={interests} onChange={setInterests} max={8} /></Field>
+      <Field label={t('profile.languages')}><ChipGroup options={LANGS} selected={languages} onChange={setLanguages} /></Field>
+
 
       {error ? <p className="error">{error}</p> : null}
 

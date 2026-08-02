@@ -25,12 +25,47 @@ const TRIBES = ['Bear', 'Twink', 'Otter', 'Jock', 'Daddy', 'Geek', 'Leather', 'T
 const INTERESTS = ['Gaming', 'Fitness', 'Travel', 'Music', 'Movies', 'Photography', 'Cooking', 'Art', 'Tech', 'Sports', 'Pets', 'Nightlife', 'Reading', 'Fashion'] as const;
 const LANGUAGES = ['English', 'Русский', 'Türkçe', 'Español', 'Deutsch', 'Français', 'العربية', 'Azərbaycan'] as const;
 
-const STEPS = 4;
+/**
+ * Five steps: four editable, then the required photo. The photo is last
+ * because it can only happen once the account exists — /v1/media has
+ * nothing to authenticate against until onboarding has been submitted.
+ */
+const STEPS = 5;
+const PHOTO_STEP = 4;
 
 export default function Onboarding({ onDone }: { onDone: () => void }) {
   const t = useT();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoId, setPhotoId] = useState<string | null>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
+
+  /**
+   * Upload, attach, then let them in. Attaching is what makes it the
+   * profile photo — the first photo takes position 0, which every
+   * avatar query reads.
+   */
+  const addPhoto = async (file: File) => {
+    setPhotoBusy(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const m = await apiFetch<{ id: string }>('/v1/media', { method: 'POST', body: form });
+      await apiFetch('/v1/me/photos', {
+        method: 'POST', body: JSON.stringify({ media_id: m.id }),
+      });
+      setPhotoId(m.id);
+      tg.notify('success');
+      onDone();
+    } catch (err) {
+      tg.notify('error');
+      setError(err instanceof ApiError ? err.message : 'Upload failed. Try again.');
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
   const [error, setError] = useState<string | null>(null);
   /**
    * Handle availability, checked against the database as they type.
@@ -60,7 +95,13 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
   // Telegram's own back button drives step navigation — the platform
   // affordance rather than a second in-app control.
   useEffect(() => {
-    if (step === 0) return tg.backButton(null);
+    /**
+     * No way back from the photo step. The account already exists by
+     * then — going back would let them press Skip again and re-submit
+     * onboarding for an account that is already onboarded, and it would
+     * also be a way past the photo requirement.
+     */
+    if (step === 0 || step === PHOTO_STEP) return tg.backButton(null);
     return tg.backButton(() => setStep((s) => Math.max(0, s - 1)));
   }, [step]);
 
@@ -128,7 +169,16 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
         }),
       });
       tg.notify('success');
-      onDone();
+      /**
+       * Straight to the photo step, not into the app.
+       *
+       * The upload cannot happen earlier: the account is created by
+       * this request, and /v1/media needs an account to authenticate
+       * against. So the requirement is enforced on the far side of
+       * submit — the profile exists, but the person does not reach the
+       * app until it has a face on it.
+       */
+      setStep(PHOTO_STEP);
     } catch (err) {
       tg.notify('error');
       if (err instanceof ApiError) {
@@ -242,6 +292,27 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
           <Field label="Languages"><ChipGroup options={LANGUAGES} selected={languages} onChange={setLanguages} /></Field>
           <Button onClick={next}>Continue</Button>
           {stepNav}
+        </>
+      )}
+
+      {step === PHOTO_STEP && (
+        <>
+          <h1>Add a photo</h1>
+          <p style={{ marginBottom: 26 }}>
+            One photo is required. It becomes your profile picture, and you can
+            change or add more at any time from Edit profile.
+          </p>
+          <input ref={photoInput} type="file" accept="image/*" hidden
+                 onChange={(e) => {
+                   const f = e.target.files?.[0];
+                   e.target.value = '';
+                   if (f) void addPhoto(f);
+                 }} />
+          <Button onClick={() => { tg.tap('medium'); photoInput.current?.click(); }}
+                  disabled={photoBusy}>
+            {photoBusy ? 'Uploading…' : 'Choose a photo'}
+          </Button>
+          {error ? <p className="error">{error}</p> : null}
         </>
       )}
 
