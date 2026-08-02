@@ -259,7 +259,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
                    autoCapitalize="none" autoCorrect="off"
                    onChange={(e) => setHandle(e.target.value.replace(/\s/g, ''))} />
           </Field>
-          <Field label="Birthday" hint={age !== null && age < 18 ? 'RIDE is 18+.' : 'Shown as your age. You cannot change this later.'}>
+          <Field label="Birthday" hint={age !== null && age < 18 ? 'RIDE is 18+.' : 'Shown as your age.'}>
             <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
           </Field>
           {error ? <p className="error">{error}</p> : null}

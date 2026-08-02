@@ -22,9 +22,19 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     // and Fastify (correctly) rejects "application/json with an empty
     // body" as a 400 — which is why every delete button appeared to
     // fail and deleted posts "came back" after the error-path refetch.
+    /**
+     * FormData must not carry an explicit Content-Type.
+     *
+     * multipart/form-data needs a boundary parameter, and only the
+     * browser knows the boundary it generated. Declaring
+     * "application/json" over a FormData body produced a request the
+     * server could not parse at all — the upload hung and never
+     * resolved, which is what "stuck on uploading" was.
+     */
+    const isForm = typeof FormData !== 'undefined' && init.body instanceof FormData;
     const headers: Record<string, string> = {
       Authorization: `tma ${tg.initData()}`,
-      ...(init.body != null ? { 'Content-Type': 'application/json' } : {}),
+      ...(init.body != null && !isForm ? { 'Content-Type': 'application/json' } : {}),
       ...(init.headers as Record<string, string> | undefined),
     };
     res = await fetch(`${BASE}${path}`, { ...init, headers });
