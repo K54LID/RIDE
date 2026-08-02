@@ -117,9 +117,9 @@ const postRoutes: FastifyPluginAsync = async (app) => {
              pr.court_value  AS author_court_value,
              (pr.verification = 'approved') AS author_verified,
              (SELECT ph.media_id FROM profile_photos ph
-              WHERE ph.account_id = pr.account_id AND ph.position = 0
+              WHERE ph.account_id = pr.account_id 
                 AND NOT ph.is_private AND ph.media_id IS NOT NULL
-              LIMIT 1) AS author_avatar_media_id,
+              ORDER BY ph.position LIMIT 1) AS author_avatar_media_id,
              EXISTS (
                SELECT 1 FROM post_likes pl
                WHERE pl.post_id = p.id AND pl.account_id = ${req.accountId}
@@ -195,9 +195,9 @@ const postRoutes: FastifyPluginAsync = async (app) => {
              pr.court_value  AS author_court_value,
              (pr.verification = 'approved') AS author_verified,
              (SELECT ph.media_id FROM profile_photos ph
-              WHERE ph.account_id = pr.account_id AND ph.position = 0
+              WHERE ph.account_id = pr.account_id 
                 AND NOT ph.is_private AND ph.media_id IS NOT NULL
-              LIMIT 1) AS author_avatar_media_id,
+              ORDER BY ph.position LIMIT 1) AS author_avatar_media_id,
              EXISTS (SELECT 1 FROM post_likes pl
                      WHERE pl.post_id = p.id AND pl.account_id = ${req.accountId}) AS liked,
              EXISTS (SELECT 1 FROM saved_posts sp
@@ -263,9 +263,9 @@ const postRoutes: FastifyPluginAsync = async (app) => {
              pr.court_value  AS author_court_value,
              (pr.verification = 'approved') AS author_verified,
              (SELECT ph.media_id FROM profile_photos ph
-              WHERE ph.account_id = pr.account_id AND ph.position = 0
+              WHERE ph.account_id = pr.account_id 
                 AND NOT ph.is_private AND ph.media_id IS NOT NULL
-              LIMIT 1) AS author_avatar_media_id,
+              ORDER BY ph.position LIMIT 1) AS author_avatar_media_id,
              true AS saved,
              EXISTS (SELECT 1 FROM post_likes pl
                      WHERE pl.post_id = p.id AND pl.account_id = ${req.accountId}) AS liked

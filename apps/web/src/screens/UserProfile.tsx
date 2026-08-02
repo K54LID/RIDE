@@ -181,8 +181,6 @@ export default function UserProfile({
 
       <div className="pro-name">
         {u.display_name}
-        {u.age !== null && u.age !== undefined
-          ? <span className="pro-age num">{u.age}</span> : null}
         {u.verified ? <VerifiedMark size={15} /> : null}
         {u.vip ? <span className="vip-chip">VIP</span> : null}
         {u.online ? <span className="online-dot" /> : null}

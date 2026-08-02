@@ -202,9 +202,9 @@ const economyRoutes: FastifyPluginAsync = async (app) => {
              c.expires_at,
              cp.display_name AS courter_name, cp.handle AS courter_handle,
              (SELECT ph.media_id FROM profile_photos ph
-              WHERE ph.account_id = c.courter_id AND ph.position = 0
+              WHERE ph.account_id = c.courter_id 
                 AND NOT ph.is_private AND ph.media_id IS NOT NULL
-              LIMIT 1) AS courter_avatar_media_id
+              ORDER BY ph.position LIMIT 1) AS courter_avatar_media_id
       FROM profiles p
       LEFT JOIN courtships c ON c.target_id = p.account_id
         AND c.expires_at > now()

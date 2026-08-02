@@ -75,7 +75,16 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
       .then(setCourt).catch(() => undefined);
   }, [editingPhotos]);
 
-  const primary = photos.find((p) => p.position === 0 && !p.is_private) ?? photos.find((p) => !p.is_private);
+  /**
+   * Lowest-positioned public photo, matching the server. Keying on
+   * `position === 0` broke as soon as photo 0 was deleted or made
+   * private, because positions are never recompacted — the account
+   * silently lost its avatar. This also makes a new person's first
+   * upload their profile photo with no extra step.
+   */
+  const primary = photos
+    .filter((p) => !p.is_private)
+    .sort((a, b) => a.position - b.position)[0];
   const privateCount = photos.filter((p) => p.is_private).length;
   const list = (v: string[] | null) => (v && v.length ? v.join(', ') : null);
 
@@ -190,7 +199,6 @@ export default function Profile({ me, onEdit, onWallet, onSettings, onSaved, onF
           profile, in that order. */}
       <div className="pro-name">
         {me.display_name}
-        {age !== null ? <span className="pro-age num">{age}</span> : null}
       </div>
       {me.bio ? <p className="pro-bio">{me.bio}</p> : null}
 

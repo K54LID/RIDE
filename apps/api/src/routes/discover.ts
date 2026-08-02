@@ -116,9 +116,9 @@ const discoverRoutes: FastifyPluginAsync = async (app) => {
              a.last_seen_at,
              (a.last_seen_at > now() - interval '5 minutes') AS online,
              (SELECT ph.media_id FROM profile_photos ph
-              WHERE ph.account_id = p.account_id AND ph.position = 0
+              WHERE ph.account_id = p.account_id
                 AND NOT ph.is_private AND ph.media_id IS NOT NULL
-              LIMIT 1) AS avatar_media_id,
+              ORDER BY ph.position LIMIT 1) AS avatar_media_id,
              CASE WHEN ml.cell IS NOT NULL AND ul.cell IS NOT NULL
                   THEN ST_Distance(ml.cell, ul.cell) END AS distance_m
       FROM profiles p

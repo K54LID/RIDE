@@ -57,9 +57,9 @@ const storyRoutes: FastifyPluginAsync = async (app) => {
              count(*) FILTER (WHERE v.viewer_id IS NULL)::int AS unseen_count,
              max(s.created_at) AS latest_at,
              (SELECT ph.media_id FROM profile_photos ph
-              WHERE ph.account_id = s.author_id AND ph.position = 0
+              WHERE ph.account_id = s.author_id 
                 AND NOT ph.is_private AND ph.media_id IS NOT NULL
-              LIMIT 1) AS avatar_media_id
+              ORDER BY ph.position LIMIT 1) AS avatar_media_id
       FROM stories s
       JOIN profiles p ON p.account_id = s.author_id
       LEFT JOIN user_settings st ON st.account_id = s.author_id
@@ -251,9 +251,9 @@ const storyRoutes: FastifyPluginAsync = async (app) => {
     const viewers = await sql`
       SELECT v.viewer_id, v.viewed_at, p.display_name, p.handle,
              (SELECT ph.media_id FROM profile_photos ph
-              WHERE ph.account_id = v.viewer_id AND ph.position = 0
+              WHERE ph.account_id = v.viewer_id 
                 AND NOT ph.is_private AND ph.media_id IS NOT NULL
-              LIMIT 1) AS avatar_media_id,
+              ORDER BY ph.position LIMIT 1) AS avatar_media_id,
              (r.account_id IS NOT NULL) AS woofed
       FROM story_views v
       JOIN profiles p ON p.account_id = v.viewer_id
@@ -265,9 +265,9 @@ const storyRoutes: FastifyPluginAsync = async (app) => {
     const replies = await sql`
       SELECT rp.body, rp.created_at, p.display_name, p.handle, rp.sender_id,
              (SELECT ph.media_id FROM profile_photos ph
-              WHERE ph.account_id = rp.sender_id AND ph.position = 0
+              WHERE ph.account_id = rp.sender_id 
                 AND NOT ph.is_private AND ph.media_id IS NOT NULL
-              LIMIT 1) AS avatar_media_id
+              ORDER BY ph.position LIMIT 1) AS avatar_media_id
       FROM story_replies rp
       JOIN profiles p ON p.account_id = rp.sender_id
       WHERE rp.story_id = ${id}

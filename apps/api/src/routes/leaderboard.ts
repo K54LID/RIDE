@@ -73,9 +73,9 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
     // primary photo, or null to fall back to the initial-letter avatar.
     const avatarSelect = sql`
       (SELECT ph.media_id FROM profile_photos ph
-       WHERE ph.account_id = p.account_id AND ph.position = 0
+       WHERE ph.account_id = p.account_id 
          AND NOT ph.is_private AND ph.media_id IS NOT NULL
-       LIMIT 1) AS avatar_media_id
+       ORDER BY ph.position LIMIT 1) AS avatar_media_id
     `;
 
     if (board === 'woofs') {
@@ -170,11 +170,14 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
                    p.court_value::int AS score
             FROM profiles p
             JOIN accounts a ON a.id = p.account_id AND a.status = 'active'
-            -- > 2 rather than > 1: a lapsed court value resets to 2,
-            -- so anyone at 2 has no live courtship and should not be
-            -- on the board at all.
-            WHERE true AND p.court_value > 2
-            ORDER BY score DESC
+            -- Membership is holding a live courtship, not clearing a
+            -- value threshold. A first court takes someone from 1 to 2
+            -- and a lapsed value also lands on 2, so no number can tell
+            -- those apart — filtering by value hid everyone who had been
+            -- courted exactly once. The courtship row is the fact that
+            -- matters, and it disappears when it expires.
+            JOIN courtships c ON c.target_id = p.account_id AND c.expires_at > now()
+            ORDER BY score DESC, c.created_at DESC
             LIMIT ${limit}
           `;
     }
@@ -236,8 +239,11 @@ const leaderboardRoutes: FastifyPluginAsync = async (app) => {
         FROM target t
       )
       SELECT s.court_score, s.woofs_score, s.likes_score, s.gifts_score, s.followers_score,
+        -- Same membership rule as the board itself: counted against
+        -- people who hold a live courtship, not everyone with a number.
         (SELECT 1 + count(*)::int FROM profiles p2
          JOIN accounts a2 ON a2.id = p2.account_id AND a2.status = 'active'
+         JOIN courtships c2 ON c2.target_id = p2.account_id AND c2.expires_at > now()
          WHERE p2.court_value > s.court_score) AS court_rank,
         (SELECT 1 + count(*)::int FROM (
            SELECT w.target_id FROM woofs w

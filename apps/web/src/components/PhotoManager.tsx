@@ -19,6 +19,11 @@ const BASE = import.meta.env.VITE_API_BASE ?? 'https://api.ridethatbot.fun';
 export default function PhotoManager() {
   const t = useT();
   const [photos, setPhotos] = useState<ProfilePhoto[] | null>(null);
+  // Which photo is actually serving as the avatar — the lowest public
+  // one, not whatever happens to sit at index 0.
+  const primaryId = (photos ?? [])
+    .filter((p) => !p.is_private)
+    .sort((a, b) => a.position - b.position)[0]?.id;
   const [cropping, setCropping] = useState<{ photo: ProfilePhoto; src: string } | null>(null);
   const media = useMediaUpload(1);
   const input = useRef<HTMLInputElement>(null);
@@ -115,11 +120,11 @@ export default function PhotoManager() {
       <div className="photo-grid">
         {(photos ?? []).map((p) => (
           <div key={p.id}
-               className={`photo-cell ${p.position === 0 && !p.is_private ? 'primary' : ''} ${p.is_private ? 'private' : ''}`}>
+               className={`photo-cell ${p.id === primaryId ? 'primary' : ''} ${p.is_private ? 'private' : ''}`}>
             <Media id={p.media_id} kind="image" thumb />
-            {p.position === 0 ? <span className="photo-tag">{t('photos.primary')}</span> : null}
+            {p.id === primaryId ? <span className="photo-tag">{t('photos.primary')}</span> : null}
             <div className="photo-tools">
-              {p.position === 0 && !p.is_private ? (
+              {p.id === primaryId ? (
                 <button onClick={() => void openCrop(p)} aria-label={t('photo.adjust')}>✂️</button>
               ) : null}
               <button onClick={() => togglePrivacy(p)}

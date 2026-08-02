@@ -17,9 +17,9 @@ const notificationRoutes: FastifyPluginAsync = async (app) => {
              -- no picture is a line of text you have to read, not a
              -- person you recognise.
              (SELECT ph.media_id FROM profile_photos ph
-              WHERE ph.account_id = n.actor_id AND ph.position = 0
+              WHERE ph.account_id = n.actor_id 
                 AND NOT ph.is_private AND ph.media_id IS NOT NULL
-              LIMIT 1) AS actor_avatar_media_id,
+              ORDER BY ph.position LIMIT 1) AS actor_avatar_media_id,
              (p.verification = 'approved') AS actor_verified,
              po.id AS post_id,
              left(po.body, 90) AS post_excerpt,

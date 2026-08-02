@@ -40,9 +40,9 @@ const settingsRoutes: FastifyPluginAsync = async (app) => {
     const blocked = await sql`
       SELECT b.blocked_id, pr.display_name, pr.handle,
              (SELECT ph.media_id FROM profile_photos ph
-              WHERE ph.account_id = b.blocked_id AND ph.position = 0
+              WHERE ph.account_id = b.blocked_id 
                 AND NOT ph.is_private AND ph.media_id IS NOT NULL
-              LIMIT 1) AS avatar_media_id
+              ORDER BY ph.position LIMIT 1) AS avatar_media_id
       FROM blocks b JOIN profiles pr ON pr.account_id = b.blocked_id
       WHERE b.blocker_id = ${req.accountId}
       ORDER BY b.created_at DESC

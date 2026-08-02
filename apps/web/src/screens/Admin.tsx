@@ -265,9 +265,16 @@ export default function Admin({ onBack }: { onBack: () => void }) {
           </label>
           {!users ? <Skeleton h={70} /> : users.map((u) => (
             <div key={u.id} className="person" style={{ flexWrap: 'wrap' }}>
-              <div className="person-avatar">{u.display_name.charAt(0).toUpperCase()}</div>
+              <div className="person-avatar">
+                {(u.handle || u.display_name).charAt(0).toUpperCase()}
+              </div>
               <div className="person-main">
-                <div className="person-name">{u.display_name}</div>
+                {/* Handle, not display name: it is unique, it is how the
+                    account is addressed everywhere else in the app, and
+                    display names are neither stable nor distinct — two
+                    people called "Alex" are indistinguishable in a
+                    moderation queue. */}
+                <div className="person-name num">@{u.handle}</div>
                 <div className="person-sub num">
                   {u.status} · {u.role} · {u.balance} coins
                 </div>

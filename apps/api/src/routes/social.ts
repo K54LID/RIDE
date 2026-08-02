@@ -183,9 +183,9 @@ const socialRoutes: FastifyPluginAsync = async (app) => {
           SELECT p.account_id, p.display_name, p.handle,
                  (p.verification = 'approved') AS verified,
                  (SELECT ph.media_id FROM profile_photos ph
-                  WHERE ph.account_id = p.account_id AND ph.position = 0
+                  WHERE ph.account_id = p.account_id 
                     AND NOT ph.is_private AND ph.media_id IS NOT NULL
-                  LIMIT 1) AS avatar_media_id,
+                  ORDER BY ph.position LIMIT 1) AS avatar_media_id,
                  EXISTS (SELECT 1 FROM follows f2
                          WHERE f2.follower_id = ${me}
                            AND f2.followee_id = p.account_id) AS i_follow
@@ -206,9 +206,9 @@ const socialRoutes: FastifyPluginAsync = async (app) => {
           SELECT p.account_id, p.display_name, p.handle,
                  (p.verification = 'approved') AS verified,
                  (SELECT ph.media_id FROM profile_photos ph
-                  WHERE ph.account_id = p.account_id AND ph.position = 0
+                  WHERE ph.account_id = p.account_id 
                     AND NOT ph.is_private AND ph.media_id IS NOT NULL
-                  LIMIT 1) AS avatar_media_id,
+                  ORDER BY ph.position LIMIT 1) AS avatar_media_id,
                  EXISTS (SELECT 1 FROM follows f2
                          WHERE f2.follower_id = ${me}
                            AND f2.followee_id = p.account_id) AS i_follow
@@ -267,9 +267,9 @@ const socialRoutes: FastifyPluginAsync = async (app) => {
              p.display_name AS author_name, p.handle AS author_handle,
              (p.verification = 'approved') AS author_verified,
              (SELECT ph.media_id FROM profile_photos ph
-              WHERE ph.account_id = c.author_id AND ph.position = 0
+              WHERE ph.account_id = c.author_id 
                 AND NOT ph.is_private AND ph.media_id IS NOT NULL
-              LIMIT 1) AS author_avatar_media_id
+              ORDER BY ph.position LIMIT 1) AS author_avatar_media_id
       FROM comments c
       JOIN profiles p ON p.account_id = c.author_id
       WHERE c.post_id = ${id} AND c.deleted_at IS NULL

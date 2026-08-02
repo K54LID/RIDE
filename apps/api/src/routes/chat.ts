@@ -102,9 +102,9 @@ const chatRoutes: FastifyPluginAsync = async (app) => {
              pp.handle       AS peer_handle,
              (pp.verification = 'approved') AS peer_verified,
              (SELECT ph.media_id FROM profile_photos ph
-              WHERE ph.account_id = peer.account_id AND ph.position = 0
+              WHERE ph.account_id = peer.account_id 
                 AND NOT ph.is_private AND ph.media_id IS NOT NULL
-              LIMIT 1) AS peer_avatar_media_id,
+              ORDER BY ph.position LIMIT 1) AS peer_avatar_media_id,
              CASE WHEN COALESCE(st.show_online, true)
                   THEN (pa.last_seen_at > now() - interval '5 minutes')
                   END AS peer_online,

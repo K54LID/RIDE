@@ -109,9 +109,9 @@ const supportRoutes: FastifyPluginAsync = async (app) => {
              s.account_id, s.media_id, s.state, s.reply, s.handled_at,
              p.display_name, p.handle,
              (SELECT ph.media_id FROM profile_photos ph
-              WHERE ph.account_id = s.account_id AND ph.position = 0
+              WHERE ph.account_id = s.account_id 
                 AND NOT ph.is_private AND ph.media_id IS NOT NULL
-              LIMIT 1) AS avatar_media_id
+              ORDER BY ph.position LIMIT 1) AS avatar_media_id
       FROM support_messages s
       LEFT JOIN profiles p ON p.account_id = s.account_id
       -- Open first, then recently handled: an admin needs to find a

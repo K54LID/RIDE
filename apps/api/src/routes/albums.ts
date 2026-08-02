@@ -35,9 +35,9 @@ const albumRoutes: FastifyPluginAsync = async (app) => {
     const rows = await sql`
       SELECT g.viewer_id, g.granted_at, p.display_name, p.handle,
              (SELECT ph.media_id FROM profile_photos ph
-              WHERE ph.account_id = g.viewer_id AND ph.position = 0
+              WHERE ph.account_id = g.viewer_id 
                 AND NOT ph.is_private AND ph.media_id IS NOT NULL
-              LIMIT 1) AS avatar_media_id
+              ORDER BY ph.position LIMIT 1) AS avatar_media_id
       FROM album_grants g
       JOIN profiles p ON p.account_id = g.viewer_id
       WHERE g.owner_id = ${req.accountId}
