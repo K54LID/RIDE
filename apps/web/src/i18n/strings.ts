@@ -30,6 +30,8 @@ export type Locale = keyof typeof LOCALES;
 export const RTL: ReadonlySet<Locale> = new Set<Locale>(['ar', 'fa']);
 
 const en = {
+  'profile.birthHint': 'Your date of birth. Only your age is shown.',
+  'profile.under18': 'You must be 18 or older.',
   'settings.donate': 'Donate Stars',
   'settings.donate.sub': 'Support the people who run RIDE',
   'donate.hint': 'Choose any amount. Stars go to the team behind RIDE — this is a donation and adds no coins to your balance.',
@@ -445,6 +447,8 @@ const en = {
 export type T = Record<keyof typeof en, string>;
 
 const tr: T = {
+  'profile.birthHint': 'Doğum tarihin. Yalnızca yaşın gösterilir.',
+  'profile.under18': '18 yaşından büyük olmalısın.',
   'settings.donate': 'Stars bağışla',
   'settings.donate.sub': "RIDE'ı yürütenlere destek ol",
   'donate.hint': 'İstediğin tutarı seç. Stars RIDE ekibine gider — bu bir bağıştır ve bakiyene coin eklemez.',
@@ -846,6 +850,8 @@ const tr: T = {
 };
 
 const ru: T = {
+  'profile.birthHint': 'Дата рождения. Показывается только возраст.',
+  'profile.under18': 'Вам должно быть 18 лет или больше.',
   'settings.donate': 'Задонатить Stars',
   'settings.donate.sub': 'Поддержать команду RIDE',
   'donate.hint': 'Выберите любую сумму. Stars идут команде RIDE — это пожертвование, монеты на баланс не начисляются.',
@@ -1247,6 +1253,8 @@ const ru: T = {
 };
 
 const ar: T = {
+  'profile.birthHint': 'تاريخ ميلادك. يظهر عمرك فقط.',
+  'profile.under18': 'يجب أن يكون عمرك ١٨ عامًا أو أكثر.',
   'settings.donate': 'تبرّع بـ Stars',
   'settings.donate.sub': 'ادعم من يديرون RIDE',
   'donate.hint': 'اختر أي مبلغ. تذهب الـ Stars إلى فريق RIDE — هذا تبرّع ولا يضيف عملات إلى رصيدك.',
@@ -1648,6 +1656,8 @@ const ar: T = {
 };
 
 const az: T = {
+  'profile.birthHint': 'Doğum tarixin. Yalnız yaşın göstərilir.',
+  'profile.under18': '18 yaşdan böyük olmalısan.',
   'settings.donate': 'Stars bağışla',
   'settings.donate.sub': 'RIDE-ı idarə edənlərə dəstək ol',
   'donate.hint': 'İstədiyin məbləği seç. Stars RIDE komandasına gedir — bu bağışdır və balansına coin əlavə etmir.',
@@ -2049,6 +2059,8 @@ const az: T = {
 };
 
 const es: T = {
+  'profile.birthHint': 'Tu fecha de nacimiento. Solo se muestra tu edad.',
+  'profile.under18': 'Debes tener 18 años o más.',
   'settings.donate': 'Donar Stars',
   'settings.donate.sub': 'Apoya a quienes mantienen RIDE',
   'donate.hint': 'Elige la cantidad que quieras. Las Stars van al equipo de RIDE: es una donación y no añade monedas a tu saldo.',
@@ -2450,6 +2462,8 @@ const es: T = {
 };
 
 const de: T = {
+  'profile.birthHint': 'Dein Geburtsdatum. Angezeigt wird nur dein Alter.',
+  'profile.under18': 'Du musst 18 oder älter sein.',
   'settings.donate': 'Stars spenden',
   'settings.donate.sub': 'Unterstütze die Leute hinter RIDE',
   'donate.hint': 'Wähle einen beliebigen Betrag. Die Stars gehen an das RIDE-Team — das ist eine Spende und bringt dir keine Coins.',
@@ -2851,6 +2865,8 @@ const de: T = {
 };
 
 const fr: T = {
+  'profile.birthHint': 'Ta date de naissance. Seul ton âge est affiché.',
+  'profile.under18': 'Tu dois avoir 18 ans ou plus.',
   'settings.donate': 'Faire un don en Stars',
   'settings.donate.sub': 'Soutiens ceux qui font tourner RIDE',
   'donate.hint': 'Choisis le montant que tu veux. Les Stars vont à l’équipe de RIDE — c’est un don, et cela n’ajoute aucune pièce à ton solde.',
@@ -3252,6 +3268,8 @@ const fr: T = {
 };
 
 const it: T = {
+  'profile.birthHint': 'La tua data di nascita. Viene mostrata solo l’età.',
+  'profile.under18': 'Devi avere 18 anni o più.',
   'settings.donate': 'Dona Stars',
   'settings.donate.sub': 'Sostieni chi manda avanti RIDE',
   'donate.hint': 'Scegli l’importo che vuoi. Le Stars vanno al team di RIDE: è una donazione e non aggiunge monete al tuo saldo.',
@@ -3653,6 +3671,8 @@ const it: T = {
 };
 
 const pt: T = {
+  'profile.birthHint': 'Sua data de nascimento. Só a idade é exibida.',
+  'profile.under18': 'Você precisa ter 18 anos ou mais.',
   'settings.donate': 'Doar Stars',
   'settings.donate.sub': 'Apoie quem mantém o RIDE',
   'donate.hint': 'Escolha o valor que quiser. As Stars vão para a equipe do RIDE — é uma doação e não adiciona moedas ao seu saldo.',
@@ -4058,6 +4078,8 @@ const pt: T = {
     most often translated; the rest fall back to English text
     rather than to a missing key. */
 const fa: T = {
+  'profile.birthHint': 'تاریخ تولد شما. فقط سن شما نمایش داده می‌شود.',
+  'profile.under18': 'باید ۱۸ سال یا بیشتر داشته باشید.',
   'settings.donate': 'اهدای Stars',
   'settings.donate.sub': 'از کسانی که RIDE را می‌گردانند حمایت کنید',
   'donate.hint': 'هر مبلغی که بخواهید انتخاب کنید. Stars به تیم RIDE می‌رسد — این یک کمک مالی است و سکه‌ای به موجودی شما اضافه نمی‌کند.',

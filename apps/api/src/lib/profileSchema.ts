@@ -6,6 +6,12 @@ const shortText = z.string().trim().max(60);
 const tagList = z.array(z.string().trim().min(1).max(40)).max(20);
 
 export const ProfileCoreSchema = z.object({
+  /**
+   * Optional here so PATCH can accept it. Onboarding re-declares it as
+   * required. The 18+ rule is enforced in the route, not the shape:
+   * a regex can say "this is a date", not "this person is an adult".
+   */
+  birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD').optional(),
   display_name: z.string().trim().min(1).max(50),
   /**
    * Required. The handle is how a person is addressed everywhere except

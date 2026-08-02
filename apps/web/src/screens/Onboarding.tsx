@@ -11,9 +11,14 @@ import { useT } from '../i18n';
  * everything after can be skipped and filled in later from the profile.
  */
 
-const GENDERS = ['Man', 'Woman', 'Non-binary', 'Trans man', 'Trans woman', 'Prefer not to say'] as const;
+/**
+ * No "Woman" and no "Straight": this is a gay men's app, so those
+ * options describe people it is not for. Trans men and non-binary
+ * people stay — they are part of the audience.
+ */
+const GENDERS = ['Man', 'Trans man', 'Non-binary', 'Prefer not to say'] as const;
 const PRONOUNS = ['he/him', 'she/her', 'they/them', 'any'] as const;
-const ORIENTATIONS = ['Gay', 'Bi', 'Queer', 'Pan', 'Straight', 'Asexual', 'Questioning'] as const;
+const ORIENTATIONS = ['Gay', 'Bi', 'Queer', 'Pan', 'Asexual', 'Questioning'] as const;
 const LOOKING_FOR = ['Friends', 'Chat', 'Dates', 'Relationship', 'Networking', 'Events', 'Right now'] as const;
 const STATUS = ['Single', 'Dating', 'Partnered', 'Open', 'Married', "It's complicated"] as const;
 const TRIBES = ['Bear', 'Twink', 'Otter', 'Jock', 'Daddy', 'Geek', 'Leather', 'Trans', 'Poz', 'Discreet'] as const;

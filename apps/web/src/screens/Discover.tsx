@@ -12,7 +12,7 @@ import Page from '../components/Page';
 type View = 'grid' | 'global';
 type Sort = 'active' | 'new' | 'court' | 'nearby';
 
-const GENDERS = ['Man', 'Woman', 'Non-binary', 'Trans man', 'Trans woman'] as const;
+const GENDERS = ['Man', 'Trans man', 'Non-binary'] as const;
 const LOOKING = ['Friends', 'Chat', 'Dates', 'Relationship', 'Networking', 'Events'] as const;
 const LANGS = ['English', 'Русский', 'Türkçe', 'Español', 'Deutsch', 'Français', 'العربية', 'Azərbaycan'] as const;
 const INTERESTS = ['Gaming', 'Fitness', 'Travel', 'Music', 'Movies', 'Photography', 'Cooking', 'Art', 'Tech', 'Sports', 'Pets', 'Nightlife'] as const;

@@ -53,8 +53,28 @@ const profileRoutes: FastifyPluginAsync = async (app) => {
     const b = parsed.data;
     if (Object.keys(b).length === 0) throw new HttpError(400, 'NOTHING_TO_UPDATE');
 
-    // birth_date is intentionally absent: age is set once at the 18+ gate
-    // and is not user-editable afterwards.
+    /**
+     * birth_date is editable, but the 18+ gate is re-checked here.
+     *
+     * People mistype their date at signup and were then stuck with a
+     * wrong age forever. Allowing the edit means the age check cannot
+     * live only at onboarding — anyone could otherwise correct their
+     * way to 17. The server computes the age itself rather than
+     * trusting anything the client says about it.
+     */
+    if (b.birth_date !== undefined) {
+      const born = new Date(`${b.birth_date}T00:00:00Z`);
+      if (Number.isNaN(born.getTime())) {
+        throw new HttpError(400, 'INVALID_BODY', 'Enter a valid date of birth.');
+      }
+      const now = new Date();
+      let age = now.getUTCFullYear() - born.getUTCFullYear();
+      const m = now.getUTCMonth() - born.getUTCMonth();
+      if (m < 0 || (m === 0 && now.getUTCDate() < born.getUTCDate())) age -= 1;
+      if (age < 18) throw new HttpError(400, 'UNDER_18', 'You must be 18 or older.');
+      if (age > 120) throw new HttpError(400, 'INVALID_BODY', 'Enter a valid date of birth.');
+    }
+
     try {
       await sql`
         UPDATE profiles SET
@@ -69,6 +89,7 @@ const profileRoutes: FastifyPluginAsync = async (app) => {
           looking_for         = COALESCE(${b.looking_for ?? null}, looking_for),
           interests           = COALESCE(${b.interests ?? null}, interests),
           languages           = COALESCE(${b.languages ?? null}, languages),
+          birth_date          = COALESCE(${b.birth_date ?? null}::date, birth_date),
           tribes              = COALESCE(${b.tribes ?? null}, tribes),
           height_cm           = COALESCE(${b.height_cm ?? null}, height_cm),
           weight_kg           = COALESCE(${b.weight_kg ?? null}, weight_kg),

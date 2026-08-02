@@ -1,13 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch, ApiError, type Me } from '../lib/api';
 import { tg } from '../lib/tg';
+import { ageFrom } from '../lib/age';
 import { useT } from '../i18n';
 import { Button, ChipGroup, ChipPick, Field } from '../components/ui';
 import PhotoManager from '../components/PhotoManager';
 
-const GENDERS = ['Man', 'Woman', 'Non-binary', 'Trans man', 'Trans woman', 'Prefer not to say'] as const;
+/**
+ * No "Woman" and no "Straight": this is a gay men's app, so those
+ * options describe people it is not for. Trans men and non-binary
+ * people stay — they are part of the audience.
+ */
+const GENDERS = ['Man', 'Trans man', 'Non-binary', 'Prefer not to say'] as const;
 const PRONOUNS = ['he/him', 'she/her', 'they/them', 'any'] as const;
-const ORIENTATIONS = ['Gay', 'Bi', 'Queer', 'Pan', 'Straight', 'Asexual', 'Questioning'] as const;
+const ORIENTATIONS = ['Gay', 'Bi', 'Queer', 'Pan', 'Asexual', 'Questioning'] as const;
 const STATUS = ['Single', 'Dating', 'Partnered', 'Open', 'Married', "It's complicated"] as const;
 const LOOKING = ['Friends', 'Chat', 'Dates', 'Relationship', 'Networking', 'Events'] as const;
 const TRIBES = ['Bear', 'Twink', 'Otter', 'Jock', 'Daddy', 'Geek', 'Leather', 'Trans', 'Discreet'] as const;
@@ -23,6 +29,10 @@ export default function EditProfile({ me, onSaved, onBack }: {
 
   const [displayName, setDisplayName] = useState(me.display_name);
   const [handle, setHandle] = useState(me.handle);
+  // Trimmed to the date part: /v1/me sends a full ISO timestamp because
+  // postgres.js decodes date columns as Date objects, and an <input
+  // type="date"> only accepts YYYY-MM-DD.
+  const [birthDate, setBirthDate] = useState(String(me.birth_date ?? '').slice(0, 10));
   const [bio, setBio] = useState(me.bio ?? '');
   const [gender, setGender] = useState(me.gender);
   const [pronouns, setPronouns] = useState(me.pronouns);
@@ -75,9 +85,21 @@ export default function EditProfile({ me, onSaved, onBack }: {
     return () => clearTimeout(id);
   }, [handle, handleValid, me.handle]);
 
+  /** Today minus 18 years — the latest date that can be an adult. */
+  const maxBirthDate = (() => {
+    const d = new Date();
+    d.setUTCFullYear(d.getUTCFullYear() - 18);
+    return d.toISOString().slice(0, 10);
+  })();
+  const birthAge = ageFrom(birthDate);
+
   const payload = useCallback(() => ({
     display_name: displayName.trim(),
     handle,
+    // Sent only when it parses and clears the gate; an in-progress date
+    // must not fire a rejected autosave on every keystroke.
+    birth_date: /^\d{4}-\d{2}-\d{2}$/.test(birthDate)
+      && (ageFrom(birthDate) ?? 0) >= 18 ? birthDate : undefined,
     bio: bio.trim() || undefined,
     gender: gender ?? undefined,
     pronouns: pronouns ?? undefined,
@@ -89,7 +111,7 @@ export default function EditProfile({ me, onSaved, onBack }: {
     languages,
     height_cm: heightCm ? Number(heightCm) : undefined,
     weight_kg: weightKg ? Number(weightKg) : undefined,
-  }), [displayName, handle, bio, gender, pronouns, orientation, status,
+  }), [displayName, handle, birthDate, bio, gender, pronouns, orientation, status,
        looking, tribes, interests, languages, heightCm, weightKg]);
 
   /**
@@ -251,6 +273,17 @@ export default function EditProfile({ me, onSaved, onBack }: {
       <Field label={t('profile.bio')}>
         <textarea value={bio} rows={4} maxLength={500}
                   onChange={(e) => setBio(e.target.value)} />
+      </Field>
+
+      {/* Editable now: people mistype this at signup and were stuck
+          with a wrong age forever. The server re-checks 18+, so a
+          correction cannot become a way around the gate. */}
+      <Field label={t('profile.age')}
+             hint={birthAge === null ? t('profile.birthHint')
+               : birthAge < 18 ? t('profile.under18')
+               : `${birthAge}`}>
+        <input className="input" type="date" value={birthDate} max={maxBirthDate}
+               onChange={(e) => setBirthDate(e.target.value)} />
       </Field>
 
       <Field label={t('profile.gender')}><ChipPick options={GENDERS} value={gender} onChange={setGender} /></Field>

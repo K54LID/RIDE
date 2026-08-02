@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { apiFetch, type Me, type OwnedGift, type ProfilePhoto, type RankEntryMini , type CourtInfo } from '../lib/api';
 import { tg } from '../lib/tg';
+import { ageFrom } from '../lib/age';
 import { useT } from '../i18n';
 import PhotoManager from '../components/PhotoManager';
 import PhotoCarousel from '../components/PhotoCarousel';
@@ -10,27 +11,6 @@ import Avatar from '../components/Avatar';
 import { VerifiedMark } from '../components/VerifiedMark';
 import { Button } from '../components/ui';
 import Sheet from '../components/Sheet';
-
-/**
- * Age from a birth date, whatever shape it arrives in.
- *
- * `birth_date` is a Postgres `date`, and postgres.js decodes those into
- * JavaScript Date objects — so it serialises as a full ISO timestamp
- * ("1998-01-01T00:00:00.000Z"), not "1998-01-01". Appending "T00:00:00Z"
- * to that produced an invalid date, so age silently came back null and
- * never appeared in Details. Take the date part of whatever we are
- * given rather than assuming the format.
- */
-function ageFrom(birth: string | null | undefined): number | null {
-  if (!birth) return null;
-  const b = new Date(`${String(birth).slice(0, 10)}T00:00:00Z`);
-  if (Number.isNaN(b.getTime())) return null;
-  const now = new Date();
-  let a = now.getUTCFullYear() - b.getUTCFullYear();
-  const m = now.getUTCMonth() - b.getUTCMonth();
-  if (m < 0 || (m === 0 && now.getUTCDate() < b.getUTCDate())) a -= 1;
-  return a;
-}
 
 /**
  * Profile, restructured around a single header block.
