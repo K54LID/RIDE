@@ -129,7 +129,18 @@ export default function App() {
   }
 
   if (phase === 'onboarding') {
-    return <Onboarding onDone={() => { setPhase('loading'); load(); }} />;
+    /**
+     * Finishing onboarding lands on Home, explicitly.
+     *
+     * The route is read from the URL hash, and the Telegram webview
+     * keeps that hash across sessions. Someone who had been on
+     * #/settings before — including anyone who just deleted an account
+     * and signed up again, since deletion is reached from Settings —
+     * finished registration and was dropped straight back into
+     * Settings. Nothing in onboarding chose that; it was simply the
+     * last route the hash remembered.
+     */
+    return <Onboarding onDone={() => { go('home'); setPhase('loading'); load(); }} />;
   }
 
   const meId = me?.account_id ?? '';
