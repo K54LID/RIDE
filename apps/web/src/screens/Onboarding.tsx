@@ -59,7 +59,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
     return tg.backButton(() => setStep((s) => Math.max(0, s - 1)));
   }, [step]);
 
-  const handleValid = /^[a-zA-Z0-9_]{3,24}$/.test(handle);
+  const handleValid = /^[a-zA-Z0-9_]{1,24}$/.test(handle);
 
   useEffect(() => {
     if (!handleValid) { setHandleState('idle'); return; }
@@ -193,11 +193,11 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
           <Field
             label="Username"
             hint={
-              !handleValid ? 'Required. Letters, numbers and underscores only, 3–24 characters.'
+              !handleValid ? 'Required. Letters, numbers and underscores only, 1–24 characters.'
               : handleState === 'checking' ? 'Checking availability…'
               : handleState === 'taken' ? '✕ That username is not available — try another one.'
               : handleState === 'free' ? '✓ Available.'
-              : '3–24 letters, numbers or underscores.'
+              : '1–24 letters, numbers or underscores.'
             }
           >
             <input value={handle} maxLength={24} placeholder="ride_handle"

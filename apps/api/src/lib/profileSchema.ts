@@ -15,7 +15,7 @@ export const ProfileCoreSchema = z.object({
   handle: z
     .string()
     .trim()
-    .regex(/^[a-zA-Z0-9_]{3,24}$/, 'Handle: 3–24 letters, numbers or underscores'),
+    .regex(/^[a-zA-Z0-9_]{1,24}$/, 'Username: 1–24 letters, numbers or underscores'),
   bio: z.string().trim().max(500).optional(),
   gender: shortText.optional(),
   pronouns: shortText.optional(),

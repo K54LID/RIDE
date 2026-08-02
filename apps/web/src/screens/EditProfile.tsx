@@ -40,7 +40,7 @@ export default function EditProfile({ me, onSaved, onBack }: {
   const [error, setError] = useState<string | null>(null);
 
   // A handle is required now — it is how everyone is addressed.
-  const handleValid = /^[a-zA-Z0-9_]{3,24}$/.test(handle);
+  const handleValid = /^[a-zA-Z0-9_]{1,24}$/.test(handle);
 
   /**
    * Same live availability check as registration. Changing your handle
@@ -105,29 +105,53 @@ export default function EditProfile({ me, onSaved, onBack }: {
    * failed save stays dirty so the next tick retries it.
    */
   const saved = useRef(JSON.stringify(payload()));
-  const inFlight = useRef(false);
+  /**
+   * The write currently in flight, if any.
+   *
+   * This used to be a boolean, and `persist` returned immediately when
+   * it was set. Leaving the screen mid-write therefore skipped the
+   * final save *and* navigated away, so the last thing typed was lost —
+   * exactly the case autosave exists to prevent. Holding the promise
+   * lets the exit path wait for the write instead of abandoning it.
+   */
+  const inFlight = useRef<Promise<void> | null>(null);
 
-  const persist = useCallback(async (opts?: { silent?: boolean }) => {
-    const next = JSON.stringify(payload());
-    if (next === saved.current || inFlight.current) return;
-    // An invalid handle would be rejected; keep the edit on screen and
-    // wait rather than nagging on every keystroke.
-    if (!/^[a-zA-Z0-9_]{3,24}$/.test(handle)) return;
-
-    inFlight.current = true;
-    try {
-      await apiFetch('/v1/me', { method: 'PATCH', body: next });
-      saved.current = next;
-      setError(null);
-      if (!opts?.silent) setJustSaved(Date.now());
-    } catch (err) {
-      if (err instanceof ApiError && err.code === 'HANDLE_TAKEN') {
-        setHandleState('taken');
-        setError('That username is not available. Try another one.');
-      }
-    } finally {
-      inFlight.current = false;
+  const persist = useCallback(async (opts?: { silent?: boolean }): Promise<void> => {
+    // Let any write already running finish before deciding what is
+    // still unsaved, or the comparison below reads a stale baseline.
+    if (inFlight.current) {
+      try { await inFlight.current; } catch { /* handled by its own caller */ }
     }
+
+    const next = JSON.stringify(payload());
+    if (next === saved.current) return;
+    // An invalid username would be rejected; keep the edit on screen
+    // rather than nagging on every keystroke.
+    if (!/^[a-zA-Z0-9_]{1,24}$/.test(handle)) return;
+
+    const run = (async () => {
+      try {
+        await apiFetch('/v1/me', { method: 'PATCH', body: next });
+        saved.current = next;
+        setError(null);
+        if (!opts?.silent) setJustSaved(Date.now());
+      } catch (err) {
+        // Every failure surfaces. Swallowing anything but HANDLE_TAKEN
+        // meant a rejected field looked exactly like a successful save,
+        // which is the worst possible outcome for an autosaving form.
+        if (err instanceof ApiError && err.code === 'HANDLE_TAKEN') {
+          setHandleState('taken');
+          setError('That username is not available. Try another one.');
+        } else {
+          setError(err instanceof ApiError ? err.message : 'Could not save. Check your connection.');
+        }
+      } finally {
+        inFlight.current = null;
+      }
+    })();
+
+    inFlight.current = run;
+    await run;
   }, [payload, handle]);
 
   // Debounced: one write per pause, not one per keystroke.
@@ -137,8 +161,31 @@ export default function EditProfile({ me, onSaved, onBack }: {
   }, [persist]);
 
   // Back is a save, not a discard.
-  useEffect(() => tg.backButton(() => { void persist({ silent: true }).then(onBack); }),
-            [persist, onBack]);
+  /**
+   * Back saves, then leaves — in that order. Navigating first would
+   * unmount the component and cancel the write with it.
+   */
+  const leave = useCallback(async () => {
+    await persist({ silent: true });
+    onBack();
+  }, [persist, onBack]);
+
+  useEffect(() => tg.backButton(() => { void leave(); }), [leave]);
+
+  /**
+   * Closing the Mini App outright is a third way out, and it fires no
+   * back handler. Flush on the way to hidden so work is not lost by
+   * swiping the app away mid-edit.
+   */
+  useEffect(() => {
+    const flush = () => { if (document.hidden) void persist({ silent: true }); };
+    document.addEventListener('visibilitychange', flush);
+    window.addEventListener('pagehide', flush);
+    return () => {
+      document.removeEventListener('visibilitychange', flush);
+      window.removeEventListener('pagehide', flush);
+    };
+  }, [persist]);
 
   const save = async () => {
     setBusy(true);
@@ -192,7 +239,7 @@ export default function EditProfile({ me, onSaved, onBack }: {
       </Field>
       <Field label={t('profile.handle')}
              hint={
-               !handleValid ? 'Letters, numbers and underscores only, 3–24 characters.'
+               !handleValid ? 'Letters, numbers and underscores only, 1–24 characters.'
                : handleState === 'checking' ? 'Checking availability…'
                : handleState === 'taken' ? '✕ That username is not available — try another one.'
                : handleState === 'free' ? '✓ Available.'
@@ -238,7 +285,7 @@ export default function EditProfile({ me, onSaved, onBack }: {
           the screen autosaves as you type, so "cancel" was a promise it
           could not keep. It writes anything still pending and exits. */}
       <Button variant="ghost"
-              onClick={() => { void persist({ silent: true }).then(onBack); }}>
+              onClick={() => { void leave(); }}>
         {t('common.back')}
       </Button>
     </div>

@@ -30,7 +30,7 @@ const onboardingRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/handles/available', async (req) => {
     app.verifyTma(req);
     const { handle } = z.object({
-      handle: z.string().trim().regex(/^[a-zA-Z0-9_]{3,24}$/),
+      handle: z.string().trim().regex(/^[a-zA-Z0-9_]{1,24}$/),
     }).parse(req.query);
 
     const rows = await sql`
