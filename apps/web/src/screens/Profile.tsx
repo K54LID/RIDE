@@ -11,8 +11,19 @@ import { VerifiedMark } from '../components/VerifiedMark';
 import { Button } from '../components/ui';
 import Sheet from '../components/Sheet';
 
-function ageFrom(birth: string): number | null {
-  const b = new Date(`${birth}T00:00:00Z`);
+/**
+ * Age from a birth date, whatever shape it arrives in.
+ *
+ * `birth_date` is a Postgres `date`, and postgres.js decodes those into
+ * JavaScript Date objects — so it serialises as a full ISO timestamp
+ * ("1998-01-01T00:00:00.000Z"), not "1998-01-01". Appending "T00:00:00Z"
+ * to that produced an invalid date, so age silently came back null and
+ * never appeared in Details. Take the date part of whatever we are
+ * given rather than assuming the format.
+ */
+function ageFrom(birth: string | null | undefined): number | null {
+  if (!birth) return null;
+  const b = new Date(`${String(birth).slice(0, 10)}T00:00:00Z`);
   if (Number.isNaN(b.getTime())) return null;
   const now = new Date();
   let a = now.getUTCFullYear() - b.getUTCFullYear();
