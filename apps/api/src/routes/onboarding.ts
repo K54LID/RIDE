@@ -27,6 +27,30 @@ const onboardingRoutes: FastifyPluginAsync = async (app) => {
    * profiles.handle is the guarantee: someone can always take the name
    * between this answer and the submit, and the 409 path handles that.
    */
+  /**
+   * The language this person chose, wherever they chose it.
+   *
+   * Deliberately on the onboarding router, which is verifyTma rather
+   * than requireAuth: someone who picked a language in the bot but has
+   * not registered yet still has a choice, and the Mini App has to
+   * honour it on the very first screen they see.
+   */
+  app.get('/v1/locale', async (req) => {
+    const tma = app.verifyTma(req);
+    const telegramId = tma.user?.id;
+    if (!telegramId) return { locale: null };
+
+    const [row] = await sql<Array<{ locale: string | null }>>`
+      SELECT COALESCE(
+        (SELECT bp.locale FROM bot_preferences bp WHERE bp.telegram_id = ${String(telegramId)}),
+        (SELECT us.locale FROM user_settings us
+         JOIN telegram_identities ti ON ti.account_id = us.account_id
+         WHERE ti.telegram_id = ${String(telegramId)})
+      ) AS locale
+    `;
+    return { locale: row?.locale ?? null };
+  });
+
   app.get('/v1/handles/available', async (req) => {
     app.verifyTma(req);
     const { handle } = z.object({

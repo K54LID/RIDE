@@ -239,14 +239,14 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
 
       {step === 0 && (
         <>
-          <h1>Who are you here as?</h1>
+          <h1>{t('onb.who')}</h1>
           <p style={{ marginBottom: 26 }}>Your username is how people see you across RIDE. Your name shows on your profile and in Discover. Neither is your Telegram username.</p>
-          <Field label="Display name">
-            <input value={displayName} maxLength={50} placeholder="What people call you"
+          <Field label={t('onb.displayName')}>
+            <input value={displayName} maxLength={50} placeholder={t('onb.displayNameHint')}
                    onChange={(e) => setDisplayName(e.target.value)} />
           </Field>
           <Field
-            label="Username"
+            label={t('onb.username')}
             hint={
               !handleValid ? 'Required. Letters, numbers and underscores only, 1–24 characters.'
               : handleState === 'checking' ? 'Checking availability…'
@@ -259,48 +259,47 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
                    autoCapitalize="none" autoCorrect="off"
                    onChange={(e) => setHandle(e.target.value.replace(/\s/g, ''))} />
           </Field>
-          <Field label="Birthday" hint={age !== null && age < 18 ? 'RIDE is 18+.' : 'Shown as your age.'}>
+          <Field label={t('onb.birthday')} hint={age !== null && age < 18 ? 'RIDE is 18+.' : 'Shown as your age.'}>
             <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
           </Field>
           {error ? <p className="error">{error}</p> : null}
-          <Button onClick={next} disabled={!step0Valid}>Continue</Button>
+          <Button onClick={next} disabled={!step0Valid}>{t('onb.continue')}</Button>
         </>
       )}
 
       {step === 1 && (
         <>
-          <h1>How should people read you?</h1>
-          <p style={{ marginBottom: 26 }}>All optional. Skip anything you'd rather keep to yourself.</p>
-          <Field label="Gender"><ChipPick options={GENDERS} value={gender} onChange={setGender} /></Field>
-          <Field label="Pronouns"><ChipPick options={PRONOUNS} value={pronouns} onChange={setPronouns} /></Field>
-          <Field label="Orientation"><ChipPick options={ORIENTATIONS} value={orientation} onChange={setOrientation} /></Field>
-          <Field label="Relationship"><ChipPick options={STATUS} value={status} onChange={setStatus} /></Field>
-          <Button onClick={next}>Continue</Button>
+          <h1>{t('onb.read')}</h1>
+          <p style={{ marginBottom: 26 }}>{t('onb.whoSub')}</p>
+          <Field label={t('onb.gender')}><ChipPick options={GENDERS} value={gender} onChange={setGender} /></Field>
+          <Field label={t('onb.pronouns')}><ChipPick options={PRONOUNS} value={pronouns} onChange={setPronouns} /></Field>
+          <Field label={t('onb.orientation')}><ChipPick options={ORIENTATIONS} value={orientation} onChange={setOrientation} /></Field>
+          <Field label={t('onb.relationship')}><ChipPick options={STATUS} value={status} onChange={setStatus} /></Field>
+          <Button onClick={next}>{t('onb.continue')}</Button>
           {stepNav}
         </>
       )}
 
       {step === 2 && (
         <>
-          <h1>What are you here for?</h1>
-          <p style={{ marginBottom: 26 }}>This shapes who RIDE puts in front of you.</p>
-          <Field label="Looking for"><ChipGroup options={LOOKING_FOR} selected={lookingFor} onChange={setLookingFor} /></Field>
-          <Field label="Tribes"><ChipGroup options={TRIBES} selected={tribes} onChange={setTribes} max={4} /></Field>
-          <Field label="Interests" hint="Pick up to 8.">
+          <h1>{t('onb.what')}</h1>
+          <p style={{ marginBottom: 26 }}>{t('onb.readSub')}</p>
+          <Field label={t('onb.lookingFor')}><ChipGroup options={LOOKING_FOR} selected={lookingFor} onChange={setLookingFor} /></Field>
+          <Field label={t('onb.tribes')}><ChipGroup options={TRIBES} selected={tribes} onChange={setTribes} max={4} /></Field>
+          <Field label={t('onb.interests')} hint="{t('onb.interestsHint')}">
             <ChipGroup options={INTERESTS} selected={interests} onChange={setInterests} max={8} />
           </Field>
-          <Field label="Languages"><ChipGroup options={LANGUAGES} selected={languages} onChange={setLanguages} /></Field>
-          <Button onClick={next}>Continue</Button>
+          <Field label={t('onb.languages')}><ChipGroup options={LANGUAGES} selected={languages} onChange={setLanguages} /></Field>
+          <Button onClick={next}>{t('onb.continue')}</Button>
           {stepNav}
         </>
       )}
 
       {step === PHOTO_STEP && (
         <>
-          <h1>Add a photo</h1>
+          <h1>{t('onb.photo')}</h1>
           <p style={{ marginBottom: 26 }}>
-            One photo is required. It becomes your profile picture, and you can
-            change or add more at any time from Edit profile.
+{t('onb.photoSub')}
           </p>
           <input ref={photoInput} type="file" accept="image/*" hidden
                  onChange={(e) => {
@@ -310,7 +309,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
                  }} />
           <Button onClick={() => { tg.tap('medium'); photoInput.current?.click(); }}
                   disabled={photoBusy}>
-            {photoBusy ? 'Uploading…' : 'Choose a photo'}
+            {photoBusy ? t('onb.uploading') : t('onb.choosePhoto')}
           </Button>
           {error ? <p className="error">{error}</p> : null}
         </>
@@ -318,18 +317,18 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
 
       {step === 3 && (
         <>
-          <h1>Anything else?</h1>
-          <p style={{ marginBottom: 26 }}>Last step. You can edit all of this from your profile.</p>
+          <h1>{t('onb.else')}</h1>
+          <p style={{ marginBottom: 26 }}>{t('onb.elseSub')}</p>
           <Field label="Bio">
             <textarea value={bio} maxLength={500} rows={4} placeholder="A few words about you"
                       onChange={(e) => setBio(e.target.value)} />
           </Field>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="Height (cm)">
+            <Field label={t('onb.height')}>
               <input type="number" inputMode="numeric" min={100} max={250} value={heightCm}
                      placeholder="—" onChange={(e) => setHeightCm(e.target.value)} />
             </Field>
-            <Field label="Weight (kg)">
+            <Field label={t('onb.weight')}>
               <input type="number" inputMode="numeric" min={30} max={300} value={weightKg}
                      placeholder="—" onChange={(e) => setWeightKg(e.target.value)} />
             </Field>

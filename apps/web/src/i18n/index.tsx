@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { LOCALES, TABLES, type Locale, type T } from './strings';
+import { tg } from '../lib/tg';
 
 export { LOCALES, type Locale };
 
@@ -34,6 +35,34 @@ function detect(): Locale {
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(detect);
+
+  /**
+   * Adopt the language chosen on the server.
+   *
+   * `detect` can only see this device — localStorage, then Telegram's
+   * hint. Someone who picked a language in the bot chat would open the
+   * Mini App and find it in a different one. This asks the server what
+   * they actually chose; the endpoint answers before registration too,
+   * so it works on the very first screen.
+   *
+   * Runs once at mount. A later in-app change writes through to the
+   * server, so re-fetching would only ever confirm what is already set.
+   */
+  useEffect(() => {
+    let alive = true;
+    fetch(`${import.meta.env.VITE_API_BASE ?? 'https://api.ridethatbot.fun'}/v1/locale`, {
+      headers: { Authorization: `tma ${tg.initData()}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { locale?: string | null } | null) => {
+        const server = body?.locale;
+        if (!alive || !server || !(server in LOCALES)) return;
+        setLocaleState(server as Locale);
+        try { localStorage.setItem(STORAGE_KEY, server); } catch { /* storage off */ }
+      })
+      .catch(() => undefined);
+    return () => { alive = false; };
+  }, []);
 
   // Switching language must update direction too, or Arabic renders
   // left-to-right with mirrored punctuation.

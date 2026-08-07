@@ -1,3 +1,4 @@
+import { useT } from '../i18n';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { tg } from '../lib/tg';
 
@@ -30,6 +31,7 @@ export default function Media({ id, kind, alt = '', thumb = false }: {
   alt?: string;
   thumb?: boolean;
 }) {
+  const t = useT();
   const isVideo = kind === 'video';
 
   // For video this is the poster frame; for images, the image itself.
@@ -102,7 +104,7 @@ export default function Media({ id, kind, alt = '', thumb = false }: {
                placeholder beats a blank rectangle. */
             <div className="video-blank" style={{ aspectRatio: '4/3' }} />
           )}
-        {videoError ? <span className="video-failed">Video unavailable</span> : null}
+        {videoError ? <span className="video-failed">{t('media.videoUnavailable')}</span> : null}
         <span className={`video-play ${loadingVideo ? 'loading' : ''}`} aria-hidden="true">
           {loadingVideo ? (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"

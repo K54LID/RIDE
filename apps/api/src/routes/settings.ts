@@ -50,6 +50,29 @@ const settingsRoutes: FastifyPluginAsync = async (app) => {
     return { ...s, ...p, blocked, role: req.role };
   });
 
+  /**
+   * Language is one setting shared by two surfaces.
+   *
+   * Changing it in the app must also change what the bot sends, or the
+   * person ends up reading Persian in the Mini App and English in their
+   * chat — the same complaint from the other direction. bot_preferences
+   * is keyed by Telegram id, so the identity row is the bridge.
+   */
+  const syncBotLocale = async (accountId: string, locale: string) => {
+    try {
+      await sql`
+        INSERT INTO bot_preferences (telegram_id, locale)
+        SELECT ti.telegram_id, ${locale}
+        FROM telegram_identities ti WHERE ti.account_id = ${accountId}
+        ON CONFLICT (telegram_id)
+          DO UPDATE SET locale = ${locale}, updated_at = now()
+      `;
+    } catch {
+      // The app setting is already saved; bot copy is not worth failing
+      // the request over.
+    }
+  };
+
   app.patch('/v1/settings', { preHandler: [app.requireAuth] }, async (req) => {
     const parsed = PatchSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -82,6 +105,8 @@ const settingsRoutes: FastifyPluginAsync = async (app) => {
         updated_at         = now()
       WHERE account_id = ${req.accountId}
     `;
+
+    if (b.locale) await syncBotLocale(req.accountId!, b.locale);
 
     return { ok: true };
   });

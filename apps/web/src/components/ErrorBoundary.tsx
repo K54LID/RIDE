@@ -1,3 +1,22 @@
+import { TABLES, LOCALES, type Locale } from '../i18n/strings';
+
+/**
+ * Crash-screen copy, read straight from storage.
+ *
+ * This renders when the React tree has already failed, so it cannot use
+ * the i18n hook — the provider may be part of what broke. Reading the
+ * saved locale directly means someone still sees their own language at
+ * the one moment the app has nothing else to offer them.
+ */
+function crashText(which: 'title' | 'body'): string {
+  let locale: Locale = 'en';
+  try {
+    const saved = localStorage.getItem('ride.locale');
+    if (saved && saved in LOCALES) locale = saved as Locale;
+  } catch { /* storage unavailable */ }
+  return TABLES[locale][which === 'title' ? 'error.title' : 'error.body'];
+}
+
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 /**
@@ -30,8 +49,8 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, St
     return (
       <div className="screen">
         <div className="empty">
-          <h2>Something went wrong</h2>
-          <p>The app hit an error it could not recover from on its own.</p>
+          <h2>{crashText('title')}</h2>
+          <p>{crashText('body')}</p>
           <div style={{ marginTop: 20 }}>
             <button className="btn" onClick={() => window.location.reload()}>
               Reload RIDE
