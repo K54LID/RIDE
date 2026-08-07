@@ -1,7 +1,8 @@
 import { sql } from './db.js';
 import { config } from '../config.js';
 import {
-  handleBotCommand, handleLocationMessage, handleStopLocation,
+  handleBotCommand, handleLanguageChoice, handleLocationMessage,
+  handleStopLocation, resolveLocale,
 } from './botCommands.js';
 
 /**
@@ -25,6 +26,13 @@ export interface TelegramUpdate {
       total_amount: number;
     };
   };
+  /** Inline-keyboard press — currently only the language picker. */
+  callback_query?: {
+    id: string;
+    data?: string;
+    from?: { id?: number; language_code?: string };
+    message?: { chat?: { id: number } };
+  };
   pre_checkout_query?: {
     id: string;
     invoice_payload: string;
@@ -47,6 +55,18 @@ export async function processTelegramUpdate(
   update: TelegramUpdate,
   log: (obj: unknown, msg: string) => void,
 ): Promise<void> {
+  /**
+   * Language picked from the inline keyboard. Answered first so
+   * Telegram stops showing the button's loading spinner, then the whole
+   * introduction goes out in the chosen language.
+   */
+  const cq = update.callback_query;
+  if (cq?.data?.startsWith('lang:') && cq.message?.chat && cq.from?.id) {
+    await botApi('answerCallbackQuery', { callback_query_id: cq.id });
+    await handleLanguageChoice(cq.from.id, cq.message.chat.id, cq.data.slice(5));
+    return;
+  }
+
   // A shared location from the /start keyboard — grid-snapped and
   // stored so Discover's distance and "nearby" sort have data.
   const msg = update.message;
@@ -54,7 +74,7 @@ export async function processTelegramUpdate(
     await handleLocationMessage(
       msg.from.id, msg.chat.id,
       msg.location.latitude, msg.location.longitude,
-      msg.from.language_code ?? null);
+      await resolveLocale(msg.from.id, msg.from.language_code ?? null));
     return;
   }
 
@@ -62,11 +82,13 @@ export async function processTelegramUpdate(
   // thing the bot itself does besides payments and pushes.
   if (msg?.text && msg.chat) {
     if (msg.text.trim().toLowerCase().startsWith('/stoplocation') && msg.from?.id) {
-      await handleStopLocation(msg.from.id, msg.chat.id, msg.from.language_code ?? null);
+      await handleStopLocation(
+        msg.from.id, msg.chat.id,
+        await resolveLocale(msg.from.id, msg.from.language_code ?? null));
       return;
     }
     const handled = await handleBotCommand(
-      msg.chat.id, msg.text, msg.from?.language_code ?? null);
+      msg.chat.id, msg.text, msg.from?.language_code ?? null, msg.from?.id ?? null);
     if (handled) return;
   }
 
