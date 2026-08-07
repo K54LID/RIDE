@@ -39,6 +39,19 @@ export interface TelegramUpdate {
   };
 }
 
+/**
+ * Update types the bot subscribes to.
+ *
+ * Telegram delivers *only* what is listed here — anything omitted is
+ * dropped server-side and never reaches us. Leaving out
+ * 'callback_query' is what made the language picker spin forever: the
+ * press was never delivered, so answerCallbackQuery was never called,
+ * so Telegram kept showing the button's loading state.
+ *
+ * One constant for both transports. Two lists is how they drift.
+ */
+const ALLOWED_UPDATES = ['message', 'callback_query', 'pre_checkout_query'] as const;
+
 async function botApi(method: string, body: unknown): Promise<{ ok: boolean; result?: unknown; description?: string }> {
   const res = await fetch(
     `https://api.telegram.org/bot${config.TELEGRAM_BOT_TOKEN}/${method}`,
@@ -62,8 +75,20 @@ export async function processTelegramUpdate(
    */
   const cq = update.callback_query;
   if (cq?.data?.startsWith('lang:') && cq.message?.chat && cq.from?.id) {
-    await botApi('answerCallbackQuery', { callback_query_id: cq.id });
-    await handleLanguageChoice(cq.from.id, cq.message.chat.id, cq.data.slice(5));
+    /**
+     * Answer first, and never let a later failure skip it. Telegram
+     * shows a spinner on the pressed button until this call arrives —
+     * if the work below throws, an unanswered query leaves the button
+     * loading indefinitely, which looks like the bot is hung even when
+     * the choice was stored fine.
+     */
+    await botApi('answerCallbackQuery', { callback_query_id: cq.id })
+      .catch(() => undefined);
+    try {
+      await handleLanguageChoice(cq.from.id, cq.message.chat.id, cq.data.slice(5));
+    } catch (err) {
+      log({ err }, 'language choice failed');
+    }
     return;
   }
 
@@ -180,7 +205,7 @@ export function startTelegramTransport(log: (msg: string) => void): void {
       if (reachable) {
         const res = await botApi('setWebhook', {
           url: `${url}/v1/telegram/webhook`,
-          allowed_updates: ['message', 'pre_checkout_query'],
+          allowed_updates: ALLOWED_UPDATES,
           ...(config.TELEGRAM_WEBHOOK_SECRET
             ? { secret_token: config.TELEGRAM_WEBHOOK_SECRET } : {}),
         }).catch(() => ({ ok: false, description: 'network error' }));
@@ -206,7 +231,7 @@ export function startTelegramTransport(log: (msg: string) => void): void {
     for (;;) {
       try {
         const res = await botApi('getUpdates', {
-          offset, timeout: 25, allowed_updates: ['message', 'pre_checkout_query'],
+          offset, timeout: 25, allowed_updates: ALLOWED_UPDATES,
         });
         failures = 0;
         const updates = (res.result ?? []) as TelegramUpdate[];

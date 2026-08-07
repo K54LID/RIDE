@@ -115,14 +115,24 @@ export async function handleLanguageChoice(
       DO UPDATE SET locale = ${locale}, updated_at = now()
   `;
 
-  // Keep the Mini App in step: someone who already has an account
-  // should find it in the language they just chose.
-  await sql`
-    UPDATE settings SET locale = ${locale}
-    WHERE account_id = (
-      SELECT account_id FROM telegram_identities WHERE telegram_id = ${String(telegramId)}
-    )
-  `;
+  /**
+   * Keep the Mini App in step: someone who already has an account
+   * should find it in the language they just chose.
+   *
+   * Best-effort. The table is user_settings, and a person who has not
+   * onboarded has no row in it at all — neither case should stop the
+   * bot from confirming a choice it has already stored.
+   */
+  try {
+    await sql`
+      UPDATE user_settings SET locale = ${locale}
+      WHERE account_id = (
+        SELECT account_id FROM telegram_identities WHERE telegram_id = ${String(telegramId)}
+      )
+    `;
+  } catch {
+    // The bot preference above is the source of truth for bot copy.
+  }
 
   await send(chatId, LANGUAGE_SET[locale] ?? LANGUAGE_SET.en!);
   await sendWelcome(chatId, locale);
