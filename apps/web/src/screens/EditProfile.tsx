@@ -18,7 +18,13 @@ const STATUS = ['Single', 'Dating', 'Partnered', 'Open', 'Married', "It's compli
 const LOOKING = ['Friends', 'Chat', 'Dates', 'Relationship', 'Networking', 'Events'] as const;
 const TRIBES = ['Bear', 'Twink', 'Otter', 'Jock', 'Daddy', 'Geek', 'Leather', 'Trans', 'Discreet'] as const;
 const INTERESTS = ['Gaming', 'Fitness', 'Travel', 'Music', 'Movies', 'Photography', 'Cooking', 'Art', 'Tech', 'Sports', 'Pets', 'Nightlife', 'Reading', 'Fashion'] as const;
-const LANGS = ['English', 'Русский', 'Türkçe', 'Español', 'Deutsch', 'Français', 'العربية', 'Azərbaycan'] as const;
+/**
+ * The eleven languages the app itself speaks, in the same order the bot
+ * picker lists them. Persian, Italian and Portuguese were missing here
+ * while being fully supported everywhere else, so people who spoke them
+ * had no way to say so.
+ */
+const LANGS = ['English', 'Русский', 'Türkçe', 'Azərbaycan', 'العربية', 'فارسی', 'Español', 'Deutsch', 'Français', 'Italiano', 'Português'] as const;
 
 export default function EditProfile({ me, onSaved, onBack }: {
   me: Me;

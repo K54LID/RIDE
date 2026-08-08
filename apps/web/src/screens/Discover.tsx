@@ -14,7 +14,13 @@ type Sort = 'active' | 'new' | 'court' | 'nearby';
 
 const GENDERS = ['Man', 'Trans man', 'Non-binary'] as const;
 const LOOKING = ['Friends', 'Chat', 'Dates', 'Relationship', 'Networking', 'Events'] as const;
-const LANGS = ['English', 'Русский', 'Türkçe', 'Español', 'Deutsch', 'Français', 'العربية', 'Azərbaycan'] as const;
+/**
+ * The eleven languages the app itself speaks, in the same order the bot
+ * picker lists them. Persian, Italian and Portuguese were missing here
+ * while being fully supported everywhere else, so people who spoke them
+ * had no way to say so.
+ */
+const LANGS = ['English', 'Русский', 'Türkçe', 'Azərbaycan', 'العربية', 'فارسی', 'Español', 'Deutsch', 'Français', 'Italiano', 'Português'] as const;
 const INTERESTS = ['Gaming', 'Fitness', 'Travel', 'Music', 'Movies', 'Photography', 'Cooking', 'Art', 'Tech', 'Sports', 'Pets', 'Nightlife'] as const;
 const DISTANCES = ['5', '10', '25', '50', '100'] as const;
 const AGES = ['18–24', '25–34', '35–44', '45–54', '55+'] as const;

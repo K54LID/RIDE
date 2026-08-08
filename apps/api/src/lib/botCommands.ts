@@ -135,7 +135,7 @@ export async function handleLanguageChoice(
   }
 
   await send(chatId, LANGUAGE_SET[locale] ?? LANGUAGE_SET.en!);
-  await sendWelcome(chatId, locale);
+  // Location first, introduction after — see sendLocationPrompt.
   await sendLocationPrompt(chatId, locale);
 }
 
@@ -304,6 +304,20 @@ export async function handleBotCommand(
   return true;
 }
 
+/**
+ * They tapped Skip on the location ask. Clear the keyboard and give
+ * them the introduction — skipping should cost nothing but the fix.
+ */
+export async function handleSkipLocation(
+  chatId: number | string, locale: string,
+): Promise<void> {
+  // Not SHARE_STOPPED — nothing was removed, they simply have not
+  // shared one yet, and saying "location removed" would be a lie about
+  // data they never gave.
+  await send(chatId, SKIP_DONE[locale] ?? SKIP_DONE.en!, { remove_keyboard: true });
+  await sendWelcome(chatId, locale);
+}
+
 /** One inline button back into the Mini App. */
 export async function sendOpenApp(
   chatId: number | string, languageCode: string | null, text?: string,
@@ -340,15 +354,64 @@ async function send(
   }).catch(() => undefined);
 }
 
-/** Second /start message: one button that shares a single location fix. */
+const SKIP_DONE: Record<string, string> = {
+  en: "No problem. You can share it any time from the 📍 button next to Filters in Discover.",
+  "ru": "Хорошо. Поделиться можно в любой момент — кнопка 📍 рядом с фильтрами в «Поиске».",
+  "tr": "Sorun değil. İstediğin zaman Keşfet’te Filtreler yanındaki 📍 düğmesinden paylaşabilirsin.",
+  "az": "Problem yoxdur. İstənilən vaxt Kəşf bölməsində Filtrlərin yanındakı 📍 düyməsindən paylaşa bilərsən.",
+  "ar": "لا مشكلة. يمكنك مشاركته في أي وقت من زر 📍 بجانب الفلاتر في «اكتشف».",
+  "fa": "مشکلی نیست. هر زمان می‌توانید از دکمه 📍 کنار فیلترها در «کشف» آن را بفرستید.",
+  "es": "Sin problema. Puedes compartirla cuando quieras con el botón 📍 junto a Filtros en Descubrir.",
+  "de": "Kein Problem. Du kannst ihn jederzeit über den 📍-Knopf neben den Filtern in Entdecken teilen.",
+  "fr": "Pas de souci. Tu peux la partager à tout moment avec le bouton 📍 à côté des Filtres dans Découvrir.",
+  "it": "Nessun problema. Puoi condividerla quando vuoi dal pulsante 📍 accanto ai Filtri in Scopri.",
+  "pt": "Sem problema. Você pode compartilhar quando quiser pelo botão 📍 ao lado dos Filtros no Descobrir."
+};
+
+const SKIP_LABEL: Record<string, string> = {
+  'en': 'Skip for now',
+  'ru': 'Пропустить',
+  'tr': 'Şimdilik geç',
+  'az': 'Hələlik keç',
+  'ar': 'تخطّي الآن',
+  'fa': 'فعلاً رد کن',
+  'es': 'Ahora no',
+  'de': 'Später',
+  'fr': 'Plus tard',
+  'it': 'Più tardi',
+  'pt': 'Agora não'
+};
+
+/** True when a plain text message is one of the skip labels. */
+export function isSkipLabel(text: string): boolean {
+  const t = text.trim();
+  return Object.values(SKIP_LABEL).some((l) => l === t);
+}
+
+/**
+ * The location ask — now the first thing after choosing a language.
+ *
+ * It comes before the introduction because it is the one step that has
+ * to happen in the chat: a location can only be shared from a reply
+ * keyboard, and that keyboard is easy to lose once other messages have
+ * scrolled past it. Asking first means the button is the last thing on
+ * screen while the request is still fresh.
+ *
+ * Skip is a keyboard button rather than a command, so nobody has to
+ * know a command exists to get past it — the introduction follows
+ * either way.
+ */
 export async function sendLocationPrompt(
   chatId: number | string, languageCode: string | null,
 ): Promise<void> {
   const lang = (languageCode ?? 'en').split('-')[0]!;
   await send(chatId, SHARE_PROMPT[lang] ?? SHARE_PROMPT.en!, {
-    keyboard: [[{ text: SHARE_BUTTON[lang] ?? SHARE_BUTTON.en!, request_location: true }]],
+    keyboard: [
+      [{ text: SHARE_BUTTON[lang] ?? SHARE_BUTTON.en!, request_location: true }],
+      [{ text: SKIP_LABEL[lang] ?? SKIP_LABEL.en! }],
+    ],
     resize_keyboard: true,
-    one_time_keyboard: true,
+    one_time_keyboard: false,
   });
 }
 
@@ -369,7 +432,10 @@ export async function handleLocationMessage(
     SELECT account_id FROM telegram_identities WHERE telegram_id = ${telegramUserId}
   `;
   if (!identity) {
-    await send(chatId, WELCOME[lang] ?? WELCOME.en!);
+    // No account yet — the location has nowhere to go, but they have
+    // done their part, so give them the introduction and the way in.
+    await send(chatId, SHARE_DONE[lang] ?? SHARE_DONE.en!, { remove_keyboard: true });
+    await sendWelcome(chatId, lang);
     return;
   }
 
@@ -387,7 +453,9 @@ export async function handleLocationMessage(
   // app — the whole point of sharing was to go look at Discover, and
   // without a button that meant hunting for the app again.
   await send(chatId, SHARE_DONE[lang] ?? SHARE_DONE.en!, { remove_keyboard: true });
-  await sendOpenApp(chatId, languageCode);
+  // The introduction lands once the one chat-bound step is done, so the
+  // welcome and its Open button are the last thing on screen.
+  await sendWelcome(chatId, lang);
 }
 
 export async function handleStopLocation(

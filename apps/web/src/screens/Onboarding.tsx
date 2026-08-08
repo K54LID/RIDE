@@ -23,7 +23,13 @@ const LOOKING_FOR = ['Friends', 'Chat', 'Dates', 'Relationship', 'Networking', '
 const STATUS = ['Single', 'Dating', 'Partnered', 'Open', 'Married', "It's complicated"] as const;
 const TRIBES = ['Bear', 'Twink', 'Otter', 'Jock', 'Daddy', 'Geek', 'Leather', 'Trans', 'Poz', 'Discreet'] as const;
 const INTERESTS = ['Gaming', 'Fitness', 'Travel', 'Music', 'Movies', 'Photography', 'Cooking', 'Art', 'Tech', 'Sports', 'Pets', 'Nightlife', 'Reading', 'Fashion'] as const;
-const LANGUAGES = ['English', 'Русский', 'Türkçe', 'Español', 'Deutsch', 'Français', 'العربية', 'Azərbaycan'] as const;
+/**
+ * The eleven languages the app itself speaks, in the same order the bot
+ * picker lists them. Persian, Italian and Portuguese were missing here
+ * while being fully supported everywhere else, so people who spoke them
+ * had no way to say so.
+ */
+const LANGUAGES = ['English', 'Русский', 'Türkçe', 'Azərbaycan', 'العربية', 'فارسی', 'Español', 'Deutsch', 'Français', 'Italiano', 'Português'] as const;
 
 /**
  * Five steps: four editable, then the required photo. The photo is last
@@ -217,9 +223,9 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
    */
   const stepNav = (
     <div className="onb-nav">
-      <button type="button" className="chip" onClick={back}>Back</button>
-      <button type="button" className="chip" onClick={skip} disabled={busy}>
-        {busy ? 'Saving…' : 'Skip for now'}
+      <button type="button" onClick={back}>← {t('common.back')}</button>
+      <button type="button" onClick={skip} disabled={busy}>
+        {busy ? t('common.loading') : t('onb.skip')}
       </button>
     </div>
   );

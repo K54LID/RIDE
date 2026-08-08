@@ -30,6 +30,7 @@ export type Locale = keyof typeof LOCALES;
 export const RTL: ReadonlySet<Locale> = new Set<Locale>(['ar', 'fa']);
 
 const en = {
+  'onb.skip': "Skip for now",
   'onb.who': "Who are you here as?",
   'onb.whoSub': "All optional. Skip anything you’d rather keep to yourself.",
   'onb.displayName': "Display name",
@@ -479,6 +480,7 @@ const en = {
 export type T = Record<keyof typeof en, string>;
 
 const tr: T = {
+  'onb.skip': "Şimdilik geç",
   'onb.who': "Burada kim olarak varsın?",
   'onb.whoSub': "Hepsi isteğe bağlı. Paylaşmak istemediğini atla.",
   'onb.displayName': "Görünen ad",
@@ -914,6 +916,7 @@ const tr: T = {
 };
 
 const ru: T = {
+  'onb.skip': "Пропустить",
   'onb.who': "Кто вы здесь?",
   'onb.whoSub': "Всё по желанию. Пропустите то, что не хотите указывать.",
   'onb.displayName': "Отображаемое имя",
@@ -1349,6 +1352,7 @@ const ru: T = {
 };
 
 const ar: T = {
+  'onb.skip': "تخطّي الآن",
   'onb.who': "من أنت هنا؟",
   'onb.whoSub': "كل شيء اختياري. تجاوز ما تفضّل الاحتفاظ به لنفسك.",
   'onb.displayName': "الاسم الظاهر",
@@ -1784,6 +1788,7 @@ const ar: T = {
 };
 
 const az: T = {
+  'onb.skip': "Hələlik keç",
   'onb.who': "Burada kim kimi varsan?",
   'onb.whoSub': "Hamısı istəyə bağlıdır. Paylaşmaq istəmədiyini ötür.",
   'onb.displayName': "Görünən ad",
@@ -2219,6 +2224,7 @@ const az: T = {
 };
 
 const es: T = {
+  'onb.skip': "Ahora no",
   'onb.who': "¿Quién eres aquí?",
   'onb.whoSub': "Todo es opcional. Sáltate lo que prefieras no contar.",
   'onb.displayName': "Nombre visible",
@@ -2654,6 +2660,7 @@ const es: T = {
 };
 
 const de: T = {
+  'onb.skip': "Später",
   'onb.who': "Wer bist du hier?",
   'onb.whoSub': "Alles freiwillig. Überspring, was du lieber für dich behältst.",
   'onb.displayName': "Anzeigename",
@@ -3089,6 +3096,7 @@ const de: T = {
 };
 
 const fr: T = {
+  'onb.skip': "Plus tard",
   'onb.who': "Qui es-tu ici ?",
   'onb.whoSub': "Tout est facultatif. Passe ce que tu préfères garder pour toi.",
   'onb.displayName': "Nom affiché",
@@ -3524,6 +3532,7 @@ const fr: T = {
 };
 
 const it: T = {
+  'onb.skip': "Più tardi",
   'onb.who': "Chi sei qui?",
   'onb.whoSub': "Tutto facoltativo. Salta quello che preferisci non dire.",
   'onb.displayName': "Nome visualizzato",
@@ -3959,6 +3968,7 @@ const it: T = {
 };
 
 const pt: T = {
+  'onb.skip': "Agora não",
   'onb.who': "Quem é você aqui?",
   'onb.whoSub': "Tudo opcional. Pule o que preferir não contar.",
   'onb.displayName': "Nome de exibição",
@@ -4398,6 +4408,7 @@ const pt: T = {
     most often translated; the rest fall back to English text
     rather than to a missing key. */
 const fa: T = {
+  'onb.skip': "فعلاً رد کن",
   'onb.who': "اینجا چه کسی هستید؟",
   'onb.whoSub': "همه اختیاری است. هر چه را نمی‌خواهید بگویید رد کنید.",
   'onb.displayName': "نام نمایشی",

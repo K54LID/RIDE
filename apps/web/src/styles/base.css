@@ -1769,10 +1769,24 @@ button.podium-col { border: 0; background: none; color: var(--ink); font: inheri
 /* ---- onboarding step navigation ---- */
 /* Back and Skip under the primary action: available without competing
    with it, and never the thing a thumb hits first. */
+/* Back and Skip under each optional onboarding step.
+   They were `.chip`, which is the same control used for selectable
+   options on the very same screen — so navigation looked like two more
+   things to pick. These are quiet text actions instead: clearly
+   secondary to Continue, and clearly not choices. */
 .onb-nav {
-  display: flex; justify-content: space-between; gap: 10px;
-  margin-top: 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-top: 18px;
 }
+.onb-nav button {
+  flex: none; padding: 10px 4px;
+  background: none; border: 0;
+  color: var(--muted); font: inherit; font-size: 0.85rem; font-weight: 600;
+}
+.onb-nav button:disabled { opacity: 0.4; }
+.onb-nav button:active:not(:disabled) { color: var(--ink); }
+/* Skip is the lighter of the two — Back retraces, Skip forgoes. */
+.onb-nav button + button { color: var(--faint); font-weight: 500; }
 
 /* ---- rank period countdown ---- */
 .rank-reset {

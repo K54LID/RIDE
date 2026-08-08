@@ -2,7 +2,7 @@ import { sql } from './db.js';
 import { config } from '../config.js';
 import {
   handleBotCommand, handleLanguageChoice, handleLocationMessage,
-  handleStopLocation, resolveLocale,
+  handleSkipLocation, handleStopLocation, isSkipLabel, resolveLocale,
 } from './botCommands.js';
 
 /**
@@ -112,6 +112,15 @@ export async function processTelegramUpdate(
         await resolveLocale(msg.from.id, msg.from.language_code ?? null));
       return;
     }
+    // Skip on the location keyboard is a plain text button, so it
+    // arrives as a message rather than a command.
+    if (isSkipLabel(msg.text) && msg.from?.id) {
+      await handleSkipLocation(
+        msg.chat.id,
+        await resolveLocale(msg.from.id, msg.from.language_code ?? null));
+      return;
+    }
+
     const handled = await handleBotCommand(
       msg.chat.id, msg.text, msg.from?.language_code ?? null, msg.from?.id ?? null);
     if (handled) return;
