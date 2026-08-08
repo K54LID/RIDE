@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api';
 import { tg } from '../lib/tg';
-import { useT } from '../i18n';
+import { useT, useTDyn } from '../i18n';
 import { Button, EmptyState, Skeleton } from '../components/ui';
 
 interface Achievement {
@@ -18,6 +18,7 @@ interface Payload {
 }
 
 function Row({ a }: { a: Achievement }) {
+  const tDyn = useTDyn();
   const pct = Math.min(100, Math.round((a.progress / a.threshold) * 100));
   return (
     <div className={`ach ${a.unlocked ? 'done' : 'locked'}`}>
@@ -36,8 +37,14 @@ function Row({ a }: { a: Achievement }) {
         )}
       </div>
       <div className="ach-main">
-        <div className="ach-name">{a.name}</div>
-        {a.description ? <div className="ach-desc">{a.description}</div> : null}
+        {/* Names and descriptions are seeded in English in the
+            database; the translation is keyed by slug so no migration
+            or duplicated column is needed, and an unknown slug still
+            renders the English the server sent. */}
+        <div className="ach-name">{tDyn(`ach.${a.slug}.name`, a.name)}</div>
+        {a.description
+          ? <div className="ach-desc">{tDyn(`ach.${a.slug}.desc`, a.description)}</div>
+          : null}
         {!a.unlocked ? (
           <>
             <div className="ach-bar"><span style={{ width: `${pct}%` }} /></div>

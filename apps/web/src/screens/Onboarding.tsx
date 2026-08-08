@@ -292,7 +292,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
           <p style={{ marginBottom: 26 }}>{t('onb.readSub')}</p>
           <Field label={t('onb.lookingFor')}><ChipGroup options={LOOKING_FOR} selected={lookingFor} onChange={setLookingFor} /></Field>
           <Field label={t('onb.tribes')}><ChipGroup options={TRIBES} selected={tribes} onChange={setTribes} max={4} /></Field>
-          <Field label={t('onb.interests')} hint="{t('onb.interestsHint')}">
+          <Field label={t('onb.interests')} hint={t('onb.interestsHint')}>
             <ChipGroup options={INTERESTS} selected={interests} onChange={setInterests} max={8} />
           </Field>
           <Field label={t('onb.languages')}><ChipGroup options={LANGUAGES} selected={languages} onChange={setLanguages} /></Field>

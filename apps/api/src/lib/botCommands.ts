@@ -287,20 +287,17 @@ export async function handleBotCommand(
     return true;
   }
 
-  const [stored] = telegramId != null
-    ? await sql<Array<{ locale: string }>>`
-        SELECT locale FROM bot_preferences WHERE telegram_id = ${String(telegramId)}
-      `
-    : [];
-
-  // Not asked yet: ask, and send nothing else. The introduction arrives
-  // in the chosen language the moment they pick.
-  if (!stored) {
-    await sendLanguagePicker(chatId, languageCode);
-    return true;
-  }
-
-  await sendWelcome(chatId, await resolveLocale(telegramId ?? null, languageCode));
+  /**
+   * /start always offers the picker, including to people who already
+   * chose. It is the one command everybody knows, so it has to be the
+   * way back to a language setting — expecting someone to discover
+   * /language in order to change it is expecting too much, especially
+   * of a person currently reading an interface in the wrong language.
+   *
+   * The existing choice still stands: the picker is shown in it, and
+   * nothing is overwritten unless a button is actually pressed.
+   */
+  await sendLanguagePicker(chatId, await resolveLocale(telegramId ?? null, languageCode));
   return true;
 }
 

@@ -8,6 +8,8 @@ interface Ctx {
   locale: Locale;
   setLocale: (l: Locale) => void;
   t: (key: keyof T) => string;
+  /** Runtime key with a fallback — for text keyed by server data. */
+  tDyn: (key: string, fallback: string) => string;
 }
 
 const I18nContext = createContext<Ctx | null>(null);
@@ -84,8 +86,18 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Ctx>(() => {
     const table = TABLES[locale];
+    /**
+     * Look up a key built at runtime, falling back to whatever the
+     * server sent. Award names come from the database as English rows,
+     * so they cannot be typed keys — but they are still text a person
+     * reads, and reading half an interface in your language and half in
+     * English is worse than either.
+     */
+    const tDyn = (key: string, fallback: string): string =>
+      (table as unknown as Record<string, string | undefined>)[key] ?? fallback;
     return {
       locale,
+      tDyn,
       setLocale: (l) => {
         try {
           localStorage.setItem(STORAGE_KEY, l);
@@ -112,4 +124,9 @@ export function useI18n(): Ctx {
 /** Shorthand for the common case of only needing the translate function. */
 export function useT(): (key: keyof T) => string {
   return useI18n().t;
+}
+
+/** For strings keyed by data rather than by a literal — award slugs. */
+export function useTDyn(): (key: string, fallback: string) => string {
+  return useI18n().tDyn;
 }
