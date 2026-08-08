@@ -30,6 +30,8 @@ export type Locale = keyof typeof LOCALES;
 export const RTL: ReadonlySet<Locale> = new Set<Locale>(['ar', 'fa']);
 
 const en = {
+  'discover.locationDenied': "Location access is off for RIDE. Turn it on in Telegram’s settings, then try again.",
+  'discover.openSettings': "Settings",
   'onb.skip': "Skip for now",
   'onb.who': "Who are you here as?",
   'onb.whoSub': "All optional. Skip anything you’d rather keep to yourself.",
@@ -130,7 +132,7 @@ const en = {
   'support.sentTitle': 'Message sent',
   'support.sentBody': 'An admin has it, with your username attached. Replies come through the bot chat.',
   'discover.noLocation': 'Share your location to see people nearby',
-  'discover.noLocation.body': 'The grid is sorted by distance, so it stays empty until you share a fix once. You can update or remove it any time with the 📍 button next to Filters.',
+  'discover.noLocation.body': "The grid is sorted by distance, so it stays empty until you share once. Your position is blurred to about 500 m and you can update or remove it any time.",
   'discover.shareLocation': 'Share my location',
   'ranks.resetsIn': 'Resets in',
   'ranks.neverResets': 'All-time standings never reset',
@@ -480,6 +482,8 @@ const en = {
 export type T = Record<keyof typeof en, string>;
 
 const tr: T = {
+  'discover.locationDenied': "RIDE için konum erişimi kapalı. Telegram ayarlarından açıp tekrar dene.",
+  'discover.openSettings': "Ayarlar",
   'onb.skip': "Şimdilik geç",
   'onb.who': "Burada kim olarak varsın?",
   'onb.whoSub': "Hepsi isteğe bağlı. Paylaşmak istemediğini atla.",
@@ -580,7 +584,7 @@ const tr: T = {
   'support.sentTitle': 'Mesaj gönderildi',
   'support.sentBody': 'Bir yöneticiye kullanıcı adınla birlikte ulaştı. Yanıtlar bot sohbetinden gelir.',
   'discover.noLocation': 'Yakındakileri görmek için konumunu paylaş',
-  'discover.noLocation.body': 'Izgara mesafeye göre sıralanır, bu yüzden bir kez konum paylaşana kadar boş kalır. Filtreler yanındaki 📍 düğmesiyle istediğin zaman güncelleyebilir veya kaldırabilirsin.',
+  'discover.noLocation.body': "Izgara mesafeye göre sıralanır, bu yüzden bir kez paylaşana kadar boş kalır. Konumun yaklaşık 500 metreye yuvarlanır ve istediğin zaman güncelleyebilir veya kaldırabilirsin.",
   'discover.shareLocation': 'Konumumu paylaş',
   'ranks.resetsIn': 'Sıfırlanmasına',
   'ranks.neverResets': 'Tüm zamanlar sıralaması hiç sıfırlanmaz',
@@ -916,6 +920,8 @@ const tr: T = {
 };
 
 const ru: T = {
+  'discover.locationDenied': "Доступ к геопозиции для RIDE отключён. Включите его в настройках Telegram и попробуйте снова.",
+  'discover.openSettings': "Настройки",
   'onb.skip': "Пропустить",
   'onb.who': "Кто вы здесь?",
   'onb.whoSub': "Всё по желанию. Пропустите то, что не хотите указывать.",
@@ -1016,7 +1022,7 @@ const ru: T = {
   'support.sentTitle': 'Сообщение отправлено',
   'support.sentBody': 'Администратор получил его вместе с вашим ником. Ответы придут в чат бота.',
   'discover.noLocation': 'Поделитесь геопозицией, чтобы видеть людей рядом',
-  'discover.noLocation.body': 'Сетка сортируется по расстоянию, поэтому остаётся пустой, пока вы не поделитесь геопозицией. Обновить или удалить её можно в любой момент кнопкой 📍 рядом с фильтрами.',
+  'discover.noLocation.body': "Сетка сортируется по расстоянию, поэтому остаётся пустой, пока вы не поделитесь один раз. Позиция округляется примерно до 500 м, обновить или убрать её можно в любой момент.",
   'discover.shareLocation': 'Поделиться геопозицией',
   'ranks.resetsIn': 'Сброс через',
   'ranks.neverResets': 'Рейтинг за всё время не сбрасывается',
@@ -1352,6 +1358,8 @@ const ru: T = {
 };
 
 const ar: T = {
+  'discover.locationDenied': "الوصول إلى الموقع مغلق لتطبيق RIDE. فعّله من إعدادات تيليجرام ثم أعد المحاولة.",
+  'discover.openSettings': "الإعدادات",
   'onb.skip': "تخطّي الآن",
   'onb.who': "من أنت هنا؟",
   'onb.whoSub': "كل شيء اختياري. تجاوز ما تفضّل الاحتفاظ به لنفسك.",
@@ -1452,7 +1460,7 @@ const ar: T = {
   'support.sentTitle': 'تم إرسال الرسالة',
   'support.sentBody': 'وصلت إلى المشرف مع اسم المستخدم الخاص بك. تأتي الردود عبر محادثة البوت.',
   'discover.noLocation': 'شارك موقعك لترى من حولك',
-  'discover.noLocation.body': 'يتم ترتيب الشبكة حسب المسافة، لذا تبقى فارغة حتى تشارك موقعك مرة واحدة. يمكنك تحديثه أو إزالته في أي وقت من زر 📍 بجانب عوامل التصفية.',
+  'discover.noLocation.body': "الشبكة مرتبة حسب المسافة، لذا تبقى فارغة حتى تشارك موقعك مرة واحدة. يُقرَّب موقعك إلى نحو ٥٠٠ متر ويمكنك تحديثه أو إزالته في أي وقت.",
   'discover.shareLocation': 'مشاركة موقعي',
   'ranks.resetsIn': 'يُعاد الضبط خلال',
   'ranks.neverResets': 'تصنيف كل الأوقات لا يُعاد ضبطه أبدًا',
@@ -1788,6 +1796,8 @@ const ar: T = {
 };
 
 const az: T = {
+  'discover.locationDenied': "RIDE üçün məkan icazəsi bağlıdır. Telegram tənzimləmələrindən aç və yenidən cəhd et.",
+  'discover.openSettings': "Tənzimləmələr",
   'onb.skip': "Hələlik keç",
   'onb.who': "Burada kim kimi varsan?",
   'onb.whoSub': "Hamısı istəyə bağlıdır. Paylaşmaq istəmədiyini ötür.",
@@ -1888,7 +1898,7 @@ const az: T = {
   'support.sentTitle': 'Mesaj göndərildi',
   'support.sentBody': 'Admin onu istifadəçi adınla birlikdə aldı. Cavablar bot söhbətinə gəlir.',
   'discover.noLocation': 'Yaxınlıqdakıları görmək üçün məkanını paylaş',
-  'discover.noLocation.body': 'Şəbəkə məsafəyə görə sıralanır, ona görə bir dəfə məkan paylaşana qədər boş qalır. Filtrlərin yanındakı 📍 düyməsi ilə istənilən vaxt yeniləyə və ya silə bilərsən.',
+  'discover.noLocation.body': "Şəbəkə məsafəyə görə sıralanır, ona görə bir dəfə paylaşana qədər boş qalır. Mövqeyin təxminən 500 metrə yuvarlaqlaşdırılır və istənilən vaxt yeniləyə və ya silə bilərsən.",
   'discover.shareLocation': 'Məkanımı paylaş',
   'ranks.resetsIn': 'Sıfırlanmasına',
   'ranks.neverResets': 'Bütün zamanlar reytinqi heç vaxt sıfırlanmır',
@@ -2224,6 +2234,8 @@ const az: T = {
 };
 
 const es: T = {
+  'discover.locationDenied': "El acceso a la ubicación está desactivado para RIDE. Actívalo en los ajustes de Telegram y vuelve a intentarlo.",
+  'discover.openSettings': "Ajustes",
   'onb.skip': "Ahora no",
   'onb.who': "¿Quién eres aquí?",
   'onb.whoSub': "Todo es opcional. Sáltate lo que prefieras no contar.",
@@ -2324,7 +2336,7 @@ const es: T = {
   'support.sentTitle': 'Mensaje enviado',
   'support.sentBody': 'Un administrador lo tiene, junto con tu usuario. Las respuestas llegan por el chat del bot.',
   'discover.noLocation': 'Comparte tu ubicación para ver gente cerca',
-  'discover.noLocation.body': 'La cuadrícula se ordena por distancia, así que estará vacía hasta que compartas tu ubicación una vez. Puedes actualizarla o borrarla cuando quieras con el botón 📍 junto a los filtros.',
+  'discover.noLocation.body': "La cuadrícula se ordena por distancia, así que queda vacía hasta que la compartas una vez. Tu posición se difumina a unos 500 m y puedes actualizarla o quitarla cuando quieras.",
   'discover.shareLocation': 'Compartir mi ubicación',
   'ranks.resetsIn': 'Se reinicia en',
   'ranks.neverResets': 'La clasificación histórica nunca se reinicia',
@@ -2660,6 +2672,8 @@ const es: T = {
 };
 
 const de: T = {
+  'discover.locationDenied': "Der Standortzugriff für RIDE ist aus. Schalte ihn in den Telegram-Einstellungen ein und versuch es erneut.",
+  'discover.openSettings': "Einstellungen",
   'onb.skip': "Später",
   'onb.who': "Wer bist du hier?",
   'onb.whoSub': "Alles freiwillig. Überspring, was du lieber für dich behältst.",
@@ -2760,7 +2774,7 @@ const de: T = {
   'support.sentTitle': 'Nachricht gesendet',
   'support.sentBody': 'Ein Admin hat sie, samt deinem Handle. Antworten kommen über den Bot-Chat.',
   'discover.noLocation': 'Teile deinen Standort, um Leute in der Nähe zu sehen',
-  'discover.noLocation.body': 'Das Raster ist nach Entfernung sortiert und bleibt deshalb leer, bis du einmal deinen Standort teilst. Du kannst ihn jederzeit über die 📍-Schaltfläche neben den Filtern aktualisieren oder löschen.',
+  'discover.noLocation.body': "Das Raster ist nach Entfernung sortiert und bleibt leer, bis du einmal teilst. Deine Position wird auf etwa 500 m gerundet, und du kannst sie jederzeit ändern oder entfernen.",
   'discover.shareLocation': 'Standort teilen',
   'ranks.resetsIn': 'Zurücksetzen in',
   'ranks.neverResets': 'Die Allzeit-Wertung wird nie zurückgesetzt',
@@ -3096,6 +3110,8 @@ const de: T = {
 };
 
 const fr: T = {
+  'discover.locationDenied': "L’accès à la position est désactivé pour RIDE. Active-le dans les réglages de Telegram, puis réessaie.",
+  'discover.openSettings': "Réglages",
   'onb.skip': "Plus tard",
   'onb.who': "Qui es-tu ici ?",
   'onb.whoSub': "Tout est facultatif. Passe ce que tu préfères garder pour toi.",
@@ -3196,7 +3212,7 @@ const fr: T = {
   'support.sentTitle': 'Message envoyé',
   'support.sentBody': "Un administrateur l\'a reçu, avec ton identifiant. Les réponses arrivent dans le chat du bot.",
   'discover.noLocation': 'Partage ta position pour voir les gens autour',
-  'discover.noLocation.body': "La grille est triée par distance : elle reste vide tant que tu n\'as pas partagé ta position une fois. Tu peux la mettre à jour ou la supprimer à tout moment avec le bouton 📍 à côté des filtres.",
+  'discover.noLocation.body': "La grille est triée par distance, elle reste donc vide tant que tu n’as pas partagé une fois. Ta position est arrondie à environ 500 m et tu peux la mettre à jour ou la retirer à tout moment.",
   'discover.shareLocation': 'Partager ma position',
   'ranks.resetsIn': 'Réinitialisation dans',
   'ranks.neverResets': 'Le classement de tous les temps ne se réinitialise jamais',
@@ -3532,6 +3548,8 @@ const fr: T = {
 };
 
 const it: T = {
+  'discover.locationDenied': "L’accesso alla posizione è disattivato per RIDE. Attivalo nelle impostazioni di Telegram e riprova.",
+  'discover.openSettings': "Impostazioni",
   'onb.skip': "Più tardi",
   'onb.who': "Chi sei qui?",
   'onb.whoSub': "Tutto facoltativo. Salta quello che preferisci non dire.",
@@ -3632,7 +3650,7 @@ const it: T = {
   'support.sentTitle': 'Messaggio inviato',
   'support.sentBody': 'Un amministratore lo ha ricevuto, con il tuo handle. Le risposte arrivano nella chat del bot.',
   'discover.noLocation': 'Condividi la tua posizione per vedere chi è vicino',
-  'discover.noLocation.body': 'La griglia è ordinata per distanza, quindi resta vuota finché non condividi la posizione una volta. Puoi aggiornarla o rimuoverla quando vuoi con il pulsante 📍 accanto ai filtri.',
+  'discover.noLocation.body': "La griglia è ordinata per distanza, quindi resta vuota finché non condividi una volta. La tua posizione viene arrotondata a circa 500 m e puoi aggiornarla o rimuoverla quando vuoi.",
   'discover.shareLocation': 'Condividi la mia posizione',
   'ranks.resetsIn': 'Si azzera tra',
   'ranks.neverResets': 'La classifica di sempre non si azzera mai',
@@ -3968,6 +3986,8 @@ const it: T = {
 };
 
 const pt: T = {
+  'discover.locationDenied': "O acesso à localização está desativado para o RIDE. Ative nas configurações do Telegram e tente de novo.",
+  'discover.openSettings': "Configurações",
   'onb.skip': "Agora não",
   'onb.who': "Quem é você aqui?",
   'onb.whoSub': "Tudo opcional. Pule o que preferir não contar.",
@@ -4068,7 +4088,7 @@ const pt: T = {
   'support.sentTitle': 'Mensagem enviada',
   'support.sentBody': 'Um administrador recebeu, com o teu nome de utilizador. As respostas chegam pelo chat do bot.',
   'discover.noLocation': 'Partilha a tua localização para ver pessoas por perto',
-  'discover.noLocation.body': 'A grelha é ordenada por distância, por isso fica vazia até partilhares a localização uma vez. Podes atualizá-la ou removê-la a qualquer momento no botão 📍 ao lado dos filtros.',
+  'discover.noLocation.body': "A grade é ordenada por distância, então fica vazia até você compartilhar uma vez. Sua posição é arredondada para cerca de 500 m e você pode atualizar ou remover quando quiser.",
   'discover.shareLocation': 'Partilhar a minha localização',
   'ranks.resetsIn': 'Reinicia em',
   'ranks.neverResets': 'A classificação de sempre nunca reinicia',
@@ -4408,6 +4428,8 @@ const pt: T = {
     most often translated; the rest fall back to English text
     rather than to a missing key. */
 const fa: T = {
+  'discover.locationDenied': "دسترسی به موقعیت برای RIDE خاموش است. از تنظیمات تلگرام آن را روشن کنید و دوباره تلاش کنید.",
+  'discover.openSettings': "تنظیمات",
   'onb.skip': "فعلاً رد کن",
   'onb.who': "اینجا چه کسی هستید؟",
   'onb.whoSub': "همه اختیاری است. هر چه را نمی‌خواهید بگویید رد کنید.",
@@ -4508,7 +4530,7 @@ const fa: T = {
   'support.sentTitle': 'پیام ارسال شد',
   'support.sentBody': 'یک مدیر آن را همراه نام کاربری شما دریافت کرد. پاسخ‌ها در چت بات می‌آید.',
   'discover.noLocation': 'برای دیدن افراد نزدیک، موقعیت خود را به اشتراک بگذارید',
-  'discover.noLocation.body': 'شبکه بر اساس فاصله مرتب می‌شود، بنابراین تا زمانی که یک بار موقعیت خود را نفرستید خالی می‌ماند. هر وقت بخواهید می‌توانید آن را با دکمه 📍 کنار فیلترها به‌روز یا حذف کنید.',
+  'discover.noLocation.body': "شبکه بر اساس فاصله مرتب می‌شود، بنابراین تا وقتی یک بار موقعیت خود را نفرستید خالی می‌ماند. موقعیت شما تا حدود ۵۰۰ متر گرد می‌شود و هر زمان می‌توانید آن را به‌روز یا حذف کنید.",
   'discover.shareLocation': 'موقعیتم را بفرست',
   'ranks.resetsIn': 'بازنشانی تا',
   'ranks.neverResets': 'رتبه‌های کل زمان هرگز بازنشانی نمی‌شوند',

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch, type Person } from '../lib/api';
 import { tg } from '../lib/tg';
+import { canRequestInApp, openLocationSettings, requestLocationInApp } from '../lib/location';
 import { useT } from '../i18n';
 import { Button, ChipGroup, ChipPick, EmptyState, Field, Skeleton } from '../components/ui';
 import PersonCard from '../components/PersonCard';
@@ -52,12 +53,54 @@ export default function Discover({ onOpenUser }: {
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locationSent, setLocationSent] = useState(false);
+  const [denied, setDenied] = useState(false);
   const [hasLocation, setHasLocation] = useState(true);
 
+  /**
+   * In-app first, bot chat as the fallback.
+   *
+   * Where Telegram supports it, this is one tap and a native permission
+   * prompt — nobody leaves Discover. Older clients, and anyone whose
+   * capture fails for a reason other than refusal, still get the bot
+   * keyboard, so the path that already worked is never removed.
+   */
   const requestLocation = async () => {
     tg.tap('medium');
     setLocating(true);
     setLocationError(null);
+    setDenied(false);
+
+    if (canRequestInApp()) {
+      const r = await requestLocationInApp();
+      if (r.status === 'ok') {
+        try {
+          await apiFetch('/v1/discover/location', {
+            method: 'POST',
+            body: JSON.stringify({ latitude: r.latitude, longitude: r.longitude }),
+          });
+          tg.notify('success');
+          setHasLocation(true);
+          setLocating(false);
+          load();
+          return;
+        } catch {
+          tg.notify('error');
+          setLocationError(t('discover.locationFailed'));
+          setLocating(false);
+          return;
+        }
+      }
+      if (r.status === 'denied') {
+        // Telegram will not ask twice; only its settings screen can
+        // undo this, so say that rather than letting them retap.
+        tg.notify('error');
+        setDenied(true);
+        setLocating(false);
+        return;
+      }
+      // 'unsupported' or 'failed' — fall through to the bot.
+    }
+
     try {
       await apiFetch('/v1/discover/request-location', { method: 'POST' });
       tg.notify('success');
@@ -161,6 +204,19 @@ export default function Discover({ onOpenUser }: {
       </div>
 
       {locationError ? <p className="error">{locationError}</p> : null}
+
+      {/* Telegram does not re-prompt after a refusal, so retapping the
+          button would do nothing. Its settings screen is the only way
+          back. */}
+      {denied ? (
+        <div className="notice">
+          <span className="notice-glyph" aria-hidden="true">📍</span>
+          <span className="notice-text">{t('discover.locationDenied')}</span>
+          <button className="chip" onClick={() => { tg.tap('light'); openLocationSettings(); }}>
+            {t('discover.openSettings')}
+          </button>
+        </div>
+      ) : null}
 
       {/* Sharing happens in the chat, so the result lands while this
           screen is in the background. Reloading on the way back is what

@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { sql } from '../lib/db.js';
 import { HttpError } from '../lib/errors.js';
-import { distanceBucket } from '../lib/geo.js';
+import { distanceBucket, snapToGrid } from '../lib/geo.js';
 import { sendLocationPrompt } from '../lib/botCommands.js';
 
 /**
@@ -67,6 +67,42 @@ const discoverRoutes: FastifyPluginAsync = async (app) => {
       throw new HttpError(502, 'PROMPT_FAILED');
     }
     return { sent: true };
+  });
+
+  /**
+   * A location captured inside the Mini App.
+   *
+   * Telegram's LocationManager (Bot API 8.0) lets the app ask for a fix
+   * with a native permission prompt, so people never leave for the chat
+   * — the bot keyboard remains for older clients that lack it.
+   *
+   * Snapped to the same ~500 m grid as the bot path before storage, and
+   * through the same table: one representation of where somebody is, no
+   * matter which route it arrived by.
+   */
+  app.post('/v1/discover/location', { preHandler: [app.requireAuth] }, async (req) => {
+    const { latitude, longitude } = z.object({
+      latitude: z.coerce.number().min(-90).max(90),
+      longitude: z.coerce.number().min(-180).max(180),
+    }).parse(req.body);
+
+    const snapped = snapToGrid(latitude, longitude);
+    await sql`
+      INSERT INTO user_locations (account_id, cell, updated_at)
+      VALUES (${req.accountId},
+              ST_SetSRID(ST_MakePoint(${snapped.lng}, ${snapped.lat}), 4326)::geography,
+              now())
+      ON CONFLICT (account_id) DO UPDATE
+        SET cell = ST_SetSRID(ST_MakePoint(${snapped.lng}, ${snapped.lat}), 4326)::geography,
+            updated_at = now()
+    `;
+    return { ok: true };
+  });
+
+  /** Remove the stored fix — the in-app equivalent of /stoplocation. */
+  app.delete('/v1/discover/location', { preHandler: [app.requireAuth] }, async (req) => {
+    await sql`DELETE FROM user_locations WHERE account_id = ${req.accountId}`;
+    return { ok: true };
   });
 
   app.get('/v1/discover', { preHandler: [app.requireAuth] }, async (req) => {
